@@ -314,7 +314,7 @@
       ctx.globalAlpha = 1;
     },
 
-    exam(ctx, T, f) {
+    exam(ctx, T) {
       ctx.fillStyle = T.top;
       ctx.fillRect(70, 38, 180, 52);
       ctx.fillStyle = T.glass;
@@ -339,7 +339,7 @@
       }
     },
 
-    ruin(ctx, T, f) {
+    ruin(ctx, T) {
       for (const x of [40, 120, 200, 270]) {
         ctx.fillStyle = T.top;
         ctx.fillRect(x - 1, 41, 34, 54);
