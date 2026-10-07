@@ -19,13 +19,13 @@
   function calcDamage(att, vic, raw) {
     let deal = 1;
     for (const a of att.def.abilities || []) {
-      if (a.vs !== vic.def.trait) continue;
+      if (a.vs !== vic.def.trait && a.vs !== '*') continue;
       if (a.type === 'massive') deal = Math.max(deal, 3);
       else if (a.type === 'strong') deal = Math.max(deal, 1.5);
     }
     let take = 1;
     for (const a of vic.def.abilities || []) {
-      if (a.vs !== att.def.trait) continue;
+      if (a.vs !== att.def.trait && a.vs !== '*') continue;
       if (a.type === 'tough') take = Math.min(take, 0.25);
       else if (a.type === 'strong') take = Math.min(take, 0.5);
     }
@@ -174,6 +174,8 @@
           v.freeze = e.def.freeze.frames;
           v.state = 'move';
           v.t = 0;
+        } else if (e.def.slow && this.rng() < e.def.slow.chance) {
+          v.slow = e.def.slow.frames;
         }
       }
       if (!targets.length || (e.def.area && base)) this.hitBase(e);

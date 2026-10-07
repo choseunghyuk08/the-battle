@@ -7,7 +7,9 @@
 <script>
 const YG = globalThis.YG;
 const phases = ['idle','walk0','walk1','windup','hit'];
-const defs = [...YG.UNITS, ...YG.ENEMIES];
+const set = new URLSearchParams(location.search).get('set') || 'units';
+const evolved = YG.UNITS.map((u) => YG.resolveDef(u, 1));
+const defs = set === 'evo' ? evolved : set === 'enemies' ? YG.ENEMIES : YG.UNITS;
 const sc = 3, cw = YG.sprites.CW*sc, ch = YG.sprites.CH*sc;
 const sheet = document.getElementById('sheet');
 sheet.width = phases.length*cw; sheet.height = defs.length*ch;
@@ -19,7 +21,7 @@ defs.forEach((d,r)=>{ phases.forEach((p,c)=>{
 });});
 const scene = document.getElementById('scene').getContext('2d');
 const stage = YG.STAGES[2];
-const save = YG.newSave(); ['bat','cook','tech','patrol','pe'].forEach(i=>save.owned[i]={lv:1,plus:0,shards:0});
+const save = YG.newSave(); ['bat','cook','tech','patrol','pe'].forEach(i=>save.owned[i]={lv:1,plus:0,shards:0,evo:0});
 save.deck = ['basic','bag','tech','patrol','pe'];
 const b = new YG.Battle(stage, YG.buildDeck(save), Math.random);
 b.money = 5000; b.workerLv = 8; b.cannon.charge = b.cannon.max;
