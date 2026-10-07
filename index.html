@@ -1,0 +1,165 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0d1218">
+  <title>야자 괴담</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Do+Hyeon&family=IBM+Plex+Sans+KR:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <main id="app">
+
+    <section class="screen home" id="home" aria-label="시작 화면">
+      <div class="home-stage">
+        <canvas id="backdrop" width="320" height="180"></canvas>
+      </div>
+      <div class="home-copy">
+        <h1 id="title">야자 괴담.</h1>
+        <p class="live" id="homeLive"></p>
+        <nav class="home-nav" aria-label="메뉴">
+          <button class="btn primary big" data-go="stages">출전</button>
+          <button class="btn big" data-go="formation">편성</button>
+          <button class="btn big" data-go="gacha">문방구</button>
+        </nav>
+      </div>
+    </section>
+
+    <section class="screen sub" id="stages" aria-label="스테이지 선택">
+      <header class="bar">
+        <button class="btn ghost" data-go="home">← 처음</button>
+        <h2>어디부터.</h2>
+        <div class="purse" data-purse></div>
+      </header>
+      <div class="stage-list" id="stageList"></div>
+    </section>
+
+    <section class="screen sub" id="formation" aria-label="편성">
+      <header class="bar">
+        <button class="btn ghost" data-go="home">← 처음</button>
+        <h2>누굴 보낼까.</h2>
+        <div class="purse" data-purse></div>
+      </header>
+      <div class="formation">
+        <div class="deck-row">
+          <p class="eyebrow">출전 <span id="deckCount"></span></p>
+          <div class="deck" id="deck"></div>
+        </div>
+        <div class="roster-wrap">
+          <div class="roster" id="roster"></div>
+          <aside class="detail" id="detail"></aside>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen sub" id="gacha" aria-label="뽑기">
+      <header class="bar">
+        <button class="btn ghost" data-go="home">← 처음</button>
+        <h2>문방구 열었다.</h2>
+        <div class="purse" data-purse></div>
+      </header>
+      <div class="gacha">
+        <div class="machine-wrap"><canvas id="machine" width="72" height="104"></canvas></div>
+        <div class="gacha-panel">
+          <p class="pity" id="pityLine"></p>
+          <div class="pull-row">
+            <button class="btn big" id="pull1"><span>1회</span><b class="cost" id="cost1"></b></button>
+            <button class="btn primary big" id="pull11"><span>11연차</span><b class="cost" id="cost11"></b></button>
+          </div>
+          <p class="hint" id="pullHint"></p>
+          <details class="rates">
+            <summary>확률 보기</summary>
+            <div id="rateTable"></div>
+          </details>
+        </div>
+      </div>
+    </section>
+
+    <section class="screen battle" id="battle" aria-label="전투">
+      <div class="b-top">
+        <div class="b-name"><span id="bSub"></span> <b id="bName"></b></div>
+        <div class="b-time" id="bTime">0:00</div>
+        <div class="b-ctl">
+          <button class="btn small" id="bSpeed" aria-label="배속">×1</button>
+          <button class="btn small" id="bPause" aria-label="일시정지">멈춤</button>
+        </div>
+      </div>
+      <div class="b-field" id="bField">
+        <canvas id="field" width="320" height="180"></canvas>
+        <div class="b-bars">
+          <div class="hp ally"><span>교실</span><i><b id="hpAlly"></b></i><em id="hpAllyNum"></em></div>
+          <div class="hp enemy"><span id="hpEnemyName">근원</span><i><b id="hpEnemy"></b></i><em id="hpEnemyNum"></em></div>
+        </div>
+      </div>
+      <div class="b-console" id="bConsole">
+        <div class="money-box">
+          <div class="money"><b id="money">0</b><span id="moneyMax">/ 500</span></div>
+          <button class="up" id="upBtn"><span>매점 확장</span><em id="upLv">Lv1</em><b id="upCost"></b></button>
+        </div>
+        <div class="slots" id="slots"></div>
+        <button class="cannon" id="cannonBtn"><span>방송 대포</span><i><b id="cannonFill"></b></i></button>
+      </div>
+    </section>
+
+  </main>
+
+  <dialog id="pullResult" class="sheet">
+    <div class="sheet-head">
+      <h3 id="pullTitle">결과.</h3>
+      <p class="eyebrow" id="pullSummary"></p>
+    </div>
+    <div class="pull-grid" id="pullGrid"></div>
+    <div class="sheet-actions">
+      <button class="btn" id="pullClose">닫기</button>
+      <button class="btn primary" id="pullAgain">한 번 더</button>
+    </div>
+  </dialog>
+
+  <dialog id="battleEnd" class="sheet small">
+    <div class="sheet-head">
+      <h3 id="endTitle"></h3>
+      <p class="eyebrow" id="endSub"></p>
+    </div>
+    <div class="reward" id="endReward"></div>
+    <div class="sheet-actions">
+      <button class="btn" id="endExit">나가기</button>
+      <button class="btn primary" id="endRetry">다시</button>
+    </div>
+  </dialog>
+
+  <dialog id="pauseDlg" class="sheet small">
+    <div class="sheet-head"><h3>멈춤.</h3></div>
+    <div class="sheet-actions">
+      <button class="btn" id="pauseQuit">포기</button>
+      <button class="btn primary" id="pauseResume">계속</button>
+    </div>
+  </dialog>
+
+  <dialog id="debugDlg" class="sheet small">
+    <div class="sheet-head"><h3>디버그.</h3><p class="eyebrow">개발용 패널</p></div>
+    <div class="debug-grid">
+      <button class="btn" data-dbg="coins">동전 +10,000</button>
+      <button class="btn" data-dbg="xp">경험치 +1,000</button>
+      <button class="btn" data-dbg="shards">조각 +10</button>
+      <button class="btn" data-dbg="all">전 유닛 해금</button>
+      <button class="btn" data-dbg="pity">천장 초기화</button>
+      <button class="btn" data-dbg="clear">스테이지 전부 해금</button>
+      <button class="btn danger" data-dbg="reset">세이브 초기화</button>
+    </div>
+    <div class="sheet-actions"><button class="btn primary" id="debugClose">닫기</button></div>
+  </dialog>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/data.js"></script>
+  <script src="js/engine.js"></script>
+  <script src="js/game.js"></script>
+  <script src="js/sprites.js"></script>
+  <script src="js/render.js"></script>
+  <script src="js/ui.js"></script>
+  <script src="js/main.js"></script>
+</body>
+</html>

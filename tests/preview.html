@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>sprite preview</title>
+<style>body{margin:0;background:#0e1319;color:#efe9dc;font:12px sans-serif}canvas{image-rendering:pixelated;display:block}</style></head>
+<body><canvas id="sheet"></canvas><canvas id="scene" width="320" height="180" style="width:960px;height:540px"></canvas>
+<script src="../js/data.js"></script><script src="../js/engine.js"></script><script src="../js/game.js"></script>
+<script src="../js/sprites.js"></script><script src="../js/render.js"></script>
+<script>
+const YG = globalThis.YG;
+const phases = ['idle','walk0','walk1','windup','hit'];
+const defs = [...YG.UNITS, ...YG.ENEMIES];
+const sc = 3, cw = YG.sprites.CW*sc, ch = YG.sprites.CH*sc;
+const sheet = document.getElementById('sheet');
+sheet.width = phases.length*cw; sheet.height = defs.length*ch;
+const sctx = sheet.getContext('2d'); sctx.imageSmoothingEnabled=false;
+sctx.fillStyle='#2a3641'; sctx.fillRect(0,0,sheet.width,sheet.height);
+defs.forEach((d,r)=>{ phases.forEach((p,c)=>{
+  const s = d.scale||1;
+  sctx.drawImage(YG.sprites.frame(d,p),c*cw,r*ch,cw,ch);
+});});
+const scene = document.getElementById('scene').getContext('2d');
+const stage = YG.STAGES[2];
+const save = YG.newSave(); ['bat','cook','tech','patrol','pe'].forEach(i=>save.owned[i]={lv:1,plus:0,shards:0});
+save.deck = ['basic','bag','tech','patrol','pe'];
+const b = new YG.Battle(stage, YG.buildDeck(save), Math.random);
+b.money = 5000; b.workerLv = 8; b.cannon.charge = b.cannon.max;
+for (let f=0; f<60*30; f++){
+  if (f%20===0) for (let i=0;i<5;i++) b.summon(i);
+  b.step();
+}
+window.__b = b;
+YG.render.battle(scene, b, stage.theme);
+window.__ready = true;
+</script></body></html>
