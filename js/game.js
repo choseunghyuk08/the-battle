@@ -77,7 +77,7 @@
     return `${Math.floor(h / 24)}일 전`;
   };
 
-  YG.levelUpCost = (lv) => 50 * lv;
+  YG.levelUpCost = (lv) => Math.round(50 * lv * (1 + Math.max(0, lv - 10) / 20));
   YG.plusCost = (plus) => plus + 2;
 
   YG.levelUp = (save, id) => {
@@ -100,13 +100,13 @@
     return true;
   };
 
-  YG.evoReq = (def) => YG.EVO[def.grade];
+  YG.evoReq = (def, current = 0) => (current >= 1 ? YG.EVO2 : YG.EVO)[def.grade];
 
   YG.canEvolve = (save, id) => {
     const o = save.owned[id];
     const def = YG.unitById(id);
-    if (!o || o.evo || !def) return { ok: false, why: 'done' };
-    const r = YG.evoReq(def);
+    if (!o || !def || o.evo >= 2) return { ok: false, why: 'done' };
+    const r = YG.evoReq(def, o.evo);
     if (o.lv < r.lv) return { ok: false, why: 'lv', req: r };
     if (save.pens < r.pens) return { ok: false, why: 'pens', req: r };
     if (save.xp < r.xp) return { ok: false, why: 'xp', req: r };
@@ -118,7 +118,7 @@
     if (!chk.ok) return false;
     save.pens -= chk.req.pens;
     save.xp -= chk.req.xp;
-    save.owned[id].evo = 1;
+    save.owned[id].evo += 1;
     return true;
   };
 

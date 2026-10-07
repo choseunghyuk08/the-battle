@@ -34,6 +34,14 @@
         <h2>어디부터.</h2>
         <div class="purse" data-purse></div>
       </header>
+      <div class="chapter-nav">
+        <button class="btn ghost" id="chPrev" aria-label="이전 장">←</button>
+        <button class="chapter-title" id="chTitle" aria-label="장 목록 열기">
+          <b id="chName"></b>
+          <span id="chProg"></span>
+        </button>
+        <button class="btn ghost" id="chNext" aria-label="다음 장">→</button>
+      </div>
       <div class="stage-list" id="stageList"></div>
     </section>
 
@@ -143,6 +151,15 @@
     </div>
   </dialog>
 
+  <dialog id="chapterDlg" class="sheet">
+    <div class="sheet-head">
+      <h3>장 목록.</h3>
+      <p class="eyebrow" id="chapterSummary"></p>
+    </div>
+    <div class="chap-grid" id="chapterGrid"></div>
+    <div class="sheet-actions"><button class="btn primary" id="chapterClose">닫기</button></div>
+  </dialog>
+
   <dialog id="debugDlg" class="sheet small">
     <div class="sheet-head"><h3>디버그.</h3><p class="eyebrow">개발용 패널</p></div>
     <div class="debug-grid">
@@ -161,9 +178,13 @@
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="js/data.js"></script>
+  <script src="js/bestiary.js"></script>
+  <script src="js/world.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/game.js"></script>
   <script src="js/sprites.js"></script>
+  <script src="js/sprites2.js"></script>
+  <script src="js/scenery.js"></script>
   <script src="js/render.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>

@@ -1,18 +1,29 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><title>background preview</title>
-<style>body{margin:0;background:#000;display:grid;grid-template-columns:repeat(2,640px);gap:4px}canvas{width:640px;height:360px;image-rendering:pixelated;display:block}</style></head>
+<style>body{margin:0;background:#000;display:grid;grid-template-columns:repeat(3,420px);gap:4px}canvas{width:420px;height:236px;image-rendering:pixelated;display:block}</style></head>
 <body>
-<script src="../js/data.js"></script><script src="../js/engine.js"></script><script src="../js/game.js"></script>
-<script src="../js/sprites.js"></script><script src="../js/render.js"></script>
+<script src="../js/data.js"></script><script src="../js/bestiary.js"></script><script src="../js/engine.js"></script><script src="../js/game.js"></script>
+<script src="../js/sprites.js"></script><script src="../js/sprites2.js"></script><script src="../js/scenery.js"></script><script src="../js/render.js"></script>
 <script>
 const YG = globalThis.YG;
-for (const st of YG.STAGES) {
+const q = new URLSearchParams(location.search);
+let themes;
+if (q.get('all')) {
+  themes = YG.STAGES.filter((s, i) => s.sub.endsWith('-1') || s.id <= 3).map((s) => s.theme);
+} else {
+  const scenes = ['library','gym','pool','office','art','computer','auditorium','field','street','dorm','forest','exam','ruin','kitchen','mirrors','final'];
+  const pals = Object.keys(YG.PALETTES);
+  themes = scenes.map((sc, i) => `${sc}:${pals[(i * 3) % pals.length]}`);
+}
+for (const theme of themes) {
   const c = document.createElement('canvas'); c.width = 320; c.height = 180; document.body.append(c);
   const ctx = c.getContext('2d');
-  const save = YG.newSave(); save.owned.bat = {lv:1,plus:0,shards:0,evo:0}; save.deck = ['basic','bag','reader','bat'];
-  const b = new YG.Battle(st, YG.buildDeck(save), Math.random);
+  const stage = { allyBaseHp: 100, enemyBaseHp: 100, waves: [], theme, startMoney: 0 };
+  const save = YG.newSave(); save.deck = ['basic','bag','reader'];
+  const b = new YG.Battle(stage, YG.buildDeck(save), Math.random);
   b.money = 5000; b.workerLv = 8;
-  for (let f = 0; f < 30 * 40; f++) { if (f % 25 === 0) for (let i = 0; i < 4; i++) b.summon(i); b.step(); }
-  YG.render.battle(ctx, b, st.theme);
+  for (let f = 0; f < 120; f++) { if (f % 30 === 0) for (let i = 0; i < 3; i++) b.summon(i); b.step(); }
+  YG.render.battle(ctx, b, theme);
+  ctx.fillStyle = '#fff'; ctx.font = '10px sans-serif'; ctx.fillText(theme, 6, 172);
 }
 </script></body></html>

@@ -9,7 +9,7 @@
   const METAL_RESIST = 0.02;
   const BASE_REACH = 4;
 
-  const levelMult = (lv, plus) => (1 + 0.1 * (lv - 1)) * (1 + 0.08 * plus);
+  const levelMult = (lv, plus) => (1 + 0.12 * (lv - 1)) * (1 + 0.08 * plus);
 
   YG.statsFor = (def, lv = 1, plus = 0) => {
     const m = levelMult(lv, plus);
@@ -48,7 +48,7 @@
       this.baseFlash = { ally: 0, enemy: 0 };
       this.slots = deck.map((d) => ({ def: d.def, lv: d.lv, plus: d.plus, cd: 0 }));
       this.waves = stage.waves.map((w) => ({ ...w, spawned: 0, next: w.start * FPS }));
-      this.bossPending = stage.boss ? { ...stage.boss } : null;
+      this.bossPending = (stage.bosses || (stage.boss ? [stage.boss] : [])).map((b) => ({ ...b }));
       this.units = [];
       this.fx = [];
       this.nextId = 1;
@@ -91,6 +91,7 @@
         walk: 0,
         age: 0,
         moving: false,
+        drop: Math.round((def.drop || 0) * (ally ? 1 : Math.sqrt(opts.mult || 1))),
       };
       this.units.push(e);
       return e;
@@ -223,7 +224,7 @@
       v.hp = 0;
       if (v.side === 'enemy') {
         this.stats.kills++;
-        this.money = Math.min(this.worker.max, this.money + v.def.drop);
+        this.money = Math.min(this.worker.max, this.money + v.drop);
       }
     }
 
@@ -285,10 +286,10 @@
         w.spawned++;
         w.next += w.interval * FPS;
       }
-      const b = this.bossPending;
-      if (b && this.baseHp.enemy / this.baseMax.enemy <= b.atHp) {
+      const ratio = this.baseHp.enemy / this.baseMax.enemy;
+      while (this.bossPending.length && ratio <= this.bossPending[0].atHp) {
+        const b = this.bossPending.shift();
         this.spawnUnit('enemy', YG.enemyById(b.id), { mult: b.mult });
-        this.bossPending = null;
         this.fx.push({ kind: 'boss', life: 60, max: 60 });
       }
     }

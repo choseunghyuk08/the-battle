@@ -1,7 +1,7 @@
 const path = require('path');
 const assert = require('assert');
 const root = path.join(__dirname, '..', 'js');
-['data.js', 'engine.js', 'game.js'].forEach((f) => require(path.join(root, f)));
+['data.js', 'bestiary.js', 'world.js', 'engine.js', 'game.js', 'scenery.js'].forEach((f) => require(path.join(root, f)));
 const YG = globalThis.YG;
 
 function seeded(seed) {
@@ -60,6 +60,17 @@ function testEvolution() {
   assert.strictEqual(s.xp, 100);
   assert(!YG.evolve(s, 'bat'), '두 번 진화 불가');
   assert.strictEqual(YG.buildDeck({ ...s, deck: ['bat'] })[0].def.name, '4번 타자');
+
+  assert.strictEqual(YG.canEvolve(s, 'bat').why, 'lv', '2차는 레벨 32부터');
+  s.owned.bat.lv = 32;
+  s.pens = 16;
+  s.xp = 4000;
+  assert(YG.evolve(s, 'bat'));
+  assert.strictEqual(s.owned.bat.evo, 2);
+  const evo2 = YG.ownedDef(s, 'bat');
+  assert.strictEqual(evo2.hp, Math.round(bat.hp * 2.4));
+  assert.strictEqual(evo2.name, '각성 4번 타자');
+  assert(!YG.evolve(s, 'bat'), '3차는 없다');
   console.log('evolution ok');
 }
 
@@ -140,6 +151,31 @@ function testGacha() {
   console.log('gacha ok');
 }
 
+function testWorld() {
+  assert.strictEqual(YG.STAGES.length, 7 + 48 * 5, '스테이지 247개');
+  assert.strictEqual(YG.CHAPTERS.length, 50);
+  YG.STAGES.forEach((st, i) => {
+    assert.strictEqual(st.id, i + 1, 'id는 연속');
+    assert(YG.PALETTES[st.theme.split(':')[1]] || !st.theme.includes(':'), `팔레트 ${st.theme}`);
+    const scene = st.theme.split(':')[0];
+    assert(YG.scenery[scene] || ['corridor', 'lab', 'basement', 'bathroom', 'cafeteria', 'music', 'roof'].includes(scene), `배경 ${scene}`);
+    for (const w of st.waves) YG.enemyById(w.id);
+    for (const b of st.bosses || (st.boss ? [st.boss] : [])) assert(YG.enemyById(b.id).boss, `${st.sub} 보스`);
+    assert(YG.stageTraits(st).length >= 1);
+    assert(st.reward.first.coins > 0 && st.reward.first.xp > 0 && st.reward.first.pens > 0);
+  });
+  const finales = YG.STAGES.filter((s) => s.sub.endsWith('-5') && s.chapter >= 3);
+  assert.strictEqual(finales.length, 48);
+  assert(finales.every((s) => s.bosses && s.bosses.length >= 1), '장마다 마지막 스테이지는 보스');
+  const bossNames = new Set(finales.map((s) => YG.enemyById(s.bosses[0].id).name));
+  assert(bossNames.size >= 40, `보스 종류 ${bossNames.size}`);
+  const elites = YG.STAGES.filter((s) => s.chapter >= 9 && s.waves.some((w) => YG.enemyById(w.id).boss));
+  assert(elites.length > 100, '보스가 후반에 잡몹으로 다시 등장');
+  const early = YG.STAGES.filter((s) => s.chapter <= 8 && s.waves.some((w) => YG.enemyById(w.id).boss));
+  assert.strictEqual(early.length, 0, '초반 잡몹 웨이브에는 보스가 없다');
+  console.log(`world ok (스테이지 ${YG.STAGES.length}, 보스 ${bossNames.size}종, 보스 재등장 스테이지 ${elites.length})`);
+}
+
 function testProgression() {
   const s = YG.newSave();
   assert(YG.levelUp(s, 'basic'));
@@ -182,10 +218,13 @@ function tiers() {
   ].map((t) => ({ ...t, all }));
 }
 
-function playBot(t, seed = 1, maxSec = 480) {
+function playBot(t, seed = 1, maxSec = 600, policy = 'saver') {
   const save = YG.newSave();
   save.owned = {};
-  for (const id of t.deck) save.owned[id] = { lv: t.lv, plus: Math.max(0, t.lv - 5), shards: 0, evo: t.evo.includes(id) ? 1 : 0 };
+  for (const id of t.deck) {
+    const evo = t.evoMap ? t.evoMap[id] || 0 : t.evo.includes(id) ? 1 : 0;
+    save.owned[id] = { lv: t.lv, plus: t.plus ?? Math.min(5, Math.max(0, t.lv - 5)), shards: 0, evo };
+  }
   save.deck = t.deck;
   const stage = YG.STAGES.find((s) => s.id === t.stage);
   const b = new YG.Battle(stage, YG.buildDeck(save), seeded(seed));
@@ -199,9 +238,10 @@ function playBot(t, seed = 1, maxSec = 480) {
         b.fireCannon();
         cannonUses++;
       }
-      const targetLv = b.seconds < 60 ? 3 : b.seconds < 120 ? 5 : 6;
+      const targetLv = Math.min(12, 3 + Math.floor(b.seconds / 15));
+      const threat = enemies.some((u) => u.x < 170);
       if (b.workerLv < targetLv && b.canUpgrade()) b.upgradeWorker();
-      else {
+      else if (!(b.workerLv < targetLv && !threat && b.worker.up > 0)) {
         const present = new Set(enemies.map((u) => u.def.trait));
         const score = (s) =>
           ((s.def.abilities || []).some((a) => present.has(a.vs) || a.vs === '*') ? 10 : 0) + s.def.cost / 100;
@@ -209,11 +249,17 @@ function playBot(t, seed = 1, maxSec = 480) {
         for (const i of order) {
           const sl = b.slots[i];
           if (b.canSummon(i)) b.summon(i);
-          else if (sl.cd <= 0 && score(sl) >= 10 && b.money < sl.def.cost && b.worker.max >= sl.def.cost) break;
+          else if (policy === 'saver' && !threat && sl.cd <= 0 && score(sl) >= 10 && b.money < sl.def.cost && b.worker.max >= sl.def.cost) break;
         }
       }
     }
     b.step();
+    if (process.env.TRACE && b.frame % 300 === 0) {
+      const names = (a) => Object.entries(a.reduce((m, u) => ((m[u.def.id] = (m[u.def.id] || 0) + 1), m), {})).map(([k, v]) => k + v).join(',');
+      const al = b.units.filter((u) => u.side === 'ally' && !u.dying);
+      const en = b.units.filter((u) => u.side === 'enemy' && !u.dying);
+      console.log(`${Math.round(b.seconds)}s $${Math.round(b.money)} w${b.workerLv} base ${b.baseHp.ally}/${b.baseMax.ally} en ${b.baseHp.enemy} | ally[${names(al)}] enemy[${names(en)}]`);
+    }
     for (const u of b.units) if (u.side === 'enemy' && !u.dying) minEnemyX = Math.min(minEnemyX, u.x);
     minAlly = Math.min(minAlly, (b.baseHp.ally / b.baseMax.ally) * 100);
   }
@@ -249,10 +295,50 @@ if (require.main === module) {
   testDamage();
   testEvolution();
   testSlots();
+  testWorld();
   testGacha();
   testProgression();
   if (process.argv.includes('--balance')) balance();
   console.log('\nall tests passed');
 }
 
-module.exports = { playBot, tiers, seeded };
+const ORDER = ['basic', 'bag', 'runner', 'reader', 'tech', 'bat', 'cook', 'radio', 'patrol', 'lab', 'robot', 'pe', 'top', 'warden'];
+const GRADE_SCORE = { 4: 1, 3: 3, 2: 4.5, 1: 6, 0: 7 };
+
+function progressTier(stageId) {
+  const stage = YG.STAGES[stageId - 1];
+  const g = stage.id - 1;
+  const lv = Math.max(1, Math.min(50, Math.round(4 + 0.19 * g)));
+  const have = g < 6 ? 4 : g < 14 ? 6 : g < 22 ? 8 : g < 30 ? 10 : g < 40 ? 12 : 14;
+  const owned = ORDER.slice(0, have);
+  const traits = new Set(YG.stageTraits(stage));
+  const score = (id) => {
+    const d = YG.unitById(id);
+    let sc = GRADE_SCORE[d.grade];
+    for (const a of d.abilities || []) {
+      if (traits.has(a.vs) || a.vs === '*') sc += a.type === 'massive' ? 3 : a.type === 'tough' ? 1.5 : 2;
+    }
+    return sc + (d.freeze ? 1 : 0) + (d.area ? 1 : 0);
+  };
+  const slots = Math.min(10, 5 + g);
+  const deck = [...owned].sort((a, b) => score(b) - score(a)).slice(0, slots);
+  if (!deck.includes('bag') && owned.includes('bag')) deck[deck.length - 1] = 'bag';
+  const evoMap = {};
+  for (const id of deck) evoMap[id] = lv >= 40 ? 2 : lv >= 14 ? 1 : 0;
+  return { stage: stageId, deck, lv, plus: Math.min(5, Math.floor(lv / 8)), evoMap };
+}
+
+function playBest(t, seeds, maxSec = 600) {
+  let best = null;
+  for (const policy of ['saver', 'greedy']) {
+    const runs = [];
+    for (let seed = 1; seed <= seeds; seed++) runs.push(playBot(t, seed, maxSec, policy));
+    const wins = runs.filter((r) => r.result === 'win').length;
+    const avg = (k) => Math.round(runs.reduce((a, r) => a + r[k], 0) / runs.length);
+    const out = { policy, wins, sec: avg('sec'), minAlly: avg('minAlly'), front: avg('minEnemyX'), timeouts: runs.filter((r) => r.result === 'timeout').length };
+    if (!best || out.wins > best.wins) best = out;
+  }
+  return best;
+}
+
+module.exports = { playBot, playBest, tiers, seeded, progressTier };

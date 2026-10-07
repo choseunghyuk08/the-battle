@@ -223,19 +223,27 @@
     },
   };
 
+  function resolveTheme(theme) {
+    const [scene, pal] = theme.split(':');
+    const T = pal ? YG.PALETTES[pal] : THEMES[scene] || THEMES.corridor;
+    const draw = SCENERY[scene] || (YG.scenery && YG.scenery[scene]) || SCENERY.corridor;
+    return { scene, T, draw };
+  }
+
   function drawBackground(ctx, theme, frame) {
-    const T = THEMES[theme] || THEMES.corridor;
+    const { scene, T, draw } = resolveTheme(theme);
     ctx.fillStyle = T.wall;
     ctx.fillRect(0, 0, VIEW.w, VIEW.groundY);
     ctx.fillStyle = T.top;
     ctx.fillRect(0, 0, VIEW.w, 30);
 
-    if (theme !== 'roof') {
+    const outdoor = scene === 'roof' || (YG.OUTDOOR && YG.OUTDOOR.has(scene));
+    if (!outdoor) {
       const flicker = frame % 170 > 160 && frame % 4 < 2;
       ctx.fillStyle = flicker ? T.top : '#d9e2d0';
       ctx.fillRect(138, 8, 44, 3);
     }
-    (SCENERY[theme] || SCENERY.corridor)(ctx, T, frame);
+    draw(ctx, T, frame);
 
     ctx.fillStyle = T.floor;
     ctx.fillRect(0, VIEW.groundY, VIEW.w, VIEW.h - VIEW.groundY);
@@ -383,6 +391,23 @@
       ctx.fillRect(Math.round(x), Math.round(y), spin ? 5 : 3, spin ? 3 : 5);
       ctx.fillStyle = '#d9483b';
       ctx.fillRect(Math.round(x) + 1, Math.round(y) + 1, 1, 1);
+    },
+    laser(ctx, f, x, y, p) {
+      const len = Math.abs(f.x1 - f.x0);
+      const x0 = f.dir > 0 ? f.x0 + 6 : f.x0 - 6 - len;
+      ctx.globalAlpha = 0.9 * (1 - p);
+      ctx.fillStyle = '#e6564a';
+      ctx.fillRect(Math.round(x0), Math.round(y - 1), Math.round(len), 2);
+      ctx.fillStyle = '#ffd9d2';
+      ctx.fillRect(Math.round(x0), Math.round(y), Math.round(len), 1);
+      ctx.globalAlpha = 1;
+    },
+    chalk(ctx, f, x, y, p) {
+      const yy = Math.round(y - Math.sin(p * Math.PI) * 6);
+      ctx.fillStyle = '#141218';
+      ctx.fillRect(Math.round(x) - 1, yy - 1, 6, 3);
+      ctx.fillStyle = '#efe9dc';
+      ctx.fillRect(Math.round(x), yy, 4, 1);
     },
     note(ctx, f, x, y, p) {
       const yy = Math.round(y - 4 + Math.sin(p * 9) * 3);

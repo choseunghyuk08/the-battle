@@ -309,7 +309,11 @@
     { max: 2300, income: 36, up: 480 },
     { max: 3000, income: 50, up: 700 },
     { max: 4000, income: 70, up: 1000 },
-    { max: 5500, income: 100, up: 0 },
+    { max: 5500, income: 100, up: 1500 },
+    { max: 7500, income: 140, up: 2200 },
+    { max: 10000, income: 200, up: 3200 },
+    { max: 14000, income: 280, up: 4500 },
+    { max: 20000, income: 400, up: 0 },
   ];
 
   YG.CANNON = { chargeFrames: 30 * 36, dmg: 240, kb: 5.5, metalPct: 0.2 };
@@ -334,31 +338,42 @@
     0: { pens: 20, xp: 1500, lv: 8 },
   };
 
-  YG.PROG = { maxLv: 10, maxPlus: 5, baseSlots: 5, maxDeck: 10 };
+  YG.EVO2 = {
+    4: { pens: 8, xp: 2000, lv: 30 },
+    3: { pens: 16, xp: 4000, lv: 32 },
+    2: { pens: 26, xp: 7000, lv: 34 },
+    1: { pens: 36, xp: 10000, lv: 36 },
+    0: { pens: 50, xp: 15000, lv: 38 },
+  };
+
+  YG.PROG = { maxLv: 50, maxPlus: 5, baseSlots: 5, maxDeck: 10 };
 
   YG.unitById = (id) => YG.UNITS.find((u) => u.id === id);
   YG.enemyById = (id) => YG.ENEMIES.find((u) => u.id === id);
 
   const evoCache = {};
   YG.resolveDef = (def, evolved) => {
-    if (!evolved) return def;
-    if (evoCache[def.id]) return evoCache[def.id];
+    const lvl = evolved ? Number(evolved) : 0;
+    if (!lvl) return def;
+    const key = `${def.id}:${lvl}`;
+    if (evoCache[key]) return evoCache[key];
     const e = def.evo;
     const abilities =
       e.abilities || (def.abilities || []).map((a) => (a.type === 'strong' ? { ...a, type: 'massive' } : a));
-    evoCache[def.id] = {
+    const second = lvl >= 2;
+    evoCache[key] = {
       ...def,
-      name: e.name,
+      name: second ? e.name2 || `각성 ${e.name}` : e.name,
       blurb: e.blurb || def.blurb,
-      hp: Math.round(def.hp * 1.6),
-      atk: Math.round(def.atk * 1.5),
-      cooldown: Math.round(def.cooldown * 0.9),
+      hp: Math.round(def.hp * (second ? 2.4 : 1.6)),
+      atk: Math.round(def.atk * (second ? 2.1 : 1.5)),
+      cooldown: Math.round(def.cooldown * (second ? 0.8 : 0.9)),
       abilities,
-      look: { ...def.look, evo: true },
-      spriteKey: `${def.id}:e`,
-      evolved: true,
+      look: { ...def.look, evo: lvl },
+      spriteKey: `${def.id}:e${lvl}`,
+      evolved: lvl,
     };
-    return evoCache[def.id];
+    return evoCache[key];
   };
 
   YG.abilityText = (def) => {

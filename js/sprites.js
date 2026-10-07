@@ -231,7 +231,7 @@
 
     const [bx, by] = arm.b;
     b.line(CX - 4, BY - 12, CX + bx, BY + by, look.top, 2);
-    b.r(CX + bx - 1, BY + by - 1, 3, 3, SKIN);
+    b.r(CX + bx - 1, BY + by - 1, 3, 3, look.skin || SKIN);
 
     const legs = [
       [CX - 4, leg.l],
@@ -258,8 +258,8 @@
     if (look.top === '#b23b32') b.r(CX - 4, BY - 10, 8, 1, look.trim);
     b.r(CX - 4, BY - 7, 8, 1, '#1f1d24');
 
-    b.r(CX - 6, BY - 25, 12, 11, SKIN);
-    b.r(CX - 6, BY - 17, 12, 2, SKIN_SHADE);
+    b.r(CX - 6, BY - 25, 12, 11, look.skin || SKIN);
+    b.r(CX - 6, BY - 17, 12, 2, look.skinShade || SKIN_SHADE);
     drawHair(b, look);
     if (look.face === 'glasses') {
       b.r(CX - 2, BY - 20, 3, 4, '#bfe3f2');
@@ -271,8 +271,8 @@
       b.r(CX + 2, BY - 20, 3, 3, '#14121a');
       b.px(CX + 1, BY - 19, '#14121a');
     } else {
-      b.r(CX - 1, BY - 19, 2, 2, '#1b1820');
-      b.r(CX + 3, BY - 19, 2, 2, '#1b1820');
+      b.r(CX - 1, BY - 19, 2, 2, look.eyes || '#1b1820');
+      b.r(CX + 3, BY - 19, 2, 2, look.eyes || '#1b1820');
     }
     b.px(CX + 2, BY - 16, '#a9604f');
     drawHat(b, look);
@@ -290,7 +290,7 @@
       b.line(CX - 4, BY - 14, gx, BY - 17, look.top, 1);
     }
     if (!raised) b.line(CX + 4, BY - 12, fx, fy, look.top, 2);
-    b.r(fx - 1, fy - 1, 3, 3, SKIN);
+    b.r(fx - 1, fy - 1, 3, 3, look.skin || SKIN);
     drawProp(b, look, phase, [fx, fy]);
     if (look.legend) {
       const t = { idle: 0, walk0: 1, walk1: 2, windup: 3, hit: 4 }[phase];
@@ -592,12 +592,18 @@
     if (cache[key]) return cache[key];
     const frames = {};
     for (const p of PHASES) {
-      frames[p] = typeof def.look === 'string' ? renderEnemy(def.look, p) : drawStudent(def.look, p);
+      let img;
+      if (typeof def.look === 'string') img = renderEnemy(def.look, p);
+      else if (def.look.arch && def.look.arch !== 'human') img = YG.archRender(def.look, p);
+      else img = drawStudent(def.look, p);
+      frames[p] = def.tint ? tint(img, def.tint.color, def.tint.alpha) : img;
     }
     const set = { frames, flash: {}, frozen: {} };
     cache[key] = set;
     return set;
   }
+
+  YG.spriteKit = { builder, canvas, CX, BY, CW, CH, OUTLINE };
 
   YG.sprites = {
     CW, CH, CX, BY,

@@ -19,10 +19,13 @@
 
 | 경로 | 내용 |
 |---|---|
-| `js/data.js` | 유닛, 적, 스테이지, 뽑기 확률 등 수치 전부. 밸런스는 여기서 조정 |
+| `js/data.js` | 유닛, 1~2장 스테이지, 뽑기 확률, 성장 수치. 밸런스는 여기서 조정 |
+| `js/bestiary.js` | 잡몹 23종 + 보스 14종 정의, 색 변종 생성 (`rat:red` 같은 id) |
+| `js/world.js` | 3~50장 표와 스테이지 생성기, 난이도 곡선 |
 | `js/engine.js` | 전투 엔진 (DOM 없음) |
 | `js/game.js` | 저장, 레벨업, 뽑기 (DOM 없음) |
-| `js/sprites.js` | 도트 스프라이트를 코드로 그리는 곳 |
+| `js/sprites.js`, `js/sprites2.js` | 도트 스프라이트를 코드로 그리는 곳 (학생/기존 적, 새 적 아키타입) |
+| `js/scenery.js` | 배경 아키타입과 팔레트 |
 | `js/render.js` | 전투 화면 그리기 |
 | `js/ui.js` | 화면 전환과 HUD |
 | `docs/concept.md` | 컨셉 문서 |
@@ -34,7 +37,9 @@
 
 ```
 node tests/sim.js            # 데미지/뽑기/성장 검증
-node tests/sim.js --balance  # 스테이지별 봇 시뮬레이션
+node tests/sim.js --balance  # 1~2장 스테이지별 봇 시뮬레이션
+node tests/allcheck.js       # 3~50장 전체를 봇으로 돌려서 못 깨는 스테이지 찾기
+node tests/calibrate.js all  # 스테이지별로 봇이 이기는 최대 난이도 계산
 ```
 
 ## 디버그

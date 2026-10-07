@@ -23,6 +23,7 @@
     save: null,
     screen: 'home',
     selected: null,
+    chapter: null,
     banner: 'normal',
     pullCount: 11,
     timers: {},
@@ -113,8 +114,9 @@
     const open = YG.isUnlocked(app.save, st);
     const done = !!app.save.cleared[st.id];
     const r = done ? st.reward.repeat : st.reward.first;
-    const boss = st.boss ? YG.enemyById(st.boss.id) : null;
-    return el('article', { class: `stage-card${open ? '' : ' locked'}` }, [
+    const bossRef = (st.bosses && st.bosses[0]) || st.boss;
+    const boss = bossRef ? YG.enemyById(bossRef.id) : null;
+    return el('article', { class: `stage-card${open ? '' : ' locked'}${boss ? ' boss' : ''}` }, [
       el('div', { class: 'stage-top' }, [
         el('span', { class: 'stage-sub', text: st.sub }),
         el('span', { class: 'stage-tags' }, [
@@ -139,15 +141,54 @@
     ]);
   }
 
+  const chapterUnlocked = (c) => {
+    const first = YG.chapterStages(c)[0];
+    return !!first && YG.isUnlocked(app.save, first);
+  };
+
+  const chapterCleared = (c) => YG.chapterStages(c).filter((s) => app.save.cleared[s.id]).length;
+
+  function currentChapter() {
+    const next = YG.STAGES.find((s) => !app.save.cleared[s.id]);
+    return next ? next.chapter : YG.CHAPTERS[YG.CHAPTERS.length - 1].id;
+  }
+
   function renderStages() {
-    $('#stageList').replaceChildren(
-      ...YG.CHAPTERS.map((ch) =>
-        el('section', { class: 'chapter' }, [
-          el('header', { class: 'chapter-head' }, [el('h3', { text: ch.name }), el('p', { text: ch.blurb })]),
-          el('div', { class: 'stage-grid' }, YG.STAGES.filter((s) => s.chapter === ch.id).map(stageCard)),
-        ])
-      )
+    if (!app.chapter) app.chapter = currentChapter();
+    const ch = YG.CHAPTERS.find((c) => c.id === app.chapter);
+    const list = YG.chapterStages(ch.id);
+    $('#chName').textContent = ch.name;
+    $('#chProg').textContent = `${chapterCleared(ch.id)}/${list.length} 클리어 · ${ch.blurb}`;
+    $('#chPrev').disabled = ch.id <= YG.CHAPTERS[0].id;
+    $('#chNext').disabled = ch.id >= YG.CHAPTERS[YG.CHAPTERS.length - 1].id;
+    $('#stageList').replaceChildren(el('div', { class: 'stage-grid' }, list.map(stageCard)));
+  }
+
+  function openChapterList() {
+    const total = YG.CHAPTERS.length;
+    const doneChapters = YG.CHAPTERS.filter((c) => chapterCleared(c.id) === YG.chapterStages(c.id).length).length;
+    $('#chapterSummary').textContent = `${doneChapters}/${total}장 완료 · 클리어 ${Object.keys(app.save.cleared).length}/${YG.STAGES.length}`;
+    $('#chapterGrid').replaceChildren(
+      ...YG.CHAPTERS.map((c) => {
+        const n = chapterCleared(c.id);
+        const size = YG.chapterStages(c.id).length;
+        const open = chapterUnlocked(c.id);
+        return el('button', {
+          class: `chap-btn${open ? '' : ' locked'}${n === size ? ' done' : ''}${c.id === app.chapter ? ' cur' : ''}`,
+          onclick: () => {
+            app.chapter = c.id;
+            $('#chapterDlg').close();
+            renderStages();
+          },
+        }, [
+          el('b', { text: c.name.replace(/^\d+장 /, '') }),
+          el('span', { text: `${c.id}장 · ${n}/${size}` }),
+        ]);
+      })
     );
+    $('#chapterDlg').showModal();
+    const cur = $('#chapterGrid .cur');
+    if (cur) cur.scrollIntoView({ block: 'center' });
   }
 
   /* 편성 */
@@ -194,7 +235,7 @@
           },
         }, [
           save.deck.includes(base.id) ? el('span', { class: 'in-deck', text: '출전' }) : null,
-          owned && owned.evo ? el('span', { class: 'evo-tag', text: '진화' }) : null,
+          owned && owned.evo ? el('span', { class: `evo-tag${owned.evo > 1 ? ' two' : ''}`, text: owned.evo > 1 ? '각성' : '진화' }) : null,
           YG.sprites.portrait(def, 2),
           el('span', { class: 'name', text: owned ? def.name : '???' }),
           gradeBadge(base.grade),
@@ -210,33 +251,40 @@
 
   function evoBlock(base, o) {
     const { save } = app;
-    if (o.evo) {
+    if (o.evo >= 2) {
       return el('div', { class: 'evo done' }, [
-        el('div', { class: 'evo-head' }, [el('b', { text: '진화 완료' }), el('span', { text: `${base.name} → ${base.evo.name}` })]),
+        el('div', { class: 'evo-head' }, [el('b', { text: '각성 완료' }), el('span', { text: YG.ownedDef(save, base.id).name })]),
       ]);
     }
-    const r = YG.evoReq(base);
+    const second = o.evo === 1;
+    const r = YG.evoReq(base, o.evo);
     const chk = YG.canEvolve(save, base.id);
     const rows = [
       [`Lv ${r.lv} 이상 (지금 ${o.lv})`, o.lv >= r.lv],
       [`형광펜 ${r.pens} (보유 ${save.pens})`, save.pens >= r.pens],
       [`경험치 ${fmt(r.xp)} (보유 ${fmt(save.xp)})`, save.xp >= r.xp],
     ];
-    const strong = (base.abilities || []).some((a) => a.type === 'strong');
+    const strong = !second && (base.abilities || []).some((a) => a.type === 'strong');
+    const nextName = second ? base.evo.name2 || `각성 ${base.evo.name}` : base.evo.name;
+    const label = second ? '각성' : '진화';
     return el('div', { class: 'evo' }, [
       el('div', { class: 'evo-head' }, [
-        el('b', { text: `진화 · ${base.evo.name}` }),
-        el('span', { text: `체력 ×1.6 · 공격 ×1.5 · 재소환 ×0.9${strong ? ' · 강하다 → 초데미지' : ''}` }),
+        el('b', { text: `${label} · ${nextName}` }),
+        el('span', {
+          text: second
+            ? '진화 대비 체력 ×1.5 · 공격 ×1.4 · 재소환 ×0.9'
+            : `체력 ×1.6 · 공격 ×1.5 · 재소환 ×0.9${strong ? ' · 강하다 → 초데미지' : ''}`,
+        }),
       ]),
       el('ul', { class: 'evo-req' }, rows.map(([t, ok]) => el('li', { class: ok ? 'ok' : '', text: t }))),
       el('button', {
-        class: 'btn primary', disabled: !chk.ok, text: '진화',
+        class: 'btn primary', disabled: !chk.ok, text: label,
         onclick: () => {
           YG.evolve(save, base.id);
           persist();
           renderPurse();
           renderFormation();
-          toast(`${base.evo.name}. 진화했다.`);
+          toast(`${nextName}. ${label}했다.`);
         },
       }),
     ]);
@@ -694,6 +742,7 @@
       persist();
       const slotsAfter = YG.slotCount(app.save);
       const next = YG.STAGES.find((s) => s.id === battle.stage.id + 1);
+      if (next && next.chapter !== battle.stage.chapter) app.chapter = next.chapter;
       box.replaceChildren(
         el('p', {}, [r.first ? '첫 클리어 · ' : '반복 · ', '동전 ', el('b', { text: `+${fmt(r.coins)}` })]),
         el('p', {}, ['경험치 ', el('b', { text: `+${fmt(r.xp)}` }), ' · 형광펜 ', el('b', { text: `+${r.pens}` })]),
@@ -756,6 +805,16 @@
     persist();
 
     for (const btn of $$('[data-go]')) btn.addEventListener('click', () => show(btn.dataset.go));
+    $('#chPrev').addEventListener('click', () => {
+      app.chapter = Math.max(YG.CHAPTERS[0].id, app.chapter - 1);
+      renderStages();
+    });
+    $('#chNext').addEventListener('click', () => {
+      app.chapter = Math.min(YG.CHAPTERS[YG.CHAPTERS.length - 1].id, app.chapter + 1);
+      renderStages();
+    });
+    $('#chTitle').addEventListener('click', openChapterList);
+    $('#chapterClose').addEventListener('click', () => $('#chapterDlg').close());
     for (const tab of $$('#bannerTabs button')) {
       tab.addEventListener('click', () => {
         app.banner = tab.dataset.banner;
