@@ -1,0 +1,18 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>background preview</title>
+<style>body{margin:0;background:#000;display:grid;grid-template-columns:repeat(2,640px);gap:4px}canvas{width:640px;height:360px;image-rendering:pixelated;display:block}</style></head>
+<body>
+<script src="../js/data.js"></script><script src="../js/engine.js"></script><script src="../js/game.js"></script>
+<script src="../js/sprites.js"></script><script src="../js/render.js"></script>
+<script>
+const YG = globalThis.YG;
+for (const st of YG.STAGES) {
+  const c = document.createElement('canvas'); c.width = 320; c.height = 180; document.body.append(c);
+  const ctx = c.getContext('2d');
+  const save = YG.newSave(); save.owned.bat = {lv:1,plus:0,shards:0,evo:0}; save.deck = ['basic','bag','reader','bat'];
+  const b = new YG.Battle(st, YG.buildDeck(save), Math.random);
+  b.money = 5000; b.workerLv = 8;
+  for (let f = 0; f < 30 * 40; f++) { if (f % 25 === 0) for (let i = 0; i < 4; i++) b.summon(i); b.step(); }
+  YG.render.battle(ctx, b, st.theme);
+}
+</script></body></html>

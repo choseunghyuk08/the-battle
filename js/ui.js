@@ -4,6 +4,7 @@
   const $$ = (s, r = document) => [...r.querySelectorAll(s)];
   const fmt = (n) => Math.round(n).toLocaleString('ko-KR');
   const reduceMotion = () => g.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const SLOT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 
   function el(tag, attrs = {}, kids = []) {
     const node = document.createElement(tag);
@@ -22,6 +23,7 @@
     save: null,
     screen: 'home',
     selected: null,
+    banner: 'normal',
     pullCount: 11,
     timers: {},
   };
@@ -39,10 +41,12 @@
   }
 
   function renderPurse() {
+    const { save } = app;
     for (const box of $$('[data-purse]')) {
       box.replaceChildren(
-        el('span', { class: 'pill coin' }, ['동전 ', el('b', { text: fmt(app.save.coins) })]),
-        el('span', { class: 'pill' }, ['경험치 ', el('b', { text: fmt(app.save.xp) })])
+        el('span', { class: 'pill coin' }, ['동전 ', el('b', { text: fmt(save.coins) })]),
+        el('span', { class: 'pill' }, ['경험치 ', el('b', { text: fmt(save.xp) })]),
+        el('span', { class: 'pill' }, ['형광펜 ', el('b', { text: fmt(save.pens) })])
       );
     }
   }
@@ -59,7 +63,7 @@
     home: { enter: enterHome, leave: () => stopLoop('home') },
     stages: { enter: renderStages },
     formation: { enter: renderFormation },
-    gacha: { enter: enterGacha, leave: () => stopLoop('gacha') },
+    gacha: { enter: enterGacha, leave: leaveGacha },
     battle: {},
   };
 
@@ -105,51 +109,61 @@
   }
 
   /* 스테이지 */
+  function stageCard(st) {
+    const open = YG.isUnlocked(app.save, st);
+    const done = !!app.save.cleared[st.id];
+    const r = done ? st.reward.repeat : st.reward.first;
+    const boss = st.boss ? YG.enemyById(st.boss.id) : null;
+    return el('article', { class: `stage-card${open ? '' : ' locked'}` }, [
+      el('div', { class: 'stage-top' }, [
+        el('span', { class: 'stage-sub', text: st.sub }),
+        el('span', { class: 'stage-tags' }, [
+          boss ? el('span', { class: 'tag-boss', text: '보스' }) : null,
+          done ? el('span', { class: 'tag-clear', text: '클리어' }) : null,
+        ]),
+      ]),
+      el('h4', { text: st.name }),
+      el('p', { class: 'stage-blurb', text: st.blurb }),
+      el('div', { class: 'chips' }, YG.stageTraits(st).map(traitChip)),
+      el('div', { class: 'stage-meta' }, [
+        '적 근원', el('b', { text: fmt(st.enemyBaseHp) }),
+        boss ? '보스' : null, boss ? el('b', { text: boss.name }) : null,
+        done ? '반복 보상' : '첫 클리어',
+        el('b', { text: `동전 ${fmt(r.coins)} · 경험치 ${fmt(r.xp)} · 형광펜 ${r.pens}` }),
+      ]),
+      el('button', {
+        class: 'btn primary', disabled: !open,
+        text: open ? '출전' : '앞 스테이지부터',
+        onclick: () => startBattle(st.id),
+      }),
+    ]);
+  }
+
   function renderStages() {
-    const list = $('#stageList');
-    list.replaceChildren(
-      ...YG.STAGES.map((st) => {
-        const open = YG.isUnlocked(app.save, st);
-        const done = !!app.save.cleared[st.id];
-        const r = done ? st.reward.repeat : st.reward.first;
-        const card = el('article', { class: `stage-card${open ? '' : ' locked'}` }, [
-          el('div', { class: 'stage-top' }, [
-            el('span', { class: 'stage-sub', text: st.sub }),
-            done ? el('span', { class: 'tag-clear', text: '클리어' }) : null,
-          ]),
-          el('h3', { text: st.name }),
-          el('p', { class: 'stage-blurb', text: st.blurb }),
-          el('div', { class: 'chips' }, YG.stageTraits(st).map(traitChip)),
-          el('div', { class: 'stage-meta' }, [
-            '적 근원', el('b', { text: fmt(st.enemyBaseHp) }),
-            done ? '반복 보상' : '첫 클리어',
-            el('b', { text: `동전 ${fmt(r.coins)} · 경험치 ${fmt(r.xp)}` }),
-          ]),
-          el('button', {
-            class: 'btn primary', disabled: !open,
-            text: open ? '출전' : '앞 스테이지부터',
-            onclick: () => startBattle(st.id),
-          }),
-        ]);
-        return card;
-      })
+    $('#stageList').replaceChildren(
+      ...YG.CHAPTERS.map((ch) =>
+        el('section', { class: 'chapter' }, [
+          el('header', { class: 'chapter-head' }, [el('h3', { text: ch.name }), el('p', { text: ch.blurb })]),
+          el('div', { class: 'stage-grid' }, YG.STAGES.filter((s) => s.chapter === ch.id).map(stageCard)),
+        ])
+      )
     );
   }
 
   /* 편성 */
-  const sortedUnits = () =>
-    [...YG.UNITS].sort((a, b) => a.grade - b.grade || b.cost - a.cost);
+  const sortedUnits = () => [...YG.UNITS].sort((a, b) => a.grade - b.grade || b.cost - a.cost);
 
   function renderFormation() {
     const { save } = app;
-    $('#deckCount').textContent = `${save.deck.length}/${YG.PROG.maxDeck}`;
+    const slots = YG.slotCount(save);
+    $('#deckCount').textContent = `${save.deck.length}/${slots}`;
 
-    const slots = [];
+    const cells = [];
     for (let i = 0; i < YG.PROG.maxDeck; i++) {
       const id = save.deck[i];
       if (id) {
-        const def = YG.unitById(id);
-        slots.push(
+        const def = YG.ownedDef(save, id);
+        cells.push(
           el('button', {
             class: `deck-slot filled g${def.grade}`, 'aria-label': `${def.name} 빼기`,
             onclick: () => {
@@ -159,28 +173,32 @@
             },
           }, [YG.sprites.portrait(def, 2), el('small', { text: def.name })])
         );
+      } else if (i < slots) {
+        cells.push(el('div', { class: 'deck-slot', text: '+' }));
       } else {
-        slots.push(el('div', { class: 'deck-slot', text: '+' }));
+        cells.push(el('div', { class: 'deck-slot locked' }, [el('span', { text: '잠김' }), el('small', { text: `${i - 4}번째 클리어` })]));
       }
     }
-    $('#deck').replaceChildren(...slots);
+    $('#deck').replaceChildren(...cells);
 
+    if (!app.selected) app.selected = save.deck[0] || 'basic';
     $('#roster').replaceChildren(
-      ...sortedUnits().map((def) => {
-        const owned = save.owned[def.id];
-        const card = el('button', {
-          class: `card-u g${def.grade}${owned ? '' : ' locked'}${app.selected === def.id ? ' sel' : ''}`,
+      ...sortedUnits().map((base) => {
+        const owned = save.owned[base.id];
+        const def = owned ? YG.ownedDef(save, base.id) : base;
+        return el('button', {
+          class: `card-u g${base.grade}${owned ? '' : ' locked'}${app.selected === base.id ? ' sel' : ''}`,
           onclick: () => {
-            app.selected = def.id;
+            app.selected = base.id;
             renderFormation();
           },
         }, [
-          save.deck.includes(def.id) ? el('span', { class: 'in-deck', text: '출전' }) : null,
+          save.deck.includes(base.id) ? el('span', { class: 'in-deck', text: '출전' }) : null,
+          owned && owned.evo ? el('span', { class: 'evo-tag', text: '진화' }) : null,
           YG.sprites.portrait(def, 2),
           el('span', { class: 'name', text: owned ? def.name : '???' }),
-          gradeBadge(def.grade),
+          gradeBadge(base.grade),
         ]);
-        return card;
       })
     );
     renderDetail();
@@ -190,23 +208,58 @@
     return el('div', {}, [label, el('b', { text: value })]);
   }
 
+  function evoBlock(base, o) {
+    const { save } = app;
+    if (o.evo) {
+      return el('div', { class: 'evo done' }, [
+        el('div', { class: 'evo-head' }, [el('b', { text: '진화 완료' }), el('span', { text: `${base.name} → ${base.evo.name}` })]),
+      ]);
+    }
+    const r = YG.evoReq(base);
+    const chk = YG.canEvolve(save, base.id);
+    const rows = [
+      [`Lv ${r.lv} 이상 (지금 ${o.lv})`, o.lv >= r.lv],
+      [`형광펜 ${r.pens} (보유 ${save.pens})`, save.pens >= r.pens],
+      [`경험치 ${fmt(r.xp)} (보유 ${fmt(save.xp)})`, save.xp >= r.xp],
+    ];
+    const strong = (base.abilities || []).some((a) => a.type === 'strong');
+    return el('div', { class: 'evo' }, [
+      el('div', { class: 'evo-head' }, [
+        el('b', { text: `진화 · ${base.evo.name}` }),
+        el('span', { text: `체력 ×1.6 · 공격 ×1.5 · 재소환 ×0.9${strong ? ' · 강하다 → 초데미지' : ''}` }),
+      ]),
+      el('ul', { class: 'evo-req' }, rows.map(([t, ok]) => el('li', { class: ok ? 'ok' : '', text: t }))),
+      el('button', {
+        class: 'btn primary', disabled: !chk.ok, text: '진화',
+        onclick: () => {
+          YG.evolve(save, base.id);
+          persist();
+          renderPurse();
+          renderFormation();
+          toast(`${base.evo.name}. 진화했다.`);
+        },
+      }),
+    ]);
+  }
+
   function renderDetail() {
     const box = $('#detail');
-    const def = app.selected && YG.unitById(app.selected);
-    if (!def) {
+    const base = app.selected && YG.unitById(app.selected);
+    if (!base) {
       box.replaceChildren(el('p', { class: 'empty-detail', text: '유닛을 눌러서 보자.' }));
       return;
     }
-    const o = app.save.owned[def.id];
+    const o = app.save.owned[base.id];
     if (!o) {
       box.replaceChildren(
-        el('div', { class: 'head' }, [YG.sprites.portrait(def, 3), el('div', {}, [el('h3', { text: '???' }), gradeBadge(def.grade)])]),
-        el('p', { class: 'blurb', text: '아직 없다. 문방구에서 뽑자.' })
+        el('div', { class: 'head' }, [YG.sprites.portrait(base, 3), el('div', {}, [el('h3', { text: '???' }), gradeBadge(base.grade)])]),
+        el('p', { class: 'blurb', text: base.limited ? '기간 한정 뽑기에서만 나온다.' : '아직 없다. 문방구에서 뽑자.' })
       );
       return;
     }
+    const def = YG.ownedDef(app.save, base.id);
     const st = YG.statsFor(def, o.lv, o.plus);
-    const inDeck = app.save.deck.includes(def.id);
+    const inDeck = app.save.deck.includes(base.id);
     const abil = YG.abilityText(def);
     const lvCost = YG.levelUpCost(o.lv);
     const maxLv = o.lv >= YG.PROG.maxLv;
@@ -216,7 +269,10 @@
     box.replaceChildren(
       el('div', { class: 'head' }, [
         YG.sprites.portrait(def, 3),
-        el('div', {}, [el('h3', { text: def.name }), el('div', { class: 'chips' }, [gradeBadge(def.grade), el('span', { class: 'badge', text: def.role })])]),
+        el('div', {}, [
+          el('h3', { text: def.name }),
+          el('div', { class: 'chips' }, [gradeBadge(base.grade), el('span', { class: 'badge', text: def.role })]),
+        ]),
       ]),
       el('p', { class: 'blurb', text: def.blurb }),
       el('div', { class: 'stat-grid' }, [
@@ -238,7 +294,7 @@
             class: 'btn', disabled: maxLv || app.save.xp < lvCost,
             text: maxLv ? '최대 레벨' : `레벨업 · ${fmt(lvCost)}`,
             onclick: () => {
-              YG.levelUp(app.save, def.id);
+              YG.levelUp(app.save, base.id);
               persist();
               renderPurse();
               renderFormation();
@@ -248,17 +304,18 @@
             class: 'btn', disabled: maxPlus || o.shards < pCost,
             text: maxPlus ? '최대 강화' : `+강화 · ${o.shards}/${pCost}`,
             onclick: () => {
-              YG.enhance(app.save, def.id);
+              YG.enhance(app.save, base.id);
               persist();
               renderFormation();
             },
           }),
         ]),
+        evoBlock(base, o),
         el('button', {
           class: `btn ${inDeck ? '' : 'primary'}`,
           text: inDeck ? '출전에서 빼기' : '출전시키기',
           onclick: () => {
-            if (!YG.toggleDeck(app.save, def.id)) toast('출전은 5칸까지.');
+            if (!YG.toggleDeck(app.save, base.id)) toast(`출전은 ${YG.slotCount(app.save)}칸까지. 스테이지를 깨면 칸이 늘어난다.`);
             persist();
             renderFormation();
           },
@@ -327,13 +384,46 @@
 
   let machineShake = 0;
 
+  const currentBanner = () => (app.banner === 'limited' ? YG.banners.limited() : YG.banners.normal);
+
+  function timeLeft(ms) {
+    const mins = Math.max(0, Math.floor(ms / 60000));
+    const d = Math.floor(mins / 1440);
+    const h = Math.floor((mins % 1440) / 60);
+    return d > 0 ? `${d}일 ${h}시간 남음` : `${h}시간 ${mins % 60}분 남음`;
+  }
+
   function renderGachaMeta() {
     const { save } = app;
     const c = YG.GACHA;
+    const banner = currentBanner();
+    const limited = banner.id === 'limited';
+
+    $$('#bannerTabs button').forEach((b) => b.classList.toggle('on', b.dataset.banner === app.banner));
+    const info = $('#bannerInfo');
+    if (limited) {
+      const feat = YG.unitById(banner.featured);
+      info.hidden = false;
+      info.replaceChildren(
+        YG.sprites.portrait(feat, 2),
+        el('div', {}, [
+          el('p', { class: 'eyebrow', text: '이번 주 픽업' }),
+          el('p', { class: 'banner-name', text: feat.name }),
+          el('p', { class: 'eyebrow', text: timeLeft(banner.endsAt - Date.now()) }),
+        ])
+      );
+    } else {
+      info.hidden = true;
+      info.replaceChildren();
+    }
+
     const rate = YG.gacha.ultraRate(save.pity);
     $('#pityLine').replaceChildren(
       '1등급 안 나온 지 ', el('b', { text: `${save.pity}회` }),
-      ' · 지금 1등급 확률 ', el('b', { text: `${rate.toFixed(1)}%` })
+      ' · 지금 1등급 확률 ', el('b', { text: `${rate.toFixed(1)}%` }),
+      limited ? el('br') : null,
+      limited ? '만점 확정까지 ' : null,
+      limited ? el('b', { text: `${save.lpity}/${banner.hardPity}` }) : null
     );
     $('#cost1').textContent = fmt(c.cost1);
     $('#cost11').textContent = fmt(c.cost11);
@@ -342,20 +432,26 @@
     $('#pullHint').textContent =
       save.coins < c.cost1 ? '동전이 모자라다. 스테이지를 돌고 오자.' : '11연차는 마지막 1장이 2등급 이상으로 확정.';
 
-    const r = YG.gacha.rates(save.pity);
+    const r = YG.gacha.rates(save.pity, banner);
+    const grades = limited ? [0, 1, 2, 3] : [1, 2, 3];
+    const names = (grade) => YG.UNITS.filter((u) => u.grade === grade).map((u) => u.name).join(', ');
     $('#rateTable').replaceChildren(
-      ...[3, 2, 1].map((grade) =>
+      ...grades.map((grade) =>
         el('div', { class: 'rate-row' }, [
           el('span', {}, [
             `${YG.GRADES[grade].name} · ${YG.GRADES[grade].label}`,
-            el('small', { text: YG.UNITS.filter((u) => u.grade === grade).map((u) => u.name).join(', ') }),
+            el('small', {
+              text: grade === 0
+                ? `${YG.unitById(banner.featured).name} ${Math.round(c.featuredShare * 100)}% · 나머지 ${Math.round((1 - c.featuredShare) * 100)}%`
+                : names(grade),
+            }),
           ]),
           el('span', { text: `${r[grade].toFixed(2)}%` }),
         ])
       ),
       el('div', { class: 'rate-row' }, [
-        el('span', {}, ['천장', el('small', { text: '1등급이 안 나오면 5회마다 확률 +0.5%p, 최대 9.5%' })]),
-        el('span', { text: `${save.pity}회` }),
+        el('span', {}, ['천장', el('small', { text: limited ? `만점은 ${banner.hardPity}회 안에 확정. 1등급 천장은 별도.` : '1등급이 안 나오면 5회마다 확률 +0.5%p, 최대 9.5%' })]),
+        el('span', { text: limited ? `${save.lpity}/${banner.hardPity}` : `${save.pity}회` }),
       ])
     );
   }
@@ -367,10 +463,17 @@
       drawMachine(ctx, f, machineShake > 0);
       if (machineShake > 0) machineShake--;
     }, 24);
+    clearInterval(app.timers.countdown);
+    app.timers.countdown = setInterval(renderGachaMeta, 30000);
+  }
+
+  function leaveGacha() {
+    stopLoop('gacha');
+    clearInterval(app.timers.countdown);
   }
 
   function pull(count) {
-    const res = YG.gacha.draw(app.save, count);
+    const res = YG.gacha.draw(app.save, count, Math.random, currentBanner());
     if (!res) {
       toast('동전이 모자라다.');
       return;
@@ -385,18 +488,17 @@
   }
 
   function showPullResult(res) {
-    const tally = { 1: 0, 2: 0, 3: 0 };
+    const tally = { 0: 0, 1: 0, 2: 0, 3: 0 };
     for (const r of res) tally[r.grade]++;
-    $('#pullTitle').textContent = tally[1] ? '1등급이다.' : '결과.';
-    $('#pullSummary').textContent = [1, 2, 3]
+    $('#pullTitle').textContent = tally[0] ? '만점이다.' : tally[1] ? '1등급이다.' : '결과.';
+    $('#pullSummary').textContent = [0, 1, 2, 3]
       .filter((k) => tally[k])
       .map((k) => `${YG.GRADES[k].name} ${tally[k]}`)
       .join(' · ');
     $('#pullGrid').replaceChildren(
       ...res.map((r, i) => {
         const def = YG.unitById(r.id);
-        const style = `--i:${i}`;
-        return el('div', { class: `pull-card g${r.grade}`, style }, [
+        return el('div', { class: `pull-card g${r.grade}`, style: `--i:${i}` }, [
           YG.sprites.portrait(def, 3),
           el('span', { class: 'name', text: def.name }),
           gradeBadge(r.grade),
@@ -404,8 +506,9 @@
         ]);
       })
     );
+    const again = app.pullCount === 11 ? YG.GACHA.cost11 : YG.GACHA.cost1;
     $('#pullAgain').textContent = app.pullCount === 11 ? '11연차 한 번 더' : '한 번 더';
-    $('#pullAgain').disabled = app.save.coins < (app.pullCount === 11 ? YG.GACHA.cost11 : YG.GACHA.cost1);
+    $('#pullAgain').disabled = app.save.coins < again;
     const dlg = $('#pullResult');
     if (!dlg.open) dlg.showModal();
     dlg.scrollTop = 0;
@@ -440,8 +543,12 @@
 
   function buildSlots() {
     const box = $('#slots');
+    const n = battle.b.slots.length;
+    const cells = Math.max(5, Math.ceil(n / 5) * 5);
+    const scale = cells > 5 ? 2 : 3;
+    box.dataset.rows = String(cells / 5);
     const nodes = [];
-    for (let i = 0; i < YG.PROG.maxDeck; i++) {
+    for (let i = 0; i < cells; i++) {
       const s = battle.b.slots[i];
       if (!s) {
         nodes.push(el('button', { class: 'slot empty', disabled: true, 'aria-label': '빈 칸' }));
@@ -456,8 +563,8 @@
           },
           onclick: (e) => e.detail === 0 && doSummon(i),
         }, [
-          el('span', { class: 'key', text: String(i + 1) }),
-          YG.sprites.portrait(s.def, 3),
+          el('span', { class: 'key', text: SLOT_KEYS[i] }),
+          YG.sprites.portrait(s.def, scale),
           el('b', { class: 'c', text: fmt(s.def.cost) }),
           el('span', { class: 'cd' }),
         ])
@@ -579,22 +686,23 @@
     const box = $('#endReward');
     $('#endTitle').textContent = win ? '승리.' : '패배.';
     $('#endSub').textContent = win ? `${battle.stage.sub} ${battle.stage.name}` : '교실이 무너졌다.';
+    const summary = el('p', { text: `소환 ${b.stats.summoned} · 처치 ${b.stats.kills} · ${$('#bTime').textContent}` });
     if (win) {
       const wasCleared = !!app.save.cleared[battle.stage.id];
+      const slotsBefore = YG.slotCount(app.save);
       const r = YG.applyReward(app.save, battle.stage);
       persist();
+      const slotsAfter = YG.slotCount(app.save);
       const next = YG.STAGES.find((s) => s.id === battle.stage.id + 1);
       box.replaceChildren(
         el('p', {}, [r.first ? '첫 클리어 · ' : '반복 · ', '동전 ', el('b', { text: `+${fmt(r.coins)}` })]),
-        el('p', {}, ['경험치 ', el('b', { text: `+${fmt(r.xp)}` })]),
-        el('p', { text: `소환 ${b.stats.summoned} · 처치 ${b.stats.kills} · ${$('#bTime').textContent}` }),
+        el('p', {}, ['경험치 ', el('b', { text: `+${fmt(r.xp)}` }), ' · 형광펜 ', el('b', { text: `+${r.pens}` })]),
+        summary,
+        slotsAfter > slotsBefore ? el('p', { text: `출전 칸 ${slotsAfter}칸으로 늘었다.` }) : null,
         !wasCleared && next ? el('p', { text: `${next.sub} ${next.name} 열림.` }) : null
       );
     } else {
-      box.replaceChildren(
-        el('p', { text: `소환 ${b.stats.summoned} · 처치 ${b.stats.kills} · ${$('#bTime').textContent}` }),
-        el('p', { text: '편성을 바꾸거나 일꾼을 먼저 올려보자.' })
-      );
+      box.replaceChildren(summary, el('p', { text: '편성을 바꾸거나 일꾼을 먼저 올려보자.' }));
     }
     $('#endRetry').textContent = win ? '한 번 더' : '다시';
     $('#battleEnd').showModal();
@@ -620,9 +728,13 @@
     const s = app.save;
     if (kind === 'coins') s.coins += 10000;
     if (kind === 'xp') s.xp += 1000;
+    if (kind === 'pens') s.pens += 20;
     if (kind === 'shards') for (const k of Object.keys(s.owned)) s.owned[k].shards += 10;
-    if (kind === 'all') for (const u of YG.UNITS) s.owned[u.id] = s.owned[u.id] || { lv: 1, plus: 0, shards: 0 };
-    if (kind === 'pity') s.pity = 0;
+    if (kind === 'all') for (const u of YG.UNITS) s.owned[u.id] = s.owned[u.id] || { lv: 1, plus: 0, shards: 0, evo: 0 };
+    if (kind === 'pity') {
+      s.pity = 0;
+      s.lpity = 0;
+    }
     if (kind === 'clear') for (const st of YG.STAGES) s.cleared[st.id] = true;
     if (kind === 'reset') {
       app.save = YG.newSave();
@@ -644,6 +756,12 @@
     persist();
 
     for (const btn of $$('[data-go]')) btn.addEventListener('click', () => show(btn.dataset.go));
+    for (const tab of $$('#bannerTabs button')) {
+      tab.addEventListener('click', () => {
+        app.banner = tab.dataset.banner;
+        renderGachaMeta();
+      });
+    }
     $('#pull1').addEventListener('click', () => pull(1));
     $('#pull11').addEventListener('click', () => pull(11));
     $('#pullClose').addEventListener('click', () => $('#pullResult').close());
@@ -707,12 +825,13 @@
         return;
       }
       if (app.screen !== 'battle' || !battle.b) return;
+      const slot = SLOT_KEYS.indexOf(e.key);
       if (e.key === 'Escape' || e.key === 'p' || e.key === 'P') {
         if (!battle.ended) {
           e.preventDefault();
           togglePause();
         }
-      } else if (/^[1-5]$/.test(e.key)) doSummon(+e.key - 1);
+      } else if (slot >= 0) doSummon(slot);
       else if (e.key === 'q' || e.key === 'Q') doUpgrade();
       else if (e.key === ' ') {
         e.preventDefault();

@@ -64,6 +64,11 @@
       <div class="gacha">
         <div class="machine-wrap"><canvas id="machine" width="72" height="104"></canvas></div>
         <div class="gacha-panel">
+          <div class="seg" id="bannerTabs" role="tablist" aria-label="뽑기 종류">
+            <button role="tab" data-banner="normal">상시</button>
+            <button role="tab" data-banner="limited">기간 한정</button>
+          </div>
+          <div class="banner-info" id="bannerInfo" hidden></div>
           <p class="pity" id="pityLine"></p>
           <div class="pull-row">
             <button class="btn big" id="pull1"><span>1회</span><b class="cost" id="cost1"></b></button>
@@ -143,6 +148,7 @@
     <div class="debug-grid">
       <button class="btn" data-dbg="coins">동전 +10,000</button>
       <button class="btn" data-dbg="xp">경험치 +1,000</button>
+      <button class="btn" data-dbg="pens">형광펜 +20</button>
       <button class="btn" data-dbg="shards">조각 +10</button>
       <button class="btn" data-dbg="all">전 유닛 해금</button>
       <button class="btn" data-dbg="pity">천장 초기화</button>

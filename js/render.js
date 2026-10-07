@@ -7,6 +7,10 @@
     corridor: { wall: '#1c2b36', top: '#15212a', floor: '#222c35', tile: '#2a3641', glass: '#27465e', glow: '#3a6a8c', prop: '#2a3b49' },
     lab: { wall: '#1b2c2a', top: '#14211f', floor: '#202c2b', tile: '#283837', glass: '#24493f', glow: '#3f8a73', prop: '#2a403c' },
     basement: { wall: '#1d1828', top: '#141019', floor: '#1d1a24', tile: '#262230', glass: '#2f2442', glow: '#b8532f', prop: '#352d47' },
+    bathroom: { wall: '#1d2f38', top: '#142229', floor: '#1e2b33', tile: '#2a3f48', glass: '#335a68', glow: '#5aa3b8', prop: '#2b4450' },
+    cafeteria: { wall: '#2b2a26', top: '#1d1c19', floor: '#2a2924', tile: '#38362f', glass: '#3d4a3a', glow: '#d9a441', prop: '#403e36' },
+    music: { wall: '#251f2e', top: '#18141f', floor: '#221d2a', tile: '#2e2838', glass: '#3a2f4d', glow: '#8a6fc4', prop: '#3a3048' },
+    roof: { wall: '#0f1626', top: '#0a0f1b', floor: '#26292f', tile: '#31353c', glass: '#162038', glow: '#e8d9a0', prop: '#1c2230' },
   };
 
   const DIGITS = {
@@ -37,18 +41,14 @@
     }
   }
 
-  function drawBackground(ctx, theme, frame) {
-    const T = THEMES[theme] || THEMES.corridor;
-    ctx.fillStyle = T.wall;
-    ctx.fillRect(0, 0, VIEW.w, VIEW.groundY);
-    ctx.fillStyle = T.top;
-    ctx.fillRect(0, 0, VIEW.w, 30);
+  const hash = (n) => {
+    let x = Math.imul(n + 1, 0x9e3779b1) >>> 0;
+    x ^= x >>> 15;
+    return (Math.imul(x, 0x85ebca6b) >>> 0) / 4294967296;
+  };
 
-    const flicker = frame % 170 > 160 && frame % 4 < 2;
-    ctx.fillStyle = flicker ? T.top : '#d9e2d0';
-    ctx.fillRect(138, 8, 44, 3);
-
-    if (theme === 'corridor') {
+  const SCENERY = {
+    corridor(ctx, T) {
       for (let i = 0; i < 4; i++) {
         const x = 62 + i * 62;
         ctx.fillStyle = T.top;
@@ -65,7 +65,9 @@
       for (let x = 40; x < 290; x += 17) ctx.fillRect(x, 102, 15, 48);
       ctx.fillStyle = T.top;
       for (let x = 40; x < 290; x += 17) ctx.fillRect(x + 4, 110, 7, 1);
-    } else if (theme === 'lab') {
+    },
+
+    lab(ctx, T) {
       ctx.fillStyle = T.prop;
       ctx.fillRect(44, 60, 232, 3);
       ctx.fillRect(44, 84, 232, 3);
@@ -81,19 +83,159 @@
       ctx.fillRect(122, 98, 76, 50);
       ctx.fillStyle = T.top;
       ctx.fillRect(158, 96, 2, 54);
-    } else {
+    },
+
+    basement(ctx, T, frame) {
       ctx.fillStyle = T.prop;
       ctx.fillRect(0, 40, VIEW.w, 5);
       ctx.fillRect(0, 62, VIEW.w, 4);
       for (let x = 50; x < 300; x += 54) ctx.fillRect(x, 40, 4, 110);
       ctx.fillStyle = T.glow;
-      const pulse = 0.55 + 0.25 * Math.sin(frame / 22);
-      ctx.globalAlpha = pulse;
+      ctx.globalAlpha = 0.55 + 0.25 * Math.sin(frame / 22);
       ctx.fillRect(228, 92, 42, 58);
       ctx.globalAlpha = 1;
       ctx.fillStyle = T.top;
       ctx.fillRect(222, 86, 54, 6);
+    },
+
+    bathroom(ctx, T) {
+      ctx.fillStyle = T.tile;
+      for (let y = 30; y < VIEW.groundY; y += 12) ctx.fillRect(0, y, VIEW.w, 1);
+      for (let x = 0; x < VIEW.w; x += 12) ctx.fillRect(x, 30, 1, VIEW.groundY - 30);
+      for (const x of [74, 150, 226]) {
+        ctx.fillStyle = T.top;
+        ctx.fillRect(x - 1, 41, 40, 46);
+        ctx.fillStyle = T.glass;
+        ctx.fillRect(x, 42, 38, 44);
+        ctx.fillStyle = T.glow;
+        ctx.fillRect(x + 3, 45, 5, 22);
+        ctx.fillRect(x + 11, 45, 2, 12);
+        ctx.fillStyle = T.prop;
+        ctx.fillRect(x + 8, 96, 22, 8);
+        ctx.fillRect(x + 17, 104, 4, 18);
+      }
+      for (let x = 38; x < 290; x += 42) {
+        const open = x === 122;
+        ctx.fillStyle = T.top;
+        ctx.fillRect(x, 106, 34, 44);
+        ctx.fillStyle = open ? '#0c1318' : T.prop;
+        ctx.fillRect(x + 1, 107, 32, 42);
+        ctx.fillStyle = T.top;
+        ctx.fillRect(x + 4, 116, 26, 1);
+        ctx.fillStyle = open ? '#d9483b' : '#d8d3c0';
+        ctx.fillRect(x + 27, 126, 3, 4);
+      }
+    },
+
+    cafeteria(ctx, T, frame) {
+      ctx.fillStyle = T.prop;
+      ctx.fillRect(40, 44, 70, 36);
+      ctx.fillStyle = T.top;
+      ctx.fillRect(42, 46, 66, 32);
+      ctx.fillStyle = T.glow;
+      for (let i = 0; i < 4; i++) ctx.fillRect(46, 50 + i * 7, 18 + ((i * 11) % 30), 2);
+      for (const x of [86, 170, 254]) {
+        ctx.fillStyle = T.top;
+        ctx.fillRect(x, 30, 1, 24);
+        ctx.fillRect(x - 8, 54, 17, 5);
+        ctx.fillStyle = T.glow;
+        ctx.globalAlpha = 0.35 + 0.08 * Math.sin(frame / 17 + x);
+        ctx.fillRect(x - 9, 59, 19, 6);
+        ctx.globalAlpha = 1;
+      }
+      ctx.fillStyle = T.prop;
+      ctx.fillRect(48, 112, 224, 6);
+      ctx.fillRect(56, 118, 4, 32);
+      ctx.fillRect(260, 118, 4, 32);
+      ctx.fillRect(150, 118, 4, 32);
+      ctx.fillStyle = T.top;
+      ctx.fillRect(48, 118, 224, 2);
+      ctx.fillStyle = '#9aa3ad';
+      for (let x = 64; x < 260; x += 24) ctx.fillRect(x, 108, 14, 4);
+    },
+
+    music(ctx, T) {
+      ctx.fillStyle = T.prop;
+      for (let i = 0; i < 5; i++) ctx.fillRect(0, 44 + i * 5, VIEW.w, 1);
+      ctx.fillStyle = T.glow;
+      for (let i = 0; i < 12; i++) {
+        const x = 30 + i * 24;
+        const y = 41 + Math.floor(hash(i) * 5) * 5;
+        ctx.fillRect(x, y, 4, 3);
+        ctx.fillRect(x + 3, y - 8, 1, 9);
+      }
+      for (const x of [70, 150, 230]) {
+        ctx.fillStyle = '#c9a24a';
+        ctx.fillRect(x, 78, 24, 28);
+        ctx.fillStyle = T.top;
+        ctx.fillRect(x + 2, 80, 20, 24);
+        ctx.fillStyle = T.glass;
+        ctx.fillRect(x + 6, 86, 12, 14);
+      }
+      ctx.fillStyle = T.top;
+      ctx.fillRect(58, 112, 90, 38);
+      ctx.fillStyle = T.prop;
+      ctx.fillRect(58, 112, 90, 4);
+      ctx.fillStyle = '#d8d3c0';
+      for (let x = 60; x < 146; x += 6) ctx.fillRect(x, 126, 5, 12);
+      ctx.fillStyle = '#14121a';
+      for (let x = 64; x < 146; x += 12) ctx.fillRect(x, 126, 3, 7);
+    },
+
+    roof(ctx, T, frame) {
+      const bands = ['#0a0f1b', '#0d1424', '#111a2e', '#162038'];
+      bands.forEach((c, i) => {
+        ctx.fillStyle = c;
+        ctx.fillRect(0, i * 38, VIEW.w, 39);
+      });
+      for (let i = 0; i < 46; i++) {
+        const tw = (frame / 20 + i) % 7 < 0.5;
+        if (tw) continue;
+        ctx.fillStyle = i % 5 === 0 ? '#f4efe0' : '#8f9ab4';
+        ctx.fillRect(Math.floor(hash(i) * VIEW.w), Math.floor(hash(i + 90) * 82), 1, 1);
+      }
+      ctx.fillStyle = '#e8e0c4';
+      for (let y = -12; y <= 12; y++) {
+        const half = Math.round(Math.sqrt(144 - y * y));
+        ctx.fillRect(262 - half, 36 + y, half * 2, 1);
+      }
+      ctx.fillStyle = '#0a0f1b';
+      for (let y = -9; y <= 9; y++) {
+        const half = Math.round(Math.sqrt(81 - y * y));
+        ctx.fillRect(268 - half, 34 + y, half * 2, 1);
+      }
+      ctx.fillStyle = '#0b101c';
+      for (let i = 0; i < 18; i++) {
+        const w = 12 + Math.floor(hash(i + 30) * 14);
+        const h = 20 + Math.floor(hash(i + 60) * 50);
+        const x = i * 19 - 6;
+        ctx.fillRect(x, 150 - h, w, h);
+        ctx.fillStyle = '#d9c46a';
+        for (let k = 0; k < 6; k++) {
+          if (hash(i * 7 + k) > 0.45) ctx.fillRect(x + 2 + (k % 3) * 4, 150 - h + 4 + Math.floor(k / 3) * 8, 2, 3);
+        }
+        ctx.fillStyle = '#0b101c';
+      }
+      ctx.fillStyle = T.prop;
+      for (let x = 20; x < 300; x += 28) ctx.fillRect(x, 96, 2, 54);
+      ctx.fillRect(0, 100, VIEW.w, 1);
+      ctx.fillRect(0, 140, VIEW.w, 1);
+    },
+  };
+
+  function drawBackground(ctx, theme, frame) {
+    const T = THEMES[theme] || THEMES.corridor;
+    ctx.fillStyle = T.wall;
+    ctx.fillRect(0, 0, VIEW.w, VIEW.groundY);
+    ctx.fillStyle = T.top;
+    ctx.fillRect(0, 0, VIEW.w, 30);
+
+    if (theme !== 'roof') {
+      const flicker = frame % 170 > 160 && frame % 4 < 2;
+      ctx.fillStyle = flicker ? T.top : '#d9e2d0';
+      ctx.fillRect(138, 8, 44, 3);
     }
+    (SCENERY[theme] || SCENERY.corridor)(ctx, T, frame);
 
     ctx.fillStyle = T.floor;
     ctx.fillRect(0, VIEW.groundY, VIEW.w, VIEW.h - VIEW.groundY);
@@ -193,6 +335,65 @@
     ctx.globalAlpha = 1;
   }
 
+  const PROJ = {
+    salt(ctx, f, x, y) {
+      ctx.fillStyle = '#f7f4ea';
+      for (let k = 0; k < 4; k++) ctx.fillRect(Math.round(x - f.dir * k * 3), Math.round(y + (k % 2) * 2), 2, 2);
+    },
+    beam(ctx, f, x, y, p) {
+      const len = Math.abs(f.x1 - f.x0);
+      const x0 = f.dir > 0 ? f.x0 + 8 : f.x0 - 8 - len;
+      ctx.globalAlpha = 0.28 * (1 - p);
+      ctx.fillStyle = '#f4e48a';
+      for (let k = 0; k < 6; k++) ctx.fillRect(Math.round(x0), Math.round(y - 3 - k), Math.round(len), 6 + k * 2);
+      ctx.globalAlpha = 1;
+    },
+    book(ctx, f, x, y, p) {
+      const yy = Math.round(y - Math.sin(p * Math.PI) * 10);
+      ctx.fillStyle = '#141218';
+      ctx.fillRect(Math.round(x) - 1, yy - 1, 6, 5);
+      ctx.fillStyle = Math.floor(p * 8) % 2 ? '#b5483c' : '#efe9dc';
+      ctx.fillRect(Math.round(x), yy, 4, 3);
+    },
+    wave(ctx, f, x, y, p) {
+      ctx.globalAlpha = 0.85 * (1 - p * 0.6);
+      ctx.fillStyle = '#efe9dc';
+      for (let k = 0; k < 3; k++) {
+        const cx = Math.round(x - f.dir * k * 6);
+        for (let dy = -(4 + k * 3); dy <= 4 + k * 3; dy += 3) ctx.fillRect(cx, Math.round(y + dy), 1, 2);
+      }
+      ctx.globalAlpha = 1;
+    },
+    beaker(ctx, f, x, y, p) {
+      const yy = Math.round(y - Math.sin(p * Math.PI) * 12);
+      ctx.fillStyle = '#141218';
+      ctx.fillRect(Math.round(x) - 1, yy - 1, 5, 6);
+      ctx.fillStyle = '#6fd08c';
+      ctx.fillRect(Math.round(x), yy, 3, 4);
+      if (p > 0.8) {
+        ctx.fillStyle = '#6fd08c';
+        for (let k = -3; k <= 3; k += 3) ctx.fillRect(Math.round(x) + k, Math.round(y) + 4, 2, 2);
+      }
+    },
+    exam(ctx, f, x, y, p) {
+      const spin = Math.floor(p * 10) % 2;
+      ctx.fillStyle = '#141218';
+      ctx.fillRect(Math.round(x) - 1, Math.round(y) - 1, spin ? 7 : 5, spin ? 5 : 7);
+      ctx.fillStyle = '#f6f3ea';
+      ctx.fillRect(Math.round(x), Math.round(y), spin ? 5 : 3, spin ? 3 : 5);
+      ctx.fillStyle = '#d9483b';
+      ctx.fillRect(Math.round(x) + 1, Math.round(y) + 1, 1, 1);
+    },
+    note(ctx, f, x, y, p) {
+      const yy = Math.round(y - 4 + Math.sin(p * 9) * 3);
+      ctx.fillStyle = '#141218';
+      ctx.fillRect(Math.round(x) - 1, yy - 7, 5, 11);
+      ctx.fillStyle = '#b79bf0';
+      ctx.fillRect(Math.round(x) + 2, yy - 6, 1, 8);
+      ctx.fillRect(Math.round(x), yy + 1, 3, 3);
+    },
+  };
+
   function drawFx(ctx, f) {
     const p = 1 - f.life / f.max;
     const gy = VIEW.groundY;
@@ -209,17 +410,7 @@
     } else if (f.kind === 'proj') {
       const x = f.x0 + (f.x1 - f.x0) * p;
       const y = gy + f.z - 16;
-      if (f.sub === 'salt') {
-        ctx.fillStyle = '#f7f4ea';
-        for (let k = 0; k < 4; k++) ctx.fillRect(Math.round(x - f.dir * k * 3), Math.round(y + (k % 2) * 2), 2, 2);
-      } else {
-        const len = Math.abs(f.x1 - f.x0);
-        const x0 = f.dir > 0 ? f.x0 + 8 : f.x0 - 8 - len;
-        ctx.globalAlpha = 0.28 * (1 - p);
-        ctx.fillStyle = '#f4e48a';
-        for (let k = 0; k < 6; k++) ctx.fillRect(Math.round(x0), Math.round(y - 3 - k), Math.round(len), 6 + k * 2);
-        ctx.globalAlpha = 1;
-      }
+      PROJ[f.sub](ctx, f, x, y, p);
     } else if (f.kind === 'cannon') {
       const reach = 40 + p * (VIEW.enemyBaseX - 40);
       ctx.globalAlpha = 0.9 * (1 - p * 0.6);
