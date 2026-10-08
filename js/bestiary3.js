@@ -38,7 +38,7 @@
     },
     {
       id: 'scp294', name: '커피 머신', region: '재단', trait: 'metal', role: 'ranged', ranged: 'beaker', over: { hp: 320, atk: 20, range: 48, speed: 0.4 }, ...scpOf(294, 'Euclid'),
-      look: { arch: 'box', w: 14, h: 24, color: '#d8cfb8', dark: '#5a4a3a', light: '#efe8d6', face: 'screen', extra: 'keys', eye: '#6fd0e8' },
+      look: { arch: 'machine', kind: 'dispenser', body: '#d8cfb8', dark: '#5a4a3a', liquid: '#6fd0e8' },
     },
     /* ---- 연구동 ---- */
     {

@@ -4,7 +4,7 @@
   const { FACE, PROP, DECO, along, darken, lighten } = YG.sprites3;
 
   /* SCP 재단편 아키타입. sprites3.js 와 같은 방식(자세표 q 로 17프레임)이고, YG.archRender 를 한 번 더 감싼다.
-     statue(조각상), shy(수줍은 자), predator(다중음성), reptile(파충류), machine(기계 6종),
+     statue(조각상), shy(수줍은 자), predator(다중음성), reptile(파충류), machine(기계 7종),
      blob(말랑한 덩어리), redact(삭제된 문서와 말소된 존재), folk4(사람꼴에 바닥 웅덩이를 더한 것).
      folk 에 쓰는 얼굴, 소품, 장식도 여기서 더한다. */
 
@@ -607,6 +607,53 @@
         b.r(x0 + w - 5, ry + 1, 2, 1, '#5a626a');
       }
       if (q.hurt) b.line(x0 + 3, y0 + 3, x0 + 9, y0 + 20, '#14121a', 1);
+    },
+
+    /* 커피 머신 (SCP-294): 자판 키패드와 컵 받침, 앞쪽 주둥이로 액체를 뿜는다 */
+    dispenser(b, q, p) {
+      const body = p.body || '#d8cfb8';
+      const dk = p.dark || '#5a4a3a';
+      const liquid = q.atk > 0.5 ? '#ff8a4a' : p.liquid || '#6fd0e8';
+      const w = 15;
+      const h = 24;
+      const walk = q.kind === 'walk';
+      const cx = CX + Math.round(q.lunge * 0.7);
+      const y0 = BY - 4 - h + q.rise - (walk ? Math.round(Math.abs(q.step)) : q.bob);
+      const x0 = cx - 7;
+      const sw = Math.round(q.step * 2);
+      for (const [lx, d] of [[-5, -1], [2, 1]]) {
+        b.r(cx + lx + Math.round(sw * d * 0.6), BY - 4, 4, 4, dk);
+        b.r(cx + lx - 1 + Math.round(sw * d * 0.6), BY - 2, 6, 2, darken(dk, 0.7));
+      }
+      b.r(x0, y0, w, h, body);
+      b.r(x0, y0, w, 2, lighten(body, 0.5));
+      b.r(x0, y0 + h - 2, w, 2, darken(body, 0.8));
+      b.r(x0 + w - 2, y0, 2, h, darken(body, 0.88));
+      /* 윗줄 간판 */
+      b.r(x0 + 1, y0 + 2, w - 2, 4, dk);
+      b.r(x0 + 3, y0 + 3, 2, 2, liquid);
+      b.r(x0 + 7, y0 + 3, 4, 2, lighten(dk, 0.5));
+      /* 화면 얼굴 */
+      b.r(x0 + 2, y0 + 8, w - 5, 6, '#14181e');
+      const eh = q.hurt ? 1 : q.wind > 0.7 ? 1 : 2;
+      b.r(x0 + 3, y0 + 9, 2, eh, liquid);
+      b.r(x0 + 8, y0 + 9, 2, eh, liquid);
+      b.r(x0 + 4, y0 + 12, 6, q.atk > 0.4 ? 2 : 1, liquid);
+      /* 키패드 */
+      for (let r = 0; r < 3; r++) for (let c = 0; c < 4; c++) b.r(x0 + 2 + c * 3, y0 + 15 + r * 2, 2, 1, c % 2 ? '#8a7a62' : '#a89a80');
+      /* 컵 받침과 컵 */
+      b.r(x0 + 3, y0 + h - 5, 8, 3, '#14181e');
+      b.r(x0 + 5, y0 + h - 5, 4, 3, '#f4f1ea');
+      b.px(x0 + 6, y0 + h - 4, liquid);
+      /* 앞쪽 주둥이와 액체 */
+      const spit = Math.round(q.atk * 6);
+      b.r(x0 + w, y0 + 13, 3 + spit, 2, dk);
+      if (q.atk > 0.3) {
+        for (let k = 0; k < 3; k++) b.r(x0 + w + 4 + spit + k * 2, y0 + 12 + k, 2, 2, liquid);
+      } else if (q.i % 2) {
+        b.px(x0 + w + 2, y0 + 16, liquid);
+      }
+      if (q.hurt) b.line(x0 + 3, y0 + 3, x0 + 9, y0 + 18, '#14121a', 1);
     },
 
     /* 구형 컴퓨터 (SCP-079): 낡은 모니터에 초록 글자, 케이블이 뱀처럼 꿈틀거린다 */

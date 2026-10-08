@@ -411,7 +411,7 @@
 
 ### 도트와 배경
 
-- `js/sprites4.js`가 아키타입 8종을 더한다: `statue`(조각상), `shy`(수줍은 자, 평소엔 두 손으로 얼굴을 가리고 공격할 때만 얼굴이 보인다), `predator`(눈 없는 네발 포식자, 앞이 갈라지는 입), `reptile`(파충류, 굵은 꼬리와 등 가시), `machine`(경비 로봇/보안 총괄기, 감시 카메라, 격벽 문, 서버 랙, 구형 컴퓨터, 태엽 정제기 6종), `blob`(간지럼 괴물, 검은 점액), `redact`(검은 줄로 지워진 문서, 말소된 최종 보스), `folk4`(사람꼴에 바닥 웅덩이). 사람꼴(`folk`)에는 얼굴 `visor`/`stitched`/`porcelain`/`void`/`shades`/`plague`, 소품 `scalpel`/`clipboard`, 장식 `tank`/`labcoat`/`drip`을 더했다 (sprites3.js는 그대로).
+- `js/sprites4.js`가 아키타입 8종을 더한다: `statue`(조각상), `shy`(수줍은 자, 평소엔 두 손으로 얼굴을 가리고 공격할 때만 얼굴이 보인다), `predator`(눈 없는 네발 포식자, 앞이 갈라지는 입), `reptile`(파충류, 굵은 꼬리와 등 가시), `machine`(경비 로봇/보안 총괄기, 감시 카메라, 격벽 문, 서버 랙, 커피 머신, 구형 컴퓨터, 태엽 정제기 7종), `blob`(간지럼 괴물, 검은 점액), `redact`(검은 줄로 지워진 문서, 말소된 최종 보스), `folk4`(사람꼴에 바닥 웅덩이). 사람꼴(`folk`)에는 얼굴 `visor`/`stitched`/`porcelain`/`void`/`shades`/`plague`, 소품 `scalpel`/`clipboard`, 장식 `tank`/`labcoat`/`drip`을 더했다 (sprites3.js는 그대로).
 - `tests/spritecheck.js`는 재단 적 23종도 17프레임 전부 그려서 48×36 칸 밖으로 나가는 그림이 없는지 확인한다. `tests/preview.html?set=scp` / `?set=scpboss`로 시트를 볼 수 있다.
 - `js/scenery3.js`가 장면 10개와 팔레트 8종을 더한다: 검문소(타일 벽, 형광등, 보안문 두 짝, 경비 부스, 탐지 게이트), 보관실(상자가 쌓인 철제 선반, 유리장), 실험실(관찰창, 파형 모니터, 시약병), 격리실(유리 큐브 네 칸), 격벽(둥근 금고문, 경고 비콘), 소거실(누빈 흰 벽, 의자, 일방 투시창), 통제실(모니터 벽, 서버 랙), 원탁(열세 개의 의자, 열세 개의 점), 끝없는 계단, 말소된 공간. 재단 로고는 쓰지 않았다. `tests/backgrounds.html?set=foundation`으로 한 번에 본다.
 
