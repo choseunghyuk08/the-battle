@@ -246,6 +246,8 @@ function tiers() {
     { stage: 5, deck: ids('bag', 'robot', 'tech', 'patrol', 'radio', 'cook', 'bat', 'runner'), lv: 6, evo: ['bag', 'robot', 'tech', 'patrol'] },
     { stage: 6, deck: ids('bag', 'lab', 'bat', 'cook', 'patrol', 'radio', 'pe', 'runner', 'tech'), lv: 7, evo: ['bag', 'lab', 'cook', 'pe', 'patrol'] },
     { stage: 7, deck: ids('bag', 'pe', 'cook', 'patrol', 'radio', 'robot', 'lab', 'tech', 'runner', 'bat'), lv: 8, evo: ['bag', 'pe', 'cook', 'patrol', 'robot', 'lab', 'tech'] },
+    { stage: 5, label: '새 동료', deck: ids('bag', 'kendo', 'volley', 'art', 'fire', 'electric', 'archer', 'runner'), lv: 6, evo: ['bag', 'kendo', 'volley', 'art', 'fire', 'electric', 'archer'] },
+    { stage: 7, label: '새 동료', deck: ids('bag', 'nurseT', 'sciT', 'senior', 'vice', 'fire', 'electric', 'archer', 'kendo', 'coder'), lv: 8, evo: ['bag', 'nurseT', 'sciT', 'senior', 'vice', 'fire', 'electric', 'archer', 'kendo', 'coder'] },
     { stage: 7, label: '전설 포함', deck: ids('bag', 'top', 'warden', 'pe', 'cook', 'patrol', 'robot', 'lab', 'radio', 'tech'), lv: 7, evo: [] },
   ].map((t) => ({ ...t, all }));
 }
@@ -335,19 +337,25 @@ if (require.main === module) {
   console.log('\nall tests passed');
 }
 
-const ORDER = [
-  'basic', 'bag', 'runner', 'reader', 'tech', 'bat', 'cook', 'radio', 'cleaner', 'basket', 'kendo', 'volley', 'patrol', 'lab', 'robot',
-  'art', 'drum', 'coder', 'nurse', 'pingpong', 'calli', 'fire', 'archer', 'pe', 'choir', 'electric', 'taekwon', 'sciT', 'nurseT', 'senior',
-  'vice', 'top', 'warden', 'headmaster', 'alumni',
+/* 난이도는 처음 14종만 가진 봇이 간신히 깰 수 있는 선에 맞춰져 있다 (calibrate.js).
+   그래서 보정용 봇은 이 14종만 쓰고, 새 동료는 ROSTER=all 로 켜서 따로 확인한다. */
+const BASE_ORDER = ['basic', 'bag', 'runner', 'reader', 'tech', 'bat', 'cook', 'radio', 'patrol', 'lab', 'robot', 'pe', 'top', 'warden'];
+const NEW_ORDER = [
+  'cleaner', 'kendo', 'fire', 'basket', 'volley', 'art', 'taekwon', 'drum', 'nurse', 'coder', 'archer', 'pingpong', 'calli', 'choir',
+  'electric', 'sciT', 'nurseT', 'senior', 'vice', 'headmaster', 'alumni',
 ];
 const GRADE_SCORE = { 4: 1, 3: 3, 2: 4.5, 1: 6, 0: 7 };
 
-function progressTier(stageId) {
+function progressTier(stageId, roster = process.env.ROSTER || 'base') {
   const stage = YG.STAGES[stageId - 1];
   const g = stage.id - 1;
   const lv = Math.max(1, Math.min(50, Math.round(4 + 0.19 * g)));
-  const have = Math.min(ORDER.length, 4 + Math.floor(g / 3));
-  const owned = ORDER.slice(0, have);
+  const have = Math.min(BASE_ORDER.length, 4 + Math.floor(g / 3));
+  const owned = BASE_ORDER.slice(0, have);
+  if (roster === 'all') {
+    /* 새 동료는 뽑기에서 일찍 나온다고 보고, 14종을 다 모은 뒤부터 3스테이지에 하나씩 얻는다. */
+    owned.push(...NEW_ORDER.slice(0, Math.max(0, Math.floor((g - 30) / 3))));
+  }
   const traits = new Set(YG.stageTraits(stage));
   const score = (id) => {
     const d = YG.unitById(id);
