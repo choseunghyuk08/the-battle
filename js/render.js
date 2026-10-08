@@ -315,6 +315,25 @@
     ctx.fillStyle = '#05040a';
     const sw = Math.round(14 * scale * (u.def.float && !d ? 0.7 : 1));
     ctx.fillRect(x - Math.floor(sw / 2), gy - 1, sw, 2);
+    if (!d && u.side === 'ally' && u.def.evolved >= 2) {
+      /* 각성한 유닛은 발밑에서 금빛 고리가 깜빡인다 */
+      const pulse = 0.5 + 0.5 * Math.sin(u.age * 0.2);
+      ctx.globalAlpha = 0.25 + 0.3 * pulse;
+      ctx.fillStyle = '#f2d450';
+      ringPx(ctx, x, gy, 10 + pulse * 2, 2.5, 1);
+      if (u.moving) {
+        /* 달릴 때 흰 잔상 */
+        const ghost = S().frame(u.def, key, 'flash');
+        for (let k = 1; k <= 2; k++) {
+          ctx.globalAlpha = 0.2 / k;
+          ctx.save();
+          ctx.translate(x - u.dir * k * 5, gy);
+          if (u.dir < 0) ctx.scale(-1, 1);
+          ctx.drawImage(ghost, -S().CX * scale, -S().BY * scale, w, h);
+          ctx.restore();
+        }
+      }
+    }
     ctx.globalAlpha = alpha;
 
     ctx.save();
@@ -584,18 +603,76 @@
       ctx.fillStyle = '#e5654b';
       ctx.fillRect(0, 0, VIEW.w, VIEW.h);
       ctx.globalAlpha = 1;
+    } else if (f.kind === 'awaken') {
+      drawAwakenBurst(ctx, f, p, gy);
+    } else if (f.kind === 'awakenHit') {
+      const x = Math.round(f.x);
+      const y = Math.round(gy + f.z - f.h);
+      const r = 4 + Math.round(p * 9);
+      ctx.globalAlpha = 1 - p;
+      ctx.fillStyle = '#f2d450';
+      for (let k = -r; k <= r; k += 2) {
+        ctx.fillRect(x + k, y + k, 2, 2);
+        ctx.fillRect(x + k, y - k, 2, 2);
+      }
+      ctx.fillStyle = '#fff6c8';
+      ctx.fillRect(x - 1, y - 1, 3, 3);
+      ctx.globalAlpha = 1;
     }
+  }
+
+  /* 진화/각성 유닛이 나올 때: 바닥 링 + (각성은) 빛기둥과 반짝임 */
+  function ringPx(ctx, cx, cy, rx, ry, step) {
+    const n = Math.max(20, Math.round(rx * 2.2));
+    for (let i = 0; i < n; i += step) {
+      const a = (i / n) * Math.PI * 2;
+      ctx.fillRect(Math.round(cx + Math.cos(a) * rx), Math.round(cy + Math.sin(a) * ry), 1, 1);
+    }
+  }
+
+  function drawAwakenBurst(ctx, f, p, gy) {
+    const x = Math.round(f.x);
+    const y = gy + f.z;
+    const two = f.level >= 2;
+    const main = two ? '#f2d450' : '#9fd8f0';
+    const light = two ? '#fff6c8' : '#e8fbff';
+    ctx.globalAlpha = 1 - p;
+    ctx.fillStyle = main;
+    ringPx(ctx, x, y - 1, 6 + p * (two ? 30 : 20), 2 + p * (two ? 8 : 5), 1);
+    if (two) {
+      ctx.fillStyle = light;
+      ringPx(ctx, x, y - 1, 4 + Math.max(0, p - 0.15) * 22, 1 + Math.max(0, p - 0.15) * 6, 1);
+      const w = Math.round(7 * (1 - p));
+      ctx.globalAlpha = 0.5 * (1 - p);
+      ctx.fillStyle = light;
+      ctx.fillRect(x - w, y - 78, w * 2 + 1, 78);
+      ctx.globalAlpha = 0.35 * (1 - p);
+      ctx.fillStyle = main;
+      ctx.fillRect(x - w - 2, y - 78, w * 2 + 5, 78);
+    }
+    ctx.globalAlpha = 1 - p;
+    const n = two ? 12 : 6;
+    for (let k = 0; k < n; k++) {
+      const a = k * 2.399;
+      const rise = p * (18 + (k % 4) * 8);
+      ctx.fillStyle = k % 2 ? main : light;
+      ctx.fillRect(x + Math.round(Math.cos(a) * (6 + (k % 3) * 5)), Math.round(y - 4 - rise - (k % 3) * 3), 1 + (k % 5 === 0 ? 1 : 0), 1);
+    }
+    ctx.globalAlpha = 1;
   }
 
   YG.render = {
     battle(ctx, b, theme) {
       ctx.imageSmoothingEnabled = false;
+      ctx.save();
+      if (b.shake > 0) ctx.translate((b.frame % 2 ? 1 : -1) * Math.min(2, b.shake), (b.frame % 3 === 0 ? 1 : 0));
       drawBackground(ctx, theme, b.frame);
       drawAllyBase(ctx, b.baseFlash.ally > 0);
       drawEnemyBase(ctx, b.baseFlash.enemy > 0, b.frame);
       const sorted = [...b.units].sort((a, c) => a.z - c.z);
       for (const u of sorted) drawUnit(ctx, u);
       for (const f of b.fx) drawFx(ctx, f);
+      ctx.restore();
     },
 
     backdrop(ctx, frame) {

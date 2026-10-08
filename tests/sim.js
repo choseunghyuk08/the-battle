@@ -1,7 +1,7 @@
 const path = require('path');
 const assert = require('assert');
 const root = path.join(__dirname, '..', 'js');
-['data.js', 'units2.js', 'evolutions.js', 'bestiary.js', 'world.js', 'engine.js', 'game.js', 'missions.js', 'scenery.js'].forEach((f) => require(path.join(root, f)));
+['data.js', 'units2.js', 'evolutions.js', 'bestiary.js', 'world.js', 'engine.js', 'game.js', 'missions.js', 'cutscene.js', 'scenery.js'].forEach((f) => require(path.join(root, f)));
 const YG = globalThis.YG;
 
 function seeded(seed) {
@@ -225,6 +225,44 @@ function testSpecials() {
   console.log('specials ok');
 }
 
+function testAwakenFx() {
+  const stage = { startMoney: 5000, allyBaseHp: 1e6, enemyBaseHp: 1e6, waves: [] };
+  const mk = (evo) => {
+    const def = YG.resolveDef(YG.unitById('bat'), evo);
+    return new YG.Battle(stage, [{ def, lv: 1, plus: 0 }], seeded(3));
+  };
+  const plain = mk(0);
+  plain.summon(0);
+  assert(!plain.drainEvents().some((e) => e.t === 'evoSummon'), '기본 유닛은 등장 연출 없음');
+  assert(!plain.fx.some((f) => f.kind === 'awaken'));
+  for (const lvl of [1, 2]) {
+    const b = mk(lvl);
+    b.summon(0);
+    const ev = b.drainEvents().find((e) => e.t === 'evoSummon');
+    assert(ev && ev.level === lvl && ev.id === 'bat', `${lvl}단계 등장 이벤트`);
+    assert(b.fx.some((f) => f.kind === 'awaken' && f.level === lvl));
+  }
+  /* 각성 유닛의 강한 타격은 화면을 흔든다 (진화는 아님) */
+  for (const [lvl, shakes] of [[1, false], [2, true]]) {
+    const b = mk(lvl);
+    b.summon(0);
+    const ally = b.units[0];
+    const foe = b.spawnUnit('enemy', YG.enemyById('mannequin'), { mult: 1 });
+    ally.x = 100;
+    foe.x = 108;
+    b.doHit(ally);
+    assert.strictEqual(b.shake > 0, shakes, `${lvl}단계 화면 흔들림`);
+    assert.strictEqual(b.fx.some((f) => f.kind === 'awakenHit'), shakes);
+  }
+  const t1 = YG.cutscene.timeline(1);
+  const t2 = YG.cutscene.timeline(2);
+  for (const t of [t1, t2]) {
+    assert(t.charge[0] < t.charge[1] && t.charge[1] <= t.flashAt && t.flashAt < t.swapAt && t.swapAt <= t.revealAt && t.revealAt < t.textAt && t.textAt < t.loopAt && t.loopAt < t.total, '타임라인 순서');
+  }
+  assert(t2.total > t1.total, '각성이 더 길다');
+  console.log('awaken fx ok');
+}
+
 function testBalance() {
   const { power } = require('./power.js');
   const med = (a) => [...a].sort((x, y) => x - y)[a.length >> 1];
@@ -389,6 +427,7 @@ if (require.main === module) {
   testRoster();
   testBalance();
   testSpecials();
+  testAwakenFx();
   testWorld();
   testGacha();
   testProgression();

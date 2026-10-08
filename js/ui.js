@@ -485,12 +485,19 @@
       el('button', {
         class: 'btn primary', disabled: !chk.ok, text: label,
         onclick: () => {
+          const from = o.evo;
           YG.evolve(save, base.id);
-          play(second ? 'awaken' : 'evolve');
           persist();
           renderPurse();
-          renderFormation();
-          toast(`${nextName}. ${label}했다.`);
+          const done = () => {
+            renderFormation();
+            toast(`${nextName}. ${label}했다.`);
+          };
+          if (YG.cutscene) YG.cutscene.evolve(base, from, from + 1, done);
+          else {
+            play(second ? 'awaken' : 'evolve');
+            done();
+          }
         },
       }),
     ]);
@@ -917,11 +924,28 @@
     }
     const events = b.drainEvents();
     if (events.length) {
+      for (const e of events) if (e.t === 'evoSummon') showCutin(e, battle);
       YG.audio.battleEvents(events);
       if (events.some((e) => e.t === 'boss')) YG.audio.battleMusic(battle.stage, true);
     }
     YG.render.battle($('#field').getContext('2d'), b, battle.stage.theme);
     updateHud(b);
+  }
+
+  /* 각성 유닛을 처음 내보낼 때 위에서 띠가 지나간다. 게임은 멈추지 않는다 */
+  function showCutin(e, battleState) {
+    if (e.level < 2) return;
+    const seen = battleState.cutins || (battleState.cutins = new Set());
+    const box = $('#cutin');
+    if (seen.has(e.id) || box.classList.contains('on')) return;
+    seen.add(e.id);
+    const def = YG.ownedDef(app.save, e.id);
+    box.replaceChildren(
+      YG.sprites.portrait(def, 2, 'atk3'),
+      el('div', {}, [el('em', { text: '각성' }), el('b', { text: def.name })])
+    );
+    box.classList.add('on');
+    setTimeout(() => box.classList.remove('on'), 1500);
   }
 
   function updateHud(b) {

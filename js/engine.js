@@ -53,6 +53,7 @@
       this.fx = [];
       this.nextId = 1;
       this.result = null;
+      this.shake = 0;
       this.stats = { kills: 0, summoned: 0, bossKills: 0, cannon: 0 };
       this.events = [];
     }
@@ -118,8 +119,12 @@
       const s = this.slots[i];
       this.money -= s.def.cost;
       s.cd = s.def.cooldown;
-      this.spawnUnit('ally', s.def, { lv: s.lv, plus: s.plus });
+      const unit = this.spawnUnit('ally', s.def, { lv: s.lv, plus: s.plus });
       this.emit({ t: 'summon' });
+      if (s.def.evolved) {
+        this.emit({ t: 'evoSummon', level: s.def.evolved, id: s.def.id, name: s.def.name });
+        this.fx.push({ kind: 'awaken', x: unit.x, z: unit.z, level: s.def.evolved, life: 34, max: 34 });
+      }
       this.stats.summoned++;
       return true;
     }
@@ -189,7 +194,12 @@
         let dealt = calcDamage(e, v, e.atk);
         const crit = !!e.def.crit && this.rng() < e.def.crit;
         if (crit) dealt *= 2;
-        this.applyDamage(v, dealt, { from: e, big: crit || dealt >= e.atk * 1.4 });
+        const big = crit || dealt >= e.atk * 1.4;
+        this.applyDamage(v, dealt, { from: e, big });
+        if (e.side === 'ally' && e.def.evolved >= 2) {
+          this.fx.push({ kind: 'awakenHit', x: v.x, z: v.z, h: 14, dir: e.dir, life: 10, max: 10 });
+          if (big && this.shake <= 0) this.shake = 4;
+        }
         if (!e.def.ranged) this.fx.push({ kind: 'slash', x: v.x, z: v.z, h: 14, dir: e.dir, side: e.side, life: 7, max: 7 });
         if (e.def.freeze && v.def.trait !== 'metal' && this.rng() < e.def.freeze.chance) {
           v.freeze = e.def.freeze.frames;
@@ -329,6 +339,7 @@
     }
 
     updateFx() {
+      if (this.shake > 0) this.shake--;
       for (const f of this.fx) f.life--;
       this.fx = this.fx.filter((f) => f.life > 0);
       for (const k of ['ally', 'enemy']) if (this.baseFlash[k] > 0) this.baseFlash[k]--;

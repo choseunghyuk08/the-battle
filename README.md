@@ -30,6 +30,7 @@
 | `js/sprites.js`, `js/sprites2.js` | 도트 스프라이트를 코드로 그리는 곳 (학생/기존 적, 새 적 아키타입) |
 | `js/scenery.js` | 배경 아키타입과 팔레트 |
 | `js/render.js` | 전투 화면 그리기 |
+| `js/cutscene.js` | 진화/각성 컷신 |
 | `js/audio.js` | 효과음(합성)과 배경음 재생. 배경음 파일은 `assets/bgm/README.md` 참고 |
 | `js/ui.js` | 화면 전환과 HUD |
 | `docs/concept.md` | 컨셉 문서 |

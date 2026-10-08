@@ -159,9 +159,42 @@
       notes([494, 740, 988, 1319], { dur: 1.1, vol: 0.11, type: 'triangle', step: 0, at: 0.6 });
       noise({ dur: 0.5, vol: 0.1, filter: 'highpass', f: 4000, at: 0.5 });
     },
+    evoTick: () => tone({ f: 1760, to: 2200, dur: 0.07, vol: 0.07, type: 'sine' }),
+    evoCharge: () => {
+      tone({ f: 200, to: 1100, dur: 1.5, vol: 0.12, type: 'triangle', attack: 0.2 });
+      tone({ f: 300, to: 1650, dur: 1.5, vol: 0.06, type: 'sine', attack: 0.3 });
+      noise({ dur: 1.5, vol: 0.05, filter: 'bandpass', f: 800, to: 5000, q: 2 });
+    },
+    evoBoom: () => {
+      noise({ dur: 0.5, vol: 0.3, f: 3000, to: 200 });
+      tone({ f: 110, to: 45, dur: 0.4, vol: 0.34, type: 'sine' });
+      notes([784, 988, 1175, 1568], { dur: 0.5, vol: 0.14, type: 'triangle', step: 0.06, at: 0.08 });
+    },
+    awakenCharge: () => {
+      tone({ f: 70, to: 260, dur: 2.5, vol: 0.18, type: 'sawtooth', attack: 0.4 });
+      tone({ f: 140, to: 780, dur: 2.5, vol: 0.09, type: 'triangle', attack: 0.5 });
+      tone({ f: 440, to: 2600, dur: 2.5, vol: 0.05, type: 'sine', attack: 0.8 });
+      for (let i = 0; i < 12; i++) tone({ f: 90 + i * 14, dur: 0.1, vol: 0.12, type: 'square', at: 0.25 + i * (0.2 - i * 0.008) });
+      noise({ dur: 2.5, vol: 0.07, filter: 'bandpass', f: 500, to: 7000, q: 3 });
+    },
+    awakenBoom: () => {
+      noise({ dur: 0.9, vol: 0.42, f: 4000, to: 120 });
+      tone({ f: 90, to: 30, dur: 0.7, vol: 0.45, type: 'sine' });
+      tone({ f: 300, to: 60, dur: 0.4, vol: 0.2, type: 'sawtooth' });
+      notes([523, 659, 784, 1047, 1319, 1568, 2093], { dur: 0.9, vol: 0.14, type: 'triangle', step: 0.07, at: 0.1 });
+      notes([523, 784, 1047], { dur: 1.6, vol: 0.12, type: 'sine', step: 0, at: 0.65 });
+    },
+    cutin: () => {
+      noise({ dur: 0.28, vol: 0.2, filter: 'bandpass', f: 600, to: 4200, q: 1.5 });
+      notes([988, 1319, 1760], { dur: 0.24, vol: 0.14, type: 'triangle', step: 0.07, at: 0.1 });
+    },
+    evoSummon: () => {
+      tone({ f: 330, to: 990, dur: 0.18, vol: 0.14, type: 'triangle' });
+      tone({ f: 1320, dur: 0.22, vol: 0.09, type: 'sine', at: 0.1 });
+    },
   };
 
-  const MIN_GAP = { hit: 30, hitBig: 40, atkMelee: 45, atkRanged: 45, kill: 45, summon: 30, base: 90, click: 30 };
+  const MIN_GAP = { hit: 30, hitBig: 40, atkMelee: 45, atkRanged: 45, kill: 45, summon: 30, base: 90, click: 30, evoSummon: 120, cutin: 400, evoTick: 60 };
   const LOW_PRIORITY = new Set(['hit', 'atkMelee', 'atkRanged']);
   const lastAt = {};
   let live = 0;
@@ -316,6 +349,7 @@
       const ally = e.side === 'ally';
       switch (e.t) {
         case 'summon': sfx('summon'); break;
+        case 'evoSummon': sfx(e.level >= 2 ? 'cutin' : 'evoSummon'); break;
         case 'upgrade': sfx('upgrade'); break;
         case 'cannon': sfx('cannon'); break;
         case 'atk': sfx(e.ranged ? 'atkRanged' : 'atkMelee', ally ? 1 : 0.8); break;
