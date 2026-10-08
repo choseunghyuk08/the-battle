@@ -260,6 +260,7 @@
     stat('cannon', 'combat', '방송실 단골', 'cannonShots', () => [10, 50, 200, 500], (n) => `방송 대포 ${fmt(n)}번 발사`, 0.7),
     stat('summons', 'combat', '소환 달인', 'summons', () => [200, 1500, 6000, 20000], (n) => `유닛 ${fmt(n)}번 소환`, 0.8),
     derived('owned', 'collect', '도감 수집', (s) => Object.keys(s.owned).length, () => upTo([6, 12, 20, 30], YG.UNITS.length), (n) => `유닛 ${n}종 모으기`),
+    derived('dex', 'collect', '괴담 수집', (s) => YG.dex.counts(s).seen, () => upTo([10, 25, 40], YG.dex.entries().length), (n) => `괴담 ${n}종 만나기`),
     derived('evoUnits', 'collect', '진화 연구', (s) => owned(s).filter((o) => o.evo >= 1).length, () => upTo([1, 5, 12, 24], YG.UNITS.length), (n) => `진화시킨 유닛 ${n}종`, 0.8),
     derived('awakened', 'collect', '각성자', (s) => owned(s).filter((o) => o.evo >= 2).length, () => within([1, 3, 10, 20], YG.UNITS.length), (n) => `각성시킨 유닛 ${n}종`),
     stat('pulls', 'gacha', '문방구 단골', 'pulls', () => [10, 50, 200, 500, 1500], (n) => `문방구 뽑기 ${fmt(n)}번`, 0.8),

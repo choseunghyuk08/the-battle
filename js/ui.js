@@ -71,6 +71,7 @@
     stages: { enter: renderStages },
     formation: { enter: renderFormation },
     gacha: { enter: enterGacha, leave: leaveGacha },
+    dex: { enter: renderDex },
     battle: {},
   };
 
@@ -115,9 +116,16 @@
     );
   }
 
+  function refreshDexCount() {
+    const c = YG.dex.counts(app.save);
+    $('#dexCount').textContent = `${c.seen}/${c.total}`;
+    $('#openDex').setAttribute('aria-label', `도감, 발견 ${c.seen}/${c.total}`);
+  }
+
   function enterHome() {
     renderHomeLive();
     refreshBadge();
+    refreshDexCount();
     const ctx = $('#backdrop').getContext('2d');
     startLoop('home', (f) => YG.render.backdrop(ctx, f), 30);
   }
@@ -787,6 +795,221 @@
     requestAnimationFrame(() => (dlg.scrollTop = 0));
   }
 
+  /* 도감 */
+  const dexUi = { kind: 'all', region: 'all', entry: null, player: null, opener: null };
+
+  /* 같은 적의 초상화는 한 번만 만들고 복사해 쓴다 (목록을 다시 그릴 때마다 픽셀을 읽지 않게) */
+  const portraits = new Map();
+  function dexPortrait(def, scale = 2) {
+    const key = `${def.spriteKey || def.id}:${scale}`;
+    if (!portraits.has(key)) portraits.set(key, YG.sprites.portrait(def, scale));
+    const src = portraits.get(key);
+    const c = document.createElement('canvas');
+    c.width = src.width;
+    c.height = src.height;
+    c.className = src.className;
+    c.style.cssText = src.style.cssText;
+    c.getContext('2d').drawImage(src, 0, 0);
+    return c;
+  }
+
+  /* 아직 못 만난 적: 스프라이트 모양 그대로 어둡게 칠하고 가장자리만 살짝 밝힌다 */
+  function silhouette(def, scale = 2) {
+    const src = dexPortrait(def, scale);
+    const w = src.width;
+    const h = src.height;
+    const layer = (color) => {
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      const x = c.getContext('2d');
+      x.drawImage(src, 0, 0);
+      x.globalCompositeOperation = 'source-in';
+      x.fillStyle = color;
+      x.fillRect(0, 0, w, h);
+      return c;
+    };
+    const out = document.createElement('canvas');
+    out.width = w + 2;
+    out.height = h + 2;
+    out.className = 'portrait';
+    out.style.width = `${out.width * scale}px`;
+    out.style.height = `${out.height * scale}px`;
+    const x = out.getContext('2d');
+    const rim = layer('#34414f');
+    for (const [dx, dy] of [[1, 0], [1, 2], [0, 1], [2, 1]]) x.drawImage(rim, dx, dy);
+    x.drawImage(layer('#04070a'), 1, 1);
+    return out;
+  }
+
+  function dexCard(e) {
+    if (!YG.dex.isSeen(app.save, e.id)) {
+      const st = YG.dex.firstStage(e.id);
+      const ch = st && YG.CHAPTERS.find((c) => c.id === st.chapter);
+      return el('button', {
+        class: `dex-card locked${e.boss ? ' boss' : ''}`, 'aria-label': '???, 아직 만나지 못함', 'aria-disabled': 'true',
+        onclick: () => {
+          play('error');
+          toast('아직 만나지 못했다.');
+        },
+      }, [
+        e.boss ? el('span', { class: 'tag-boss', text: '보스' }) : null,
+        el('span', { class: 'pic' }, [silhouette(e.def)]),
+        el('span', { class: 'name', text: '???' }),
+        el('small', { class: 'hint', text: ch ? ch.name : '단서 없음' }),
+      ]);
+    }
+    const vs = YG.dex.variantsSeen(app.save, e.id).length;
+    return el('button', {
+      class: `dex-card${e.boss ? ' boss' : ''}`, 'aria-label': `${e.def.name}${e.boss ? ', 보스' : ''}`,
+      onclick: () => openDex(e),
+    }, [
+      e.boss ? el('span', { class: 'tag-boss', text: '보스' }) : null,
+      YG.icon(e.trait, 1),
+      el('span', { class: 'pic' }, [dexPortrait(e.def, 2)]),
+      el('span', { class: 'name', text: e.def.name }),
+      vs ? el('small', { class: 'vcount', text: `변종 ${vs}` }) : null,
+    ]);
+  }
+
+  function renderDex() {
+    const list = YG.dex.entries();
+    const regions = [...new Set(list.map((e) => e.region))];
+    if (dexUi.region !== 'all' && !regions.includes(dexUi.region)) dexUi.region = 'all';
+    const found = YG.dex.counts(app.save);
+    $('#dexFound').textContent = `${found.seen}/${found.total}`;
+
+    for (const b of $$('#dexKind button')) {
+      b.classList.toggle('on', b.dataset.kind === dexUi.kind);
+      b.setAttribute('aria-pressed', String(b.dataset.kind === dexUi.kind));
+    }
+    /* 지역이 하나뿐이면 지역 탭은 숨긴다. 탭 버튼은 목록이 바뀔 때만 새로 만들어 포커스를 지킨다. */
+    const seg = $('#dexRegion');
+    seg.hidden = regions.length < 2;
+    if (!seg.hidden && seg.dataset.sig !== regions.join('|')) {
+      seg.dataset.sig = regions.join('|');
+      seg.replaceChildren(...['all', ...regions].map((r) => el('button', {
+        'data-region': r, text: r === 'all' ? '전체 지역' : r,
+        onclick: () => {
+          dexUi.region = r;
+          renderDex();
+        },
+      })));
+    }
+    for (const b of $$('#dexRegion button')) {
+      b.classList.toggle('on', b.dataset.region === dexUi.region);
+      b.setAttribute('aria-pressed', String(b.dataset.region === dexUi.region));
+    }
+
+    const shown = list.filter((e) =>
+      (dexUi.kind === 'all' || (dexUi.kind === 'boss') === e.boss) && (dexUi.region === 'all' || e.region === dexUi.region));
+    $('#dexShown').textContent = `${shown.filter((e) => YG.dex.isSeen(app.save, e.id)).length}/${shown.length}`;
+    $('#dexGrid').replaceChildren(...shown.map(dexCard));
+  }
+
+  const PHASE_LABEL = ['이야기 1/3', '이야기 2/3', '이야기 3/3', '공격 모션'];
+
+  function startDexPlayer() {
+    stopDexPlayer();
+    $('#dexLine').textContent = '';
+    dexUi.player = YG.dex.play($('#dexCanvas'), dexUi.entry, {
+      sfx: play,
+      reduced: reduceMotion(),
+      onCaption: (text) => ($('#dexLine').textContent = text),
+      onPhase: (ph) => {
+        const i = ph === 'loop' ? 3 : ph;
+        $('#dexPhase').textContent = PHASE_LABEL[i];
+        $$('#dexPips .pip').forEach((p, k) => p.classList.toggle('on', k <= Math.min(i, 2)));
+      },
+    });
+  }
+
+  function stopDexPlayer() {
+    if (dexUi.player) dexUi.player.stop();
+    dexUi.player = null;
+  }
+
+  function openDex(e) {
+    const { def, lore } = e;
+    dexUi.entry = e;
+    dexUi.opener = document.activeElement;
+    $('#dexName').textContent = def.name;
+    $('#dexChips').replaceChildren(...[
+      e.boss ? el('span', { class: 'tag-boss', text: '보스' }) : null,
+      el('span', { class: 'chip', text: e.region }),
+      traitChip(e.trait),
+      ...YG.dex.tags(def).map((t) => el('span', { class: 'chip', text: t })),
+    ].filter(Boolean));
+    $('#dexStats').replaceChildren(...YG.dex.statRows(def).map((r) => statRow(r.label, r.value)));
+    $('#dexDesc').textContent = lore.desc;
+    $('#dexSr').textContent = lore.beats.join(' ');
+
+    const got = YG.dex.variantsSeen(app.save, e.id);
+    $('#dexVars').replaceChildren(...YG.dex.variantKeys(e).map((v) => {
+      const on = got.includes(v);
+      return el('span', { class: `vchip${on ? '' : ' none'}`, 'aria-label': on ? YG.VARIANTS[v].prefix : '미발견 변종' }, [
+        on ? dexPortrait(YG.enemyById(`${e.id}:${v}`), 2) : el('span', { class: 'q', text: '?' }),
+        el('em', { text: on ? YG.VARIANTS[v].prefix : '???' }),
+      ]);
+    }));
+
+    const dlg = $('#dexDlg');
+    dlg.showModal();
+    dlg.scrollTop = 0;
+    startDexPlayer();
+  }
+
+  function closeDex() {
+    stopDexPlayer();
+    if (dexUi.opener && dexUi.opener.isConnected && dexUi.opener.focus) dexUi.opener.focus();
+  }
+
+  /* 전투 중 처음 만난 적: 바로 저장하고 알림 줄을 띄운다 (게임은 멈추지 않는다) */
+  const banner = { queue: [], timer: 0, busy: false };
+
+  function nextBanner() {
+    const box = $('#seenBanner');
+    const item = banner.queue.shift();
+    if (!item) {
+      banner.busy = false;
+      box.classList.remove('on');
+      return;
+    }
+    banner.busy = true;
+    box.replaceChildren(`${item.label} · `, el('b', { text: item.name }));
+    box.classList.add('on');
+    play('isnew');
+    clearTimeout(banner.timer);
+    banner.timer = setTimeout(() => {
+      box.classList.remove('on');
+      banner.timer = setTimeout(nextBanner, 320);
+    }, 2400);
+  }
+
+  function clearBanner() {
+    clearTimeout(banner.timer);
+    banner.queue = [];
+    banner.busy = false;
+    $('#seenBanner').classList.remove('on');
+  }
+
+  function noteSeen(b) {
+    battle.seenN = b.seen.size;
+    const known = app.save.seen || {};
+    const fresh = [...b.seen].filter((id) => !known[id]);
+    if (!fresh.length) return;
+    const items = fresh.map((id) => ({ id, base: !YG.dex.isSeen(app.save, id.split(':')[0]) }));
+    YG.markSeen(app.save, fresh);
+    persist();
+    for (const it of items) {
+      const def = YG.enemyById(it.id);
+      if (it.base) battle.newSeen.push(def.name);
+      else battle.newVariants++;
+      banner.queue.push({ label: it.base ? '새 괴담' : '새 변종', name: def.name });
+    }
+    if (!banner.busy) nextBanner();
+  }
+
   /* 전투 */
   const battle = {
     b: null,
@@ -799,6 +1022,9 @@
     ended: false,
     endAt: 0,
     quitting: false,
+    seenN: 0,
+    newSeen: [],
+    newVariants: 0,
   };
 
   function fitField() {
@@ -860,6 +1086,10 @@
     battle.ended = false;
     battle.endAt = 0;
     battle.quitting = false;
+    battle.seenN = 0;
+    battle.newSeen = [];
+    battle.newVariants = 0;
+    clearBanner();
     $('#bSpeed').textContent = '×1';
     $('#bPause').textContent = '멈춤';
     $('#bSub').textContent = stage.sub;
@@ -922,6 +1152,7 @@
       }
       if (battle.ended && b.frame >= battle.endAt && !$('#battleEnd').open) finishBattle();
     }
+    if (b.seen.size !== battle.seenN) noteSeen(b);
     const events = b.drainEvents();
     if (events.length) {
       for (const e of events) if (e.t === 'evoSummon') showCutin(e, battle);
@@ -1013,6 +1244,13 @@
     }
     const names = YG.dailyStatus(app.save).missions.filter((m) => m.done && !doneBefore.includes(m.id)).map((m) => m.name);
     if (names.length) box.append(el('p', { class: 'mission-hint', text: `임무 달성: ${names.join(', ')}` }));
+    if (battle.newSeen.length || battle.newVariants) {
+      box.append(el('p', { class: 'dex-hint' }, [
+        ...(battle.newSeen.length ? ['도감 ', el('b', { text: `+${battle.newSeen.length}` }), ` · ${battle.newSeen.join(', ')}`] : []),
+        ...(battle.newSeen.length && battle.newVariants ? [' · '] : []),
+        ...(battle.newVariants ? ['변종 ', el('b', { text: `+${battle.newVariants}` })] : []),
+      ]));
+    }
     refreshBadge();
     $('#endRetry').textContent = win ? '한 번 더' : '다시';
     play(win ? 'win' : 'lose');
@@ -1022,6 +1260,7 @@
 
   function leaveBattle(to) {
     cancelAnimationFrame(battle.raf);
+    clearBanner();
     battle.b = null;
     show(to);
   }
@@ -1053,6 +1292,8 @@
       const fresh = YG.newSave();
       Object.assign(s, { stats: fresh.stats, daily: fresh.daily, ach: fresh.ach });
     }
+    if (kind === 'dexAll') YG.dex.unlockAll(s);
+    if (kind === 'dexReset') s.seen = {};
     if (kind === 'reset') {
       app.save = YG.newSave();
       app.selected = null;
@@ -1200,6 +1441,16 @@
       if (btn.dataset.go === 'home' || btn.id === 'pullClose' || btn.id === 'chapterClose' || btn.id === 'missionClose') play('back');
       else play('click');
     });
+    for (const b of $$('#dexKind button')) {
+      b.addEventListener('click', () => {
+        dexUi.kind = b.dataset.kind;
+        renderDex();
+      });
+    }
+    $('#dexClose').addEventListener('click', () => $('#dexDlg').close());
+    $('#dexX').addEventListener('click', () => $('#dexDlg').close());
+    $('#dexReplay').addEventListener('click', () => dexUi.player && dexUi.player.replay());
+    $('#dexDlg').addEventListener('close', closeDex);
     $('#openMissions').addEventListener('click', openMissions);
     $('#missionClose').addEventListener('click', () => $('#missionDlg').close());
     $('#missionDlg').addEventListener('close', closeMissions);

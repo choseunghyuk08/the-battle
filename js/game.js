@@ -38,6 +38,7 @@
     stats: newStats(),
     daily: newDaily(),
     ach: { claimed: {} },
+    seen: {},
   });
 
   function normalize(raw) {
@@ -49,11 +50,16 @@
     }
     save.deck = (save.deck || []).filter((id) => save.owned[id]);
     normalizeMissions(save, raw);
+    save.seen = cleanSeen(raw.seen);
     return save;
   }
 
   const toCount = (v) => (Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
   const plain = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
+
+  /* 도감에 오른 적 id (변종은 'rat:red' 꼴). 옛 세이브엔 없고, 이상한 값은 버린다. */
+  const cleanSeen = (v) =>
+    Object.fromEntries(Object.entries(plain(v)).filter(([k, n]) => n && /^[\w-]+(:[\w-]+)?$/.test(k)).map(([k]) => [k, true]));
 
   /* 임무/업적 필드가 없는 옛 세이브도 읽는다. 이미 쌓인 기록은 세이브에서 알 수 있는 만큼 채운다. */
   function normalizeMissions(save, raw) {

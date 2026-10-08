@@ -1,7 +1,7 @@
 const path = require('path');
 const assert = require('assert');
 const root = path.join(__dirname, '..', 'js');
-['data.js', 'units2.js', 'evolutions.js', 'bestiary.js', 'world.js', 'engine.js', 'game.js', 'missions.js', 'cutscene.js', 'scenery.js'].forEach((f) => require(path.join(root, f)));
+['data.js', 'units2.js', 'evolutions.js', 'bestiary.js', 'world.js', 'engine.js', 'game.js', 'lore.js', 'dex.js', 'missions.js', 'cutscene.js', 'poses.js', 'scenery.js'].forEach((f) => require(path.join(root, f)));
 const YG = globalThis.YG;
 
 function seeded(seed) {
@@ -432,6 +432,7 @@ if (require.main === module) {
   testGacha();
   testProgression();
   testMissions();
+  testDex();
   if (process.argv.includes('--balance')) balance();
   console.log('\nall tests passed');
 }
@@ -700,4 +701,185 @@ function testMissions() {
   const daily = YG.DAILY_REWARD;
   const dayCoins = daily.easy.coins + 2 * daily.normal.coins + daily.hard.coins + YG.DAILY_BONUS.coins;
   console.log(`missions ok (일일 임무 ${YG.DAILY_POOL.length}종, 하루 최대 동전 ${dayCoins}, 업적 ${ach.length}개, 합계 동전 ${total.coins} 경험치 ${total.xp} 형광펜 ${total.pens})`);
+}
+
+/* 괴담 도감 (js/lore.js, js/dex.js) */
+function testDex() {
+  const list = YG.dex.entries();
+  const ids = list.map((e) => e.id);
+  assert.strictEqual(list.length, YG.ENEMIES.length, '기본 적마다 도감 항목 하나');
+  assert.strictEqual(new Set(ids).size, ids.length);
+  const firstBoss = list.findIndex((e) => e.boss);
+  assert(firstBoss > 0 && list.slice(0, firstBoss).every((e) => !e.boss) && list.slice(firstBoss).every((e) => e.boss), '보스는 잡몹 뒤');
+  assert.deepStrictEqual(YG.dex.entries().map((e) => e.id), ids, '순서는 항상 같다');
+  assert(list.every((e) => e.region === '국내' && e.trait && e.def.name), '지역 기본값은 국내');
+
+  /* 모든 기본 적에게 이야기가 있다 */
+  const intros = new Set();
+  for (const def of YG.ENEMIES) {
+    const lore = YG.LORE[def.id];
+    assert(lore, `${def.id} 이야기 없음`);
+    assert.strictEqual(lore.beats.length, 3, `${def.id} 자막은 3줄`);
+    for (const b of lore.beats) assert(typeof b === 'string' && b.trim() && [...b].length <= 36, `${def.id} 자막 길이: ${b}`);
+    assert(typeof lore.desc === 'string' && lore.desc.length >= 20, `${def.id} 설명은 20자 이상`);
+    const [scene, pal] = lore.place.split(':');
+    assert(YG.dex.CORE_SCENES.includes(scene) || YG.scenery[scene], `${def.id} 배경 ${scene}`);
+    if (pal) assert(YG.PALETTES[pal], `${def.id} 팔레트 ${pal}`);
+    assert(YG.dex.placeOk(lore.place));
+    assert(YG.dex.INTROS.includes(lore.intro), `${def.id} 등장 방식 ${lore.intro}`);
+    intros.add(lore.intro);
+  }
+  assert(intros.size === YG.dex.INTROS.length, '등장 방식 5가지를 모두 쓴다');
+  assert(Object.keys(YG.LORE).every((id) => ids.includes(id)), '없는 적의 이야기가 남아 있지 않다');
+
+  /* 스테이지에 나오는 적은 전부 도감에 있다 (변종은 기본 적 항목을 같이 쓴다) */
+  for (const st of YG.STAGES) {
+    for (const w of [...st.waves, ...(st.bosses || (st.boss ? [st.boss] : []))]) {
+      assert(ids.includes(w.id.split(':')[0]), `${st.sub} ${w.id} 도감 없음`);
+      assert(YG.dex.firstStage(w.id.split(':')[0]), `${w.id} 첫 등장 스테이지`);
+    }
+  }
+  assert.strictEqual(YG.dex.firstStage('dust').id, 1);
+
+  /* 기본 정보 표시 값 */
+  const rows = Object.fromEntries(YG.dex.statRows(YG.enemyById('dust')).map((r) => [r.key, r.value]));
+  assert.deepStrictEqual([rows.hp, rows.atk, rows.interval, rows.range, rows.kb, rows.drop], ['170', '14', '2.0초', '13', '3회', '14']);
+  assert(rows.speed.startsWith('보통'));
+  assert.deepStrictEqual(YG.dex.tags(YG.enemyById('megaeye')), ['범위 공격', '원거리', '공중']);
+  assert.deepStrictEqual(YG.dex.tags(YG.enemyById('dust')), []);
+
+  /* 만난 적 기록 */
+  const s = YG.newSave();
+  assert.deepStrictEqual(s.seen, {});
+  assert.deepStrictEqual(YG.markSeen(s, ['rat:red']), ['rat:red']);
+  assert(YG.dex.isSeen(s, 'rat'), '변종만 만나도 항목이 열린다');
+  assert(!YG.dex.isSeen(s, 'cat'));
+  assert(!YG.dex.isSeen(s, 'ra'), '이름 앞부분만 같은 건 아니다');
+  assert.deepStrictEqual(YG.dex.variantsSeen(s, 'rat'), ['red']);
+  assert.deepStrictEqual(YG.markSeen(s, ['rat:red', 'dust', 'dust']), ['dust'], '이미 적힌 건 다시 안 돌려준다');
+  assert.deepStrictEqual(YG.markSeen(s, new Set(['dust', 'rat'])), ['rat'], 'Set 도 받는다');
+  assert.deepStrictEqual(YG.markSeen(s, []), []);
+  assert.deepStrictEqual(YG.markSeen(s, [null, 3, '']), [], '이상한 값은 무시');
+  const s2 = YG.newSave();
+  YG.markSeen(s2, ['ratking']);
+  assert(!YG.dex.isSeen(s2, 'rat'), 'ratking 은 rat 이 아니다');
+  YG.markSeen(s2, ['dust', 'dust:red', 'rat:blue', 'rat:gold']);
+  const c = YG.dex.counts(s2);
+  assert.deepStrictEqual([c.seen, c.total, c.mobs.seen, c.bosses.seen, c.variants], [3, ids.length, 2, 1, 3]);
+  assert.strictEqual(c.mobs.total + c.bosses.total, c.total);
+  assert.deepStrictEqual(YG.dex.variantsSeen(s2, 'rat'), ['blue', 'gold']);
+
+  /* 전투가 만난 적을 센다: 처음엔 몹, 보스는 나중에 나온다 */
+  const stage = YG.STAGES[2];
+  const bossId = (stage.bosses || [stage.boss])[0].id;
+  const b = new YG.Battle(stage, YG.buildDeck(YG.newSave()), seeded(11));
+  assert(b.seen instanceof Set && b.seen.size === 0);
+  b.spawnUnit('ally', YG.unitById('basic'), { lv: 1, plus: 0 });
+  assert.strictEqual(b.seen.size, 0, '아군은 세지 않는다');
+  for (let i = 0; i < 30 * 40; i++) {
+    b.step();
+    if (i === 30 * 5) assert(!b.seen.has(bossId), '보스는 아직 안 나왔다');
+    if (i === 30 * 10) b.baseHp.enemy = Math.floor(b.baseMax.enemy * 0.4);
+  }
+  assert(b.seen.has('shadow') && b.seen.has('dust'), '웨이브의 적');
+  assert(b.seen.has(bossId), '나중에 나온 보스도 기록된다');
+  b.spawnUnit('enemy', YG.enemyById('rat:violet'));
+  assert(b.seen.has('rat:violet'), '변종은 변종 id 로 기록');
+  const merged = YG.newSave();
+  YG.markSeen(merged, b.seen);
+  assert(YG.dex.isSeen(merged, bossId) && YG.dex.isSeen(merged, 'rat'));
+
+  /* 옛 세이브와 저장 */
+  const old = { v: 2, coins: 500, owned: { basic: { lv: 1, plus: 0, shards: 0, evo: 0 } }, deck: ['basic'], cleared: { 1: true } };
+  assert.deepStrictEqual(YG.loadSave({ getItem: () => JSON.stringify(old) }).seen, {}, '옛 세이브는 빈 도감으로 연다');
+  const messy = YG.loadSave({ getItem: () => JSON.stringify({ ...old, seen: { dust: true, 'rat:red': 1, 'bad id': true, ghost: 0, 'a:b:c': true } }) });
+  assert.deepStrictEqual(messy.seen, { dust: true, 'rat:red': true }, '이상한 키와 꺼진 값은 버린다');
+  assert.deepStrictEqual(YG.loadSave({ getItem: () => JSON.stringify({ ...old, seen: 'zzz' }) }).seen, {});
+  assert.deepStrictEqual(YG.loadSave({ getItem: () => JSON.stringify({ ...old, seen: ['dust'] }) }).seen, {});
+  let stored = '';
+  YG.writeSave(s2, { setItem: (k, v) => (stored = v) });
+  assert.deepStrictEqual(YG.loadSave({ getItem: () => stored }).seen, s2.seen, '저장하고 다시 읽어도 같다');
+
+  /* 디버그 해금과 업적 */
+  const all = YG.newSave();
+  assert.strictEqual(YG.achievementStatus(all).find((a) => a.id === 'dex').value, 0);
+  const got = YG.dex.unlockAll(all);
+  assert.strictEqual(new Set(got).size, got.length);
+  assert.strictEqual(YG.dex.counts(all).seen, ids.length);
+  assert(list.every((e) => YG.dex.variantKeys(e).every((v) => YG.dex.variantsSeen(all, e.id).includes(v))));
+  const goals = YG.achievementTiers('dex').map((t) => t.goal);
+  assert.deepStrictEqual(goals, [10, 25, 40, ids.length], '10/25/40/전부');
+  const dexAch = YG.achievementStatus(all).find((a) => a.id === 'dex');
+  assert(dexAch.ready && dexAch.readyCount === 4);
+  const mid = YG.newSave();
+  YG.markSeen(mid, ids.slice(0, 12));
+  const midAch = YG.achievementStatus(mid).find((a) => a.id === 'dex');
+  assert(midAch.ready && midAch.readyCount === 1 && midAch.goal === 10);
+  assert.strictEqual(YG.dex.counts(YG.newSave()).seen, 0);
+
+  /* 연출 대본: 모든 적이 9~11.5초 안에 3막을 끝내고 공격 모션 반복으로 넘어간다 */
+  for (const e of list) {
+    const sc = YG.dex.script(e);
+    const sec = sc.END / YG.FPS;
+    assert(sec >= 9 && sec <= 11.5, `${e.id} 연출 ${sec.toFixed(1)}초`);
+    assert.strictEqual(sc.captionAt(sc.T2 - 1).text, e.lore.beats[0]);
+    assert.strictEqual(sc.captionAt(sc.T3 - 1).text, e.lore.beats[1]);
+    assert.strictEqual(sc.captionAt(sc.END - 1).text, e.lore.beats[2]);
+    assert.strictEqual(sc.captionAt(2).text, '');
+    assert.deepStrictEqual([sc.phaseAt(0), sc.phaseAt(sc.T2), sc.phaseAt(sc.T3), sc.phaseAt(sc.END)], [0, 1, 2, 'loop']);
+    let hits = 0;
+    let shots = 0;
+    for (let f = 0; f < sc.END + 3 * sc.period; f++) {
+      const st = f < sc.END ? sc.state(f) : sc.loop(f - sc.END);
+      assert(st.actors.length >= 1);
+      for (const a of st.actors) {
+        assert(YG.POSES[a.key], `${e.id} 프레임 ${a.key}`);
+        assert(Number.isFinite(a.x) && Number.isFinite(a.yOff) && a.alpha >= 0 && a.alpha <= 1 && a.sy > 0, `${e.id} ${f}`);
+      }
+      assert(Number.isFinite(st.shake[0]) && st.fade >= 0 && st.fade <= 1);
+      if (f < sc.END && st.fx.some((x) => x.kind === 'slash')) hits++;
+      if (f >= sc.END && f < sc.END + sc.period && st.fx.some((x) => x.kind === 'spark')) hits++;
+      if (st.fx.some((x) => x.kind === 'proj')) shots++;
+    }
+    assert(hits >= 7, `${e.id} 맞는 장면`);
+    assert.strictEqual(shots > 0, !!e.def.ranged, `${e.id} 원거리일 때만 투사체`);
+    const first = sc.state(0);
+    assert(first.actors.length === 1 && first.actors[0].x < 0 && first.fade === 1, '캄캄한 화면에서 학생이 왼쪽에서 들어온다');
+    assert.strictEqual(sc.state(sc.T2 - 1).actors.length, 1, '2막 전에는 적이 없다');
+    assert.strictEqual(sc.state(sc.T2 + 1).actors.length, 2);
+    assert(sc.state(sc.END - 1).actors.find((a) => a.id === 'student').x < 92, '맞은 학생은 밀려난다');
+    assert(sc.loop(sc.XF + sc.hit).actors[0].key.startsWith('atk'), '반복 구간에서 공격 자세가 나온다');
+    const sounds = [];
+    for (let f = 0; f < sc.END + sc.period + sc.XF; f++) sounds.push(...sc.sfxAt(f));
+    assert(sounds.length >= 3, `${e.id} 소리`);
+    let shake = false;
+    for (let f = 0; f < sc.END; f++) if (sc.state(f).shake.some((v) => v !== 0)) shake = true;
+    assert.strictEqual(shake, e.boss, `${e.id} 화면 흔들림은 보스만`);
+  }
+
+  /* 이야기가 없는 새 적도 깨지지 않는다 */
+  YG.ENEMIES.push({
+    id: 'zztest', name: '시험용 괴물', trait: 'none', hp: 100, atk: 5, range: 12, speed: 0.4, interval: 50,
+    anim: { hit: 8, total: 16 }, kb: 2, drop: 5, look: 'dust', region: '해외',
+  });
+  try {
+    const e = YG.dex.entries().find((x) => x.id === 'zztest');
+    assert(e && e.region === '해외' && !e.boss);
+    assert.deepStrictEqual([e.lore.place, e.lore.beats.length, e.lore.custom], ['corridor:ash', 3, false]);
+    assert(e.lore.beats.every((x) => x.trim()) && e.lore.desc.length >= 10 && e.lore.beats[1].includes('시험용 괴물이'));
+    assert(YG.dex.INTROS.includes(e.lore.intro));
+    const sc = YG.dex.script(e);
+    for (let f = 0; f < sc.END + 60; f++) f < sc.END ? sc.state(f) : sc.loop(f - sc.END);
+    YG.LORE.zztest = { place: 'nowhere:zzz', intro: 'spin', beats: ['하나'], desc: '' };
+    const bad = YG.dex.entries().find((x) => x.id === 'zztest');
+    assert.deepStrictEqual([bad.lore.place, bad.lore.intro, bad.lore.beats.length], ['corridor:ash', 'slide', 3], '잘못된 이야기는 칸마다 기본값으로 대신한다');
+    YG.LORE.zztest = { place: 'gym:ash', intro: 'peek', beats: ['하나.', '둘.', '셋.'], desc: '직접 쓴 설명이 있다. 이것은 두 문장이다.' };
+    const ok = YG.dex.entries().find((x) => x.id === 'zztest');
+    assert.deepStrictEqual([ok.lore.place, ok.lore.intro, ok.lore.custom, ok.lore.beats[2]], ['gym:ash', 'peek', true, '셋.']);
+  } finally {
+    YG.ENEMIES.pop();
+    delete YG.LORE.zztest;
+  }
+  assert.strictEqual(YG.dex.entries().length, ids.length);
+  console.log(`dex ok (도감 ${ids.length}종, 이야기 ${Object.keys(YG.LORE).length}편)`);
 }

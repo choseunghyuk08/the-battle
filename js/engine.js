@@ -56,6 +56,8 @@
       this.shake = 0;
       this.stats = { kills: 0, summoned: 0, bossKills: 0, cannon: 0 };
       this.events = [];
+      /* 이번 전투에서 나온 적 id (변종 포함). 도감 해금에 쓴다. */
+      this.seen = new Set();
     }
 
     get worker() {
@@ -96,6 +98,7 @@
         drop: Math.round((def.drop || 0) * (ally ? 1 : Math.sqrt(opts.mult || 1))),
       };
       this.units.push(e);
+      if (!ally) this.seen.add(def.id);
       return e;
     }
 
