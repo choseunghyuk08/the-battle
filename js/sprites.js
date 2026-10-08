@@ -1327,6 +1327,8 @@
     c.ax = src.ax;
     c.ay = src.ay;
     c.nat = src.nat;
+    c.hd = src.hd;
+    c.parts = src.parts;
     return c;
   }
 
@@ -1372,6 +1374,8 @@
   function renderFrame(def, key) {
     const q = YG.POSES[key];
     let img;
+    const baseDef = baseOf(def);
+    if (baseDef) return tint(YG.sprites.frame(baseDef, key), def.tint.color, def.tint.alpha);
     sizeNow = (def.fit || 1) * (def.scale || 1);
     try {
       const hdFn = YG.hdFor && YG.hdFor(def);
@@ -1385,6 +1389,13 @@
     return def.tint ? tint(img, def.tint.color, def.tint.alpha) : img;
   }
 
+  /* 색 변종(rat:red 등)은 원본 그림에 색만 덮는다. 원본 그림을 같이 쓰면 그리는 시간과 메모리가 줄어든다 */
+  function baseOf(def) {
+    if (!def.tint || def.grade !== undefined) return null;
+    const baseId = String(def.id).split(':')[0];
+    return baseId !== def.id ? YG.enemyById(baseId) : null;
+  }
+
   const cache = {};
   /* 아군과 적은 id가 같을 수 있다 (bat, chair, cleaner, librarian, hazmat). 그림 캐시는 편을 나눠서 쓴다. */
   const keyOf = (def) => `${def.grade !== undefined ? 'u' : 'e'}:${def.spriteKey || def.id}`;
@@ -1396,8 +1407,27 @@
 
   YG.spriteKit = { builder, canvas, CX, BY, CW, CH, OUTLINE, K };
 
+  /* 처음 쓰는 그림은 그때 그리느라 한 프레임이 끊길 수 있어서, 전투에 나올 적의 그림을 틈틈이 미리 그려 둔다 */
+  const warmQ = [];
+  const WARM_ORDER = ['walk', 'hurt', 'atk', 'idle'];
+
   YG.sprites = {
     CW, CH, CX, BY, K, keyOf,
+    warm(defs) {
+      for (const def of defs) {
+        const base = baseOf(def) || def;
+        for (const kind of WARM_ORDER) for (const key of YG.FRAME_KEYS) if (key.startsWith(kind)) warmQ.push([base, key]);
+      }
+    },
+    /* ms 안에서 최대한 그리고, 남은 장수를 돌려준다 */
+    warmStep(ms = 4) {
+      const t0 = performance.now();
+      while (warmQ.length && performance.now() - t0 < ms) {
+        const [def, key] = warmQ.shift();
+        YG.sprites.frame(def, key);
+      }
+      return warmQ.length;
+    },
     frame(def, key = 'idle0', mode = 'base') {
       const set = setFor(def);
       const base = set.frames[key] || (set.frames[key] = renderFrame(def, key));

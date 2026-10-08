@@ -322,6 +322,8 @@ function testSizes() {
   assert.deepStrictEqual(r.problems, [], `크기 점검에 걸린 것 ${r.problems.length}개`);
   /* 적과 동료 전부에 현실 크기가 있고, 변종은 원본 크기를 이어받는다 */
   for (const e of YG.ENEMIES) assert.ok(e.cm > 0 && e.fit > 0, `${e.id} 크기 없음`);
+  /* 적 전부 HD 그림이 있다 */
+  assert.deepStrictEqual(YG.ENEMIES.filter((e) => !YG.hdFor(e)).map((e) => e.id), [], 'HD 그림이 없는 적');
   for (const u of YG.UNITS) assert.ok(u.cm > 0 && u.fit > 0 && u.look.tall >= 0, `${u.id} 크기 없음`);
   assert.strictEqual(YG.enemyById('rat:red').fit, YG.enemyById('rat').fit);
   console.log(`sizes ok (적 ${r.foes}종, 동료 ${r.allies}종)`);

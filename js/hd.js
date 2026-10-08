@@ -34,19 +34,16 @@
     return hex(x[0] + (y[0] - x[0]) * t, x[1] + (y[1] - x[1]) * t, x[2] + (y[2] - x[2]) * t);
   };
 
-  /* 그림 하나를 한 점 두께로 둘러싼 복사본. 같은 크기의 canvas 를 돌려준다 (둘레 여백은 미리 잡혀 있어야 한다) */
-  function outlined(src, color) {
-    const out = canvas(src.width, src.height);
-    const octx = out.getContext('2d');
+  /* src 를 (x, y) 에 그리되, 둘레에 한 점 외곽선을 먼저 깐다. 외곽선은 그림 모양을 색으로 채운 복사본을 상하좌우로 한 점씩 밀어서 만든다 */
+  function drawOutlined(dst, src, color, x, y) {
     const tmp = canvas(src.width, src.height);
     const tctx = tmp.getContext('2d');
     tctx.drawImage(src, 0, 0);
     tctx.globalCompositeOperation = 'source-in';
     tctx.fillStyle = color;
     tctx.fillRect(0, 0, tmp.width, tmp.height);
-    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) octx.drawImage(tmp, dx, dy);
-    octx.drawImage(src, 0, 0);
-    return out;
+    for (const [dx, dy] of [[-1, 0], [1, 0], [0, -1], [0, 1]]) dst.drawImage(tmp, x + dx, y + dy);
+    dst.drawImage(src, x, y);
   }
 
   function hdBuilder(rim) {
@@ -175,12 +172,30 @@
             paint(ctx, l.parts);
             continue;
           }
-          const lc = canvas(c.width, c.height);
-          paint(lc.getContext('2d'), l.parts);
-          ctx.drawImage(outlined(lc, l.outline), 0, 0);
+          /* 덩어리마다 자기 크기만큼만 그려서 외곽선을 두른다 (전체 크기로 하면 덩어리가 많은 보스가 느리다) */
+          let lx0 = Infinity;
+          let ly0 = Infinity;
+          let lx1 = -Infinity;
+          let ly1 = -Infinity;
+          for (const p of l.parts) {
+            lx0 = Math.min(lx0, p.x);
+            ly0 = Math.min(ly0, p.y);
+            lx1 = Math.max(lx1, p.x + p.w);
+            ly1 = Math.max(ly1, p.y + p.h);
+          }
+          const lc = canvas(lx1 - lx0 + 2, ly1 - ly0 + 2);
+          const lctx = lc.getContext('2d');
+          for (const p of l.parts) {
+            lctx.fillStyle = p.c;
+            lctx.fillRect(p.x - lx0 + 1, p.y - ly0 + 1, p.w, p.h);
+          }
+          drawOutlined(ctx, lc, l.outline, lx0 + ox - 1, ly0 + oy - 1);
         }
         let out = c;
-        if (rim) out = outlined(c, rimColor || outline);
+        if (rim) {
+          out = canvas(c.width, c.height);
+          drawOutlined(out.getContext('2d'), c, rimColor || outline, 0, 0);
+        }
         if (sparks.length) paint(out.getContext('2d'), sparks);
         out.ax = ox;
         out.ay = oy;
