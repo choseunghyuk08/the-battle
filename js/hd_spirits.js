@@ -731,6 +731,7 @@
 
   HD.shadow = (h, q) => {
     const c = SD;
+    h.rim(c.out);
     const t = q.ph * TAU;
     const idle = q.kind === 'idle';
     const walk = q.kind === 'walk';

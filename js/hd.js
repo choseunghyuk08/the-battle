@@ -53,6 +53,7 @@
     const layers = [{ outline: null, parts: [] }];
     let cur = layers[0];
     const sparks = [];
+    let rimColor = null;
     const add = (x, y, w, hh, c) => {
       if (w > 0 && hh > 0 && c) cur.parts.push({ x: Math.round(x), y: Math.round(y), w: Math.round(w) || 1, h: Math.round(hh) || 1, c });
     };
@@ -131,6 +132,10 @@
         cur = { outline: null, parts: [] };
         layers.push(cur);
       },
+      /* 맨 바깥 외곽선 색을 바꾼다 (그림자처럼 아주 어두운 적용). 기본은 #141218 */
+      rim(color) {
+        rimColor = color;
+      },
       /* 외곽선 밖에 얹는 반짝임, 빛, 연기 같은 것. 외곽선을 두르지 않고 맨 위에 그린다 */
       spark(x, y, w, hh, c) {
         sparks.push({ x: Math.round(x), y: Math.round(y), w: Math.round(w) || 1, h: Math.round(hh) || 1, c });
@@ -175,7 +180,7 @@
           ctx.drawImage(outlined(lc, l.outline), 0, 0);
         }
         let out = c;
-        if (rim) out = outlined(c, outline);
+        if (rim) out = outlined(c, rimColor || outline);
         if (sparks.length) paint(out.getContext('2d'), sparks);
         out.ax = ox;
         out.ay = oy;
