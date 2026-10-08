@@ -9,11 +9,11 @@
     /* ---- 일본 ---- */
     {
       id: 'hanako', name: '하나코', region: '일본', trait: 'ghost', role: 'grunt',
-      look: { arch: 'folk', skin: '#e6dfe4', hair: '#15161a', style: 'bob', top: '#f0ece4', trim: '#27345a', pants: '#5a3a3a', skirt: '#c23a3a', cloth: 'skirt', deco: ['sailor'], shoe: '#e8e4d8', eyes: '#14121a', mouth: '#a14a52' },
+      look: { arch: 'folk', skin: '#f0ddd5', shade: '#d8bfb8', hair: '#15161a', style: 'bob', top: '#f0ece4', trim: '#27345a', pants: '#5a3a3a', skirt: '#c23a3a', cloth: 'skirt', deco: ['sailor'], shoe: '#e8e4d8', eyes: '#14121a', mouth: '#a14a52', brow: '#2a2020' },
     },
     {
       id: 'kuchisake', name: '입 찢어진 여자', region: '일본', trait: 'dark', role: 'brute', over: { hp: 360, atk: 34, speed: 0.4 },
-      look: { arch: 'folk', skin: '#e8dcd2', hair: '#14121a', style: 'long', top: '#c9b896', trim: '#e0d2b4', pants: '#3a3430', skirt: '#c9b896', cloth: 'robe', deco: ['coat'], face: 'mask', slit: true, prop: 'scissors', glow: '#e5654b' },
+      look: { arch: 'folk', skin: '#ecddd2', shade: '#d2bfb2', hair: '#14121a', style: 'long', top: '#c9b896', trim: '#e0d2b4', pants: '#3a3430', skirt: '#c9b896', cloth: 'coat', deco: ['coat'], face: 'mask', slit: true, prop: 'scissors', glow: '#e5654b', shoe: '#2a2420' },
     },
     {
       id: 'tekete', name: '테케테케', region: '일본', trait: 'specimen', role: 'fast', over: { speed: 0.9, hp: 120 },
@@ -38,8 +38,8 @@
       look: { arch: 'folk', stance: 'hop', armsOut: true, skin: '#9fb8a8', shade: '#86a090', top: '#2c4a5e', trim: '#e8c94a', pants: '#1c2a36', hat: 'qing', hatColor: '#14121a', talismanFace: true, fangs: 'always', eyes: '#14121a', shoe: '#14121a', deco: ['beads'] },
     },
     {
-      id: 'nvgui', name: '홍등 여귀', region: '중국', trait: 'ghost', role: 'ranged', float: true, ranged: 'silk',
-      look: { arch: 'folk', stance: 'float', skin: '#e8e0e4', hair: '#14121a', style: 'long', top: '#f0ece4', trim: '#c23a3a', robe: '#e8e4dc', deco: ['sash'], deco1: '#c23a3a', prop: 'lantern', eyes: '#14121a', mouth: '#c23a3a' },
+      id: 'nvgui', name: '홍등 여귀', region: '중국', trait: 'ghost', role: 'ranged', float: true, ranged: 'silk', k: 0.8,
+      look: { arch: 'folk', stance: 'float', skin: '#ece4e6', shade: '#d6cdd0', hair: '#14121a', style: 'long', top: '#f0ece4', trim: '#c23a3a', robe: '#e8e4dc', deco: ['sash'], deco1: '#c23a3a', prop: 'lantern', sockets: true, eyes: '#e8f0f4', mouth: '#c23a3a' },
     },
     {
       id: 'kumiho', name: '구미호', region: '중국', trait: 'dark', role: 'fast', over: { hp: 130, atk: 12 },
@@ -65,7 +65,7 @@
     },
     {
       id: 'pontianak', name: '폰티아낙', region: '동남아', trait: 'ghost', role: 'brute', over: { hp: 380, atk: 38 },
-      look: { arch: 'folk', skin: '#dfe4d8', hair: '#14121a', style: 'long', top: '#e8e4d0', trim: '#c9c2a0', pants: '#cfc9b0', skirt: '#e8e4d0', cloth: 'dress', flower: '#f6f0d8', eyes: '#14121a', mouth: '#9a1f2e', fangs: 'always', claws: '#e8e2d0' },
+      look: { arch: 'folk', skin: '#dde2d4', shade: '#c4cab8', hair: '#14121a', style: 'long', top: '#e8e4d0', trim: '#c9c2a0', pants: '#cfc9b0', skirt: '#e8e4d0', cloth: 'dress', flower: '#f6f0d8', sockets: true, eyes: '#e5304a', mouth: '#9a1f2e', fangs: 'always', claws: '#e8e2d0' },
     },
     {
       id: 'pocong', name: '뽀쫑', region: '동남아', trait: 'none', role: 'grunt', over: { speed: 0.35 },
@@ -82,12 +82,12 @@
 
     /* ---- 유럽 ---- */
     {
-      id: 'banshee', name: '밴시', region: '유럽', trait: 'ghost', role: 'ranged', float: true, ranged: 'wave', over: { slow: { chance: 0.25, frames: 60 } },
-      look: { arch: 'folk', stance: 'float', skin: '#dfe6ea', hair: '#c8d4e8', style: 'long', top: '#aab8d0', trim: '#c8d4e8', robe: '#aab8d0', eyes: '#2a3a5a', mouth: '#14121a', bareArms: true },
+      id: 'banshee', name: '밴시', region: '유럽', trait: 'ghost', role: 'ranged', float: true, ranged: 'wave', k: 0.8, over: { slow: { chance: 0.25, frames: 60 } },
+      look: { arch: 'folk', stance: 'float', skin: '#eef2f6', shade: '#d4dce6', hair: '#8c9ec0', style: 'long', top: '#b4c2dc', trim: '#d4dff0', robe: '#b4c2dc', sockets: true, eyes: '#cfe0ff', mouth: '#14121a', wail: true, bareArms: true },
     },
     {
       id: 'blackshuck', name: '블랙 쉬크', region: '유럽', trait: 'dark', role: 'fast', over: { hp: 130, atk: 12, speed: 0.85 },
-      look: { arch: 'quad', body: '#14121a', belly: '#1f1a22', size: 1.25, fur: true, eye: '#ff5a3a', bigEye: true, fire: '#ff6a3a', fang: true },
+      look: { arch: 'quad', body: '#2c2c3a', belly: '#3a3a4c', size: 1.25, fur: true, eye: '#ff5a3a', bigEye: true, fire: '#ff6a3a', fang: true },
     },
     {
       id: 'gargoyle', name: '가고일', region: '유럽', trait: 'metal', role: 'tank', over: { hp: 480, atk: 30, speed: 0.42 },
@@ -105,7 +105,7 @@
     /* ---- 아메리카 ---- */
     {
       id: 'bloodymary', name: '블러디 메리', region: '아메리카', trait: 'dark', role: 'fast', over: { hp: 110, atk: 10 },
-      look: { arch: 'folk', skin: '#e6dfe4', hair: '#14121a', style: 'cover', top: '#f0ece4', trim: '#d8d2c8', pants: '#e8e4dc', skirt: '#e8e4dc', cloth: 'dress', tears: '#c0182a', prop: 'mirror', eyes: '#e5304a' },
+      look: { arch: 'folk', skin: '#ece4e6', shade: '#d6cdd0', hair: '#14121a', style: 'long', top: '#f0ece4', trim: '#d8d2c8', pants: '#e8e4dc', skirt: '#e8e4dc', cloth: 'dress', tears: '#c0182a', prop: 'mirror', sockets: true, eyes: '#e5304a' },
     },
     {
       id: 'faceless', name: '무표정 양복', region: '아메리카', trait: 'none', role: 'brute', over: { range: 18 },
@@ -120,8 +120,8 @@
       look: { arch: 'quad', body: '#8a9a6a', belly: '#c8c09a', muzzle: '#6a7a4a', spikes: '#4a5a3a', eye: '#ff3a3a', bigEye: true, fang: true, ear: 'pointy' },
     },
     {
-      id: 'lorona', name: '라요로나', region: '아메리카', trait: 'ghost', role: 'ranged', float: true, ranged: 'water',
-      look: { arch: 'folk', stance: 'float', skin: '#dfe6ea', hair: '#14121a', style: 'long', top: '#e8e4dc', trim: '#e8e4dc', robe: '#e8e4dc', deco: ['sash'], deco1: '#5a7a9a', tears: '#7ad0e8', eyes: '#14121a', mouth: '#14121a' },
+      id: 'lorona', name: '라요로나', region: '아메리카', trait: 'ghost', role: 'ranged', float: true, ranged: 'water', k: 0.8,
+      look: { arch: 'folk', stance: 'float', skin: '#e6ecf0', shade: '#cdd6dc', hair: '#14121a', style: 'long', top: '#e8e4dc', trim: '#e8e4dc', robe: '#e8e4dc', deco: ['sash'], deco1: '#5a7a9a', tears: '#7ad0e8', sockets: true, eyes: '#e8f0f4', mouth: '#14121a', wail: true },
     },
     {
       id: 'jukebox', name: '주크박스', region: '아메리카', trait: 'metal', role: 'tank', ranged: 'note', over: { hp: 380, atk: 26, range: 26, speed: 0.45 },
@@ -133,7 +133,7 @@
     /* ---- 일본 ---- */
     {
       id: 'oni', name: '오니', region: '일본', trait: 'dark', hp: 10500, atk: 118, range: 26, speed: 0.2, interval: 100, anim: { hit: 20, total: 36 }, kb: 6, drop: 560,
-      look: { arch: 'folk', skin: '#c7473f', shade: '#a53830', bareArms: true, hair: '#14121a', style: 'wild', horns: { len: 5, color: '#f0e8d0', curl: true }, top: '#c7473f', trim: '#d9645a', pants: '#c7473f', cloth: 'loin', skirt: '#e0b030', bulk: 2, prop: 'club', face: 'normal', fangs: 'always', brow: '#14121a', glow: '#ffd24a', eyes: '#ffe08a', shoe: '#a53830' },
+      look: { arch: 'folk', tall: 2, skin: '#c7473f', shade: '#a53830', bareArms: true, hair: '#14121a', style: 'spiky', horns: { len: 4, color: '#f0e8d0', curl: true }, top: '#c7473f', trim: '#d9645a', pants: '#c7473f', cloth: 'loin', skirt: '#e0b030', bulk: 2, prop: 'club', face: 'normal', fangs: 'always', brow: '#14121a', glow: '#ffd24a', eyes: '#ffe08a', shoe: '#a53830' },
     },
     {
       id: 'tengu', name: '텐구', region: '일본', trait: 'ghost', hp: 9000, atk: 112, range: 40, speed: 0.22, interval: 95, anim: { hit: 18, total: 34 }, kb: 6, drop: 540, ranged: 'gust',
@@ -155,12 +155,12 @@
     },
     {
       id: 'tikbalang', name: '티크발랑', region: '동남아', trait: 'dark', hp: 11500, atk: 120, range: 24, speed: 0.26, interval: 90, anim: { hit: 16, total: 30 }, kb: 6, drop: 570,
-      look: { arch: 'folk', tall: 3, bulk: 1, skin: '#7a5a3a', shade: '#634830', face: 'horse', mane: '#1f1a18', hair: '#1f1a18', style: 'bald', top: '#5a3a2a', trim: '#6a4a38', pants: '#3a2a20', deco: ['fur'], claws: '#e8e2d0', bareArms: true, arms: 1.25, shoe: '#14121a', glow: '#ff6a4a' },
+      look: { arch: 'folk', tall: 3, bulk: 1, skin: '#8a5e38', shade: '#704a2c', face: 'horse', mane: '#e8e0d0', hair: '#e8e0d0', style: 'bald', top: '#5a3a2a', trim: '#6a4a38', pants: '#3a2a20', deco: ['fur'], claws: '#e8e2d0', bareArms: true, arms: 1.25, shoe: '#14121a', glow: '#ff6a4a' },
     },
     /* ---- 유럽 ---- */
     {
       id: 'dracula', name: '드라큘라 백작', region: '유럽', trait: 'ghost', hp: 10500, atk: 115, range: 44, speed: 0.22, interval: 100, anim: { hit: 20, total: 36 }, kb: 6, drop: 580, ranged: 'bats', area: true,
-      look: { arch: 'folk', skin: '#e0dce4', hair: '#14121a', style: 'slick', top: '#1c1a26', trim: '#2a2838', pants: '#14121a', deco: ['suit'], deco1: '#efe9dc', deco2: '#9a1f2e', wings: 'cape', wingColor: '#14121a', wingEdge: '#9a1f2e', fangs: 'always', eyes: '#e5304a', brow: '#14121a', glow: '#ff6a6a', shoe: '#0e0c12' },
+      look: { arch: 'folk', tall: 2, skin: '#e0dce4', hair: '#14121a', style: 'slick', top: '#1c1a26', trim: '#2a2838', pants: '#14121a', deco: ['suit'], deco1: '#efe9dc', deco2: '#9a1f2e', wings: 'cape', wingColor: '#14121a', wingEdge: '#9a1f2e', fangs: 'always', eyes: '#e5304a', brow: '#14121a', glow: '#ff6a6a', shoe: '#0e0c12' },
     },
     {
       id: 'babayaga', name: '바바 야가의 오두막', region: '유럽', trait: 'none', hp: 13000, atk: 118, range: 26, speed: 0.16, interval: 110, anim: { hit: 22, total: 40 }, kb: 6, drop: 600,
@@ -182,9 +182,12 @@
     },
   ];
 
+  /* 봇 보정 결과 잡몹 체력과 공격력을 한꺼번에 키워도 국내 장 수준이었다. k 는 개별 보정 */
+  const K = 1.5;
   for (const m of MOBS) {
-    const { role, over, ...rest } = m;
-    YG.ENEMIES.push({ ...ROLE[role], ...(over || {}), ...rest });
+    const { role, over, k = 1, ...rest } = m;
+    const base = { ...ROLE[role], ...(over || {}) };
+    YG.ENEMIES.push({ ...base, hp: Math.round(base.hp * K * k), atk: Math.round(base.atk * K * k), ...rest });
   }
   for (const b of BOSSES) YG.ENEMIES.push({ boss: true, scale: 2, heavy: true, ...b });
 })(globalThis);

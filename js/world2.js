@@ -26,17 +26,17 @@
     [54, '골목 포장마차', '새벽 2시, 국수집 포렴 아래로 긴 머리가 보인다.', 'alley:vermilion', 'kuchisake,tekete,kappa,tray'],
     [55, '홍콩 네온 거리', '간판 불빛 사이로 누군가 한 줄로 뛰어간다.', 'neon:neon', 'jiangshi,shishi,nvgui,shadow'],
     [56, '고궁 사원', '향 연기가 한 줄로 서서 따라온다.', 'temple:vermilion', 'jiangshi,kumiho,shishi,dokkaebibul'],
-    [57, '대나무 숲', '달빛 아래 꼬리가 하나씩 늘어난다.', 'bamboo:jade', 'kumiho,nvgui,dokkaebibul,zombie'],
+    [57, '대나무 숲', '달빛 아래 꼬리가 하나씩 늘어난다.', 'bamboo:jade', 'zombie,nvgui,kumiho,dokkaebibul'],
     [58, '설날 전야', '붉은 등을 다 걸었는데 짐승 울음이 가까워진다.', 'neon:vermilion', 'shishi,jiangshi,dokkaebibul,kumiho'],
-    [59, '방콕 수상시장', '좌판 위로 머리만 둥둥 떠다닌다.', 'stilt:monsoon', 'krasue,tuktuk,roach,ghost'],
+    [59, '방콕 수상시장', '좌판 위로 머리만 둥둥 떠다닌다.', 'stilt:monsoon', 'roach,krasue,tuktuk,ghost'],
     [60, '마닐라 야자수 마을', '밤이 되면 지붕 위에서 날갯소리가 난다.', 'jungle:monsoon', 'manananggal,tuktuk,ghost,spider'],
     [61, '말레이 고무나무 농장', '프랜지파니 나무 아래서 아기 울음소리가 난다.', 'jungle:forest', 'pontianak,pocong,krasue,zombie'],
     [62, '메콩강 사원 폐허', '물가에서 손 하나가 발목을 잡는다.', 'khmer:monsoon', 'mada,pocong,tuktuk,krasue'],
-    [63, '런던 안개 골목', '가스등 아래 그림자가 개 모양이다.', 'cobble:fog', 'blackshuck,banshee,gargoyle,crow'],
+    [63, '런던 안개 골목', '가스등 아래 그림자가 개 모양이다.', 'cobble:fog', 'crow,banshee,blackshuck,gargoyle'],
     [64, '스코틀랜드 황야', '안개 속에서 누가 머리를 빗으며 운다.', 'moor:fog', 'banshee,blackshuck,werewolf,crow'],
     [65, '트란실바니아 고성', '촛불이 혼자 켜지고 늑대가 일제히 운다.', 'castle:gothic', 'werewolf,gargoyle,banshee,rat'],
     [66, '대영박물관 이집트관', '폐관 시간이 지났는데 석관 뚜껑이 열려 있다.', 'egypt:gold', 'mummy,gargoyle,spider,banshee'],
-    [67, '미국 고등학교 복도', '로커 문이 하나씩 안쪽에서 두드려진다.', 'locker:neon', 'bloodymary,faceless,tray,mothman'],
+    [67, '미국 고등학교 복도', '로커 문이 하나씩 안쪽에서 두드려진다.', 'locker:neon', 'tray,faceless,bloodymary,mothman'],
     [68, '국도변 다이너', '새벽 3시, 주크박스가 혼자 노래를 고른다.', 'diner:desert', 'jukebox,chupacabra,lorona,bloodymary'],
     [69, '국경 설원', '발자국이 내 발자국 옆에서 멈춘다.', 'snowwood:snow', 'faceless,mothman,lorona,chupacabra'],
     [70, '월드 투어 종착역', '교실 벽 세계지도에서 학교 불빛이 하나씩 꺼진다.', 'atlas:gold', 'kuchisake,nvgui,gargoyle,faceless'],
@@ -80,16 +80,18 @@
     return v ? `${id}:${v}` : id;
   };
 
-  /* 난이도: 국내 곡선을 그대로 이어서, 장마다 보정(BIAS)과 스테이지별 보정(EASE)을 얹는다.
-     값은 tests/calibrate.js 로 봇이 간신히 깨는 선(S_max)의 0.8배에 맞췄다. */
-  const BIAS = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
+  /* 난이도: 국내 마지막 스테이지(247)의 값에서 완만하게 이어지는 직선 위에, 장마다 보정(BIAS)과 스테이지별 보정(EASE)을 얹는다.
+     보정값은 tests/calibrate.js --robust 로 구한 "봇이 간신히 깨는 선"(S_max)의 0.8배에 맞췄고, 쉬운 장은 BIAS 1.35에서 끊었다.
+     국내 마지막보다 낮아지지는 않는다. 봇의 레벨이 70까지 올라가는 것(progressTier)을 전제로 한 값이다. */
+  const BIAS = [1.35, 1.35, 1.07, 1.31, 1.24, 1.28, 1.35, 1, 1.35, 1.19, 1.29, 1.18, 1.35, 1.17, 0.93, 1.12, 1.29, 1.35, 0.88, 0.98];
   const EASE = {};
   const domesticDifficulty = YG.difficulty;
   const lastDomestic = domesticDifficulty(DOMESTIC_STAGES - 1, DOMESTIC_CHAPTERS);
+  const SLOPE = 0.38;
   YG.difficulty = (g, chapter) => {
     if (g < DOMESTIC_STAGES) return domesticDifficulty(g, chapter);
     const b = chapter && chapter >= FIRST ? BIAS[chapter - FIRST] : 1;
-    return Math.max(lastDomestic, 0.522 * Math.pow(1 + g / 20, 1.92) * b * (EASE[g] || 1));
+    return Math.max(lastDomestic, (lastDomestic + (g - (DOMESTIC_STAGES - 1)) * SLOPE) * b * (EASE[g] || 1));
   };
 
   const round = (n, step) => Math.round(n / step) * step;

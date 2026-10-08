@@ -8,7 +8,7 @@
 const YG = globalThis.YG;
 const q = new URLSearchParams(location.search);
 const anim = q.get('anim') || 'atk';
-const phases = anim === 'atk' ? ['atk0','atk1','atk2','atk3','atk4','atk5','hurt0'] : anim === 'walk' ? ['walk0','walk1','walk2','walk3','walk4','walk5','idle0'] : ['idle0','idle1','idle2','idle3','hurt0'];
+const phases = q.get('frames') ? q.get('frames').split(',') : anim === 'atk' ? ['atk0','atk1','atk2','atk3','atk4','atk5','hurt0'] : anim === 'walk' ? ['walk0','walk1','walk2','walk3','walk4','walk5','idle0'] : ['idle0','idle1','idle2','idle3','hurt0'];
 const set = new URLSearchParams(location.search).get('set') || 'units';
 const evoLv = Number(q.get('lv') || 1);
 const evolved = YG.UNITS.map((u) => YG.resolveDef(u, evoLv));
