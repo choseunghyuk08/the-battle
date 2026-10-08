@@ -681,3 +681,12 @@ dialog.cutscene.level2 .cs-name { color: #fff6c8; text-shadow: 0 0 14px rgba(242
 .ud-form.locked small { color: var(--ink-3); }
 .ud-own, .ud-get { display: grid; gap: 4px; font-size: 14px; color: var(--ink-2); }
 .ud-get p:last-child { line-height: 1.6; }
+
+/* SCP 표시 */
+.chip.scp { font-weight: 700; letter-spacing: 0.04em; }
+.chip.cls[data-cls="Safe"] { border-color: rgba(239, 233, 220, 0.4); }
+.chip.cls[data-cls="Euclid"] { border-color: var(--accent); color: var(--accent); }
+.chip.cls[data-cls="Keter"] { border-color: var(--danger); color: var(--danger); }
+.chip.perk { border-style: dashed; }
+.dex-credit { font-size: 12px; color: var(--ink-3); }
+.dex-credit a { color: var(--ink-2); text-underline-offset: 2px; }

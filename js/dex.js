@@ -300,22 +300,30 @@
     /* 공격 모션 반복. 전투와 같은 주기로 휘두르고, 사거리를 바닥에 표시한다. */
     const period = Math.max(def.interval || 60, atk.total + 16);
     const loopP = (g0) => (((g0 - XF) % period) + period) % period;
+    /* 공격을 받아 주는 허수아비. 사거리 끝에 서 있고, 맞으면 하얗게 번쩍이며 뒤로 밀린다. */
+    const dummyDef = { ...YG.enemyById('mannequin'), id: 'dummy', spriteKey: 'dummy', name: '허수아비' };
+    const dummyX = LOOP_X - clamp(range - 2, 16, 120);
     function loop(g0) {
       const p = loopP(g0);
       const gy = GY + 3;
       const a = { id: 'enemy', def, x: LOOP_X, z: 3, dir: -1, key: p < atk.total ? atkKey(p) : idle(g0, 1), mode: 'base', alpha: 1, yOff: 0, sx: 1, sy: 1, clipY: null, shadow: 1 };
-      const fx = [{ kind: 'range', x: LOOP_X, y: gy + 2, w: range }];
-      const reach = LOOP_X - Math.min(range, 40);
-      if (def.ranged && p >= atk.hit && p < atk.hit + flight) {
-        fx.push({ kind: 'proj', sub: def.ranged, x0: LOOP_X - 8, x1: LOOP_X - range, y: gy - 16, p: (p - atk.hit) / flight, dir: -1 });
-      }
       const land = atk.hit + flight;
+      const hurt = p - land;
+      const dummy = {
+        id: 'dummy', def: dummyDef, x: dummyX - (hurt >= 0 && hurt < 12 ? Math.round(5 * ease(hurt / 12)) : 0), z: 3, dir: 1,
+        key: hurt >= 0 && hurt < 12 ? 'hurt0' : idle(g0, 2), mode: hurt >= 0 && hurt < 3 ? 'flash' : 'base',
+        alpha: 1, yOff: 0, sx: 1, sy: 1, clipY: null, shadow: 1,
+      };
+      const fx = [{ kind: 'range', x: LOOP_X, y: gy + 2, w: range }];
+      if (def.ranged && p >= atk.hit && p < atk.hit + flight) {
+        fx.push({ kind: 'proj', sub: def.ranged, x0: LOOP_X - 8, x1: dummyX + 4, y: gy - 16, p: (p - atk.hit) / flight, dir: -1 });
+      }
       if (p >= land && p < land + 7) {
-        if (!def.ranged) fx.push({ kind: 'slash', x: reach, y: gy - 14, dir: -1, p: (p - land) / 7 });
-        fx.push({ kind: 'spark', x: def.ranged ? LOOP_X - range : reach, y: gy - 12, p: (p - land) / 6 });
+        if (!def.ranged) fx.push({ kind: 'slash', x: dummyX + 4, y: gy - 14, dir: -1, p: (p - land) / 7 });
+        fx.push({ kind: 'spark', x: dummyX + 6, y: gy - 12, p: (p - land) / 6 });
       }
       if (def.area && p >= atk.hit && p < atk.hit + 10) fx.push({ kind: 'ring', x: LOOP_X, y: gy, r: range + 10, p: (p - atk.hit) / 10 });
-      return { f: g0, actors: [a], fx, shake: [0, 0], fade: 0 };
+      return { f: g0, actors: [dummy, a], fx, shake: [0, 0], fade: 0 };
     }
 
     /* 그 프레임에 나는 소리 */

@@ -1054,7 +1054,12 @@ function testDex() {
     assert.strictEqual(sc.state(sc.T2 - 1).actors.length, 1, '2막 전에는 적이 없다');
     assert.strictEqual(sc.state(sc.T2 + 1).actors.length, 2);
     assert(sc.state(sc.END - 1).actors.find((a) => a.id === 'student').x < 92, '맞은 학생은 밀려난다');
-    assert(sc.loop(sc.XF + sc.hit).actors[0].key.startsWith('atk'), '반복 구간에서 공격 자세가 나온다');
+    const swing = sc.loop(sc.XF + sc.hit).actors;
+    assert(swing.find((a) => a.id === 'enemy').key.startsWith('atk'), '반복 구간에서 공격 자세가 나온다');
+    const target = swing.find((a) => a.id === 'dummy');
+    assert(target && target.x < swing.find((a) => a.id === 'enemy').x, '허수아비가 적 앞에 서 있다');
+    const landed = sc.loop(sc.XF + sc.hit + (e.def.ranged ? 12 : 0) + 1).actors.find((a) => a.id === 'dummy');
+    assert(landed.key === 'hurt0' && landed.mode === 'flash', '맞은 허수아비가 번쩍인다');
     const sounds = [];
     for (let f = 0; f < sc.END + sc.period + sc.XF; f++) sounds.push(...sc.sfxAt(f));
     assert(sounds.length >= 3, `${e.id} 소리`);

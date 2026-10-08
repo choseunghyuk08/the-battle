@@ -879,8 +879,9 @@
       YG.icon(e.trait, 1),
       el('span', { class: 'pic' }, [dexPortrait(e.def, 2)]),
       el('span', { class: 'name', text: e.def.name }),
+      e.def.scp ? el('small', { class: 'hint', text: e.def.scp }) : null,
       vs ? el('small', { class: 'vcount', text: `변종 ${vs}` }) : null,
-    ]);
+    ].filter(Boolean));
   }
 
   function renderDex() {
@@ -1093,9 +1094,19 @@
     $('#dexChips').replaceChildren(...[
       e.boss ? el('span', { class: 'tag-boss', text: '보스' }) : null,
       el('span', { class: 'chip', text: e.region }),
+      def.scp ? el('span', { class: 'chip scp', text: def.scp }) : null,
+      def.cls ? el('span', { class: 'chip cls', 'data-cls': def.cls, text: `격리 등급 ${def.cls}` }) : null,
       traitChip(e.trait),
       ...YG.dex.tags(def).map((t) => el('span', { class: 'chip', text: t })),
+      def.perk ? el('span', { class: 'chip perk', text: def.perk }) : null,
     ].filter(Boolean));
+    const credit = $('#dexCredit');
+    credit.hidden = !def.source;
+    credit.replaceChildren(...(def.source ? [
+      '출처 · ',
+      el('a', { href: def.source, target: '_blank', rel: 'noopener noreferrer', text: `${def.scp || 'SCP'} 원문` }),
+      ' · SCP 재단 위키 (CC BY-SA 3.0)',
+    ] : []));
     $('#dexStats').replaceChildren(...YG.dex.statRows(def).map((r) => statRow(r.label, r.value)));
     $('#dexDesc').textContent = lore.desc;
     $('#dexSr').textContent = lore.beats.join(' ');
