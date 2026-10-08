@@ -284,6 +284,21 @@
     for (const it of list) L.layer(() => it.def.draw(L, L.look, L.q, it.color));
   }
 
+  /* 진화한 소품은 끝이 반짝인다 (각성은 두 군데). 소품 그림과 따로 한곳에서 그린다 */
+  function evoSparkle(L, look, q) {
+    const [gx, gy] = L.along(9);
+    const U = L.U;
+    const plus = (x, y, c, w) => {
+      L.h.spark(Math.round(x - w), Math.round(y), w * 2 + 1, 1, c);
+      L.h.spark(Math.round(x), Math.round(y - w), 1, w * 2 + 1, c);
+    };
+    const ax = gx + (q.i % 2 ? 2 : -1) * U;
+    const ay = gy - 2 * U;
+    plus(ax, ay, '#f2d450', 2);
+    L.h.spark(Math.round(ax), Math.round(ay), 1, 1, '#fff6c8');
+    if (look.evo >= 2) plus(gx - (q.i % 3 ? 2 : -2) * U, gy + 2 * U, '#fff6c8', 1);
+  }
+
   /* 한 장을 그린다. U 는 기존 도트 한 칸을 점 몇 개로 그릴지 */
   function draw(h, q, def, U) {
     const L = layout(h, q, def, U);
@@ -303,6 +318,7 @@
     if (look.prop === 'bag') bag(L);
     arm(L, false);
     if (look.prop && look.prop !== 'bag' && HDU.prop[look.prop]) L.layer(() => HDU.prop[look.prop](L, look, q));
+    if (look.evo && look.prop) evoSparkle(L, look, q);
     wearLayer(L, items, 'front');
   }
 

@@ -139,21 +139,6 @@
   }
 
   /* 진화한 소품은 끝이 반짝인다 (각성은 두 군데). 기존 그림과 같은 자리 */
-  function sparkle(L, look, q) {
-    if (!look.evo) return;
-    const [gx, gy] = L.along(9);
-    const U = L.U;
-    const plus = (x, y, c, w) => {
-      L.h.spark(Math.round(x - w), Math.round(y), w * 2 + 1, 1, c);
-      L.h.spark(Math.round(x), Math.round(y - w), 1, w * 2 + 1, c);
-    };
-    plus(gx + (q.i % 2 ? 2 : -1) * U, gy - 2 * U, '#f2d450', 2);
-    L.h.spark(Math.round(gx + (q.i % 2 ? 2 : -1) * U), Math.round(gy - 2 * U), 1, 1, '#fff6c8');
-    if (look.evo >= 2) {
-      plus(gx - (q.i % 3 ? 2 : -2) * U, gy + 2 * U, '#fff6c8', 1);
-    }
-  }
-
   /* ---------- 두루마리 ---------- */
   /* 붓글씨: 한 글자의 획(0..1 상자 안 점 두 개씩) */
   const GLYPHS = [
@@ -222,7 +207,6 @@
     k.line(4.9 + sw, 1.7, 5.0 + sw * 1.4, 3.0, shade('#d9483b', -0.3), 0.2);
     k.rect(4.15 + sw, 1.5, 1.1, 0.35, gold);
     grip(k, look, 0.2, -1.1, 3.4, 3, 0.8, false);
-    sparkle(L, look, q);
   };
 
   /* ---------- 트로피 ---------- */
@@ -309,7 +293,6 @@
     k.line(-2.3, -8.3, -1.9, -6.6, '#fffbe0', 0.3);
     k.dot(-2.5, -8.9, '#ffffff');
     grip(k, look, 0, -1.3, 2.8, 3, 0.74, true);
-    sparkle(L, look, q);
   };
 
   /* ---------- 배드민턴 라켓 ---------- */
@@ -376,7 +359,6 @@
     k.line(cx0 - 0.5, cy0 - 0.2, cx0 + 0.5, cy0 - 0.2, '#f6f3ea', 0.2);
     k.dot(cx0 - 0.35, cy0 + 0.1, '#fff0cf');
     grip(k, look, 0, -0.6, 2.7, 3, 0.8, true);
-    sparkle(L, look, q);
   };
 
   /* ---------- 모종삽 ---------- */
@@ -419,7 +401,6 @@
     k.ell(0, -7.5, 0.28, 0.42, '#3a3f4b');
     k.dot(-0.05, -7.7, '#7a8089');
     grip(k, look, 0, -0.6, 2.7, 3, 0.8, true);
-    sparkle(L, look, q);
   };
 
   /* ---------- 카메라 ---------- */
@@ -501,7 +482,6 @@
       L.h.spark(Math.round(fx - r * 0.55), Math.round(fy - r * 0.55), Math.round(r * 1.1) + 1, 1, '#fff6a8');
       L.h.spark(Math.round(fx - 1), Math.round(fy - 1), 3, 3, '#ffffff');
     }
-    sparkle(L, look, q);
   };
 
   /* ---------- 응원 방울(폼폼) ---------- */
@@ -543,7 +523,6 @@
       k.line(cx + Math.cos(a) * 1.0, cy + Math.sin(a) * 1.0, cx + Math.cos(a) * 3.0, cy + Math.sin(a) * 2.8, shade(i % 2 ? A : B, 0.18 + 0.22 * -(Math.cos(a) * 0.7 + Math.sin(a) * 0.7)), 0.3);
     }
     grip(k, look, 0, 0.2, 2.4, 3, 0.72, true);
-    sparkle(L, look, q);
   };
 
   /* ---------- 펜싱 플뢰레 ---------- */
@@ -601,7 +580,6 @@
     });
     k.dot(-1.0, -3.5, '#ffffff');
     grip(k, look, 0, 0.3, 2.5, 3, 0.78, true);
-    sparkle(L, look, q);
   };
 
   /* ---------- 망원경 ---------- */
@@ -643,7 +621,6 @@
     });
     k.line(-1.0, -13.1, -0.2, -13.65, '#ffffff', 0.18);
     grip(k, look, 0, -0.3, 3.0, 4, 0.76, true);
-    sparkle(L, look, q);
   };
 
   /* ---------- 연극 가면 ---------- */
@@ -716,7 +693,6 @@
     k.dot(cx + 1.2, -7.75, '#ffffff');
     k.dot(cx - 2.2, -9.3, '#ffffff');
     grip(k, look, cx, 0.1, 2.5, 3, 0.74, true);
-    sparkle(L, look, q);
   };
 
   /* ---------- 망치 ---------- */
@@ -779,7 +755,6 @@
     k.dot(-0.4, -10.7, '#fff0b8');
     k.dot(0.6, -10.2, '#6a5a38');
     grip(k, look, 0, -0.5, 2.6, 3, 0.8, true);
-    sparkle(L, look, q);
   };
 
   /* ---------- 공기총(스포츠 소총) ---------- */
@@ -839,7 +814,6 @@
     /* 멜빵 고리 */
     k.dot(1.6, -9.2, '#aeb6c0', 2);
     grip(k, look, 0.1, 0.0, 2.7, 3, 0.8, true);
-    sparkle(L, look, q);
   };
 
   /* ---------- 스케치북 ---------- */
@@ -904,7 +878,6 @@
     k.line(-0.9, -1.75, 2.0, -1.75, '#9aa3ad', 0.16);
     k.line(2.4, -1.0, 3.5, -1.2, '#14121a', 0.16);
     grip(k, look, 1.6, 0.0, 3.4, 3, 0.74, false);
-    sparkle(L, look, q);
   };
 
   /* ---------- 트럼프 카드 부채 ---------- */
@@ -955,7 +928,6 @@
     }
     const k0 = kit(L, base, 0, 0.2);
     grip(k0, look, 0, -0.2, 3.0, 3, 0.74, true);
-    sparkle(L, look, q);
   };
 
   /* ---------- 기타 ---------- */
@@ -1010,7 +982,6 @@
       k.rect(1.05, py, 0.4, 0.34, '#aeb6c0');
     }
     grip(k, look, 0, -0.9, 2.7, 3, 0.76, true);
-    sparkle(L, look, q);
   };
 
   /* ---------- 튜브(물놀이 튜브) ---------- */
@@ -1057,6 +1028,5 @@
     k.rect(3.1, -1.4, 0.9, 0.55, '#d8dee5');
     k.dot(3.35, -1.3, '#ffffff');
     grip(k, look, 0.0, -0.9, 3.4, 3, 0.8, false);
-    sparkle(L, look, q);
   };
 })(globalThis);
