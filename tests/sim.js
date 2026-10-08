@@ -322,6 +322,21 @@ function testSizes() {
   assert.deepStrictEqual(r.problems, [], `크기 점검에 걸린 것 ${r.problems.length}개`);
   /* 적과 동료 전부에 현실 크기가 있고, 변종은 원본 크기를 이어받는다 */
   for (const e of YG.ENEMIES) assert.ok(e.cm > 0 && e.fit > 0, `${e.id} 크기 없음`);
+  /* 동료의 머리, 모자, 얼굴 장식, 소품, 복장이 전부 HD 부품으로 등록돼 있다 */
+  {
+    const miss = new Set();
+    for (const u of YG.UNITS) {
+      for (const lvl of [0, 1, 2]) {
+        const l = YG.resolveDef(u, lvl).look;
+        if (!YG.HDU.hair[l.style]) miss.add(`머리 ${l.style}`);
+        if (l.hat && !YG.HDU.hat[l.hat]) miss.add(`모자 ${l.hat}`);
+        if (l.face && !YG.HDU.face[l.face]) miss.add(`얼굴 ${l.face}`);
+        if (l.prop && l.prop !== 'bag' && !YG.HDU.prop[l.prop]) miss.add(`소품 ${l.prop}`);
+        for (const w of [...(l.wear || []), ...(l.gear || [])]) if (!YG.HDU.wear[w.split(':')[0]]) miss.add(`복장 ${w}`);
+      }
+    }
+    assert.deepStrictEqual([...miss], [], 'HD 부품이 없는 동료 요소');
+  }
   /* 적 전부 HD 그림이 있다 */
   assert.deepStrictEqual(YG.ENEMIES.filter((e) => !YG.hdFor(e)).map((e) => e.id), [], 'HD 그림이 없는 적');
   for (const u of YG.UNITS) assert.ok(u.cm > 0 && u.fit > 0 && u.look.tall >= 0, `${u.id} 크기 없음`);

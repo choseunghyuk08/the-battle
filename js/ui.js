@@ -1246,9 +1246,10 @@
       return;
     }
     battle.stage = stage;
-    battle.b = new YG.Battle(stage, YG.buildDeck(app.save));
-    /* 이 스테이지에 나오는 적의 그림을 미리 그려 둔다 */
-    YG.sprites.warm([...new Set(stage.waves.map((w) => w.id))].map((id) => YG.enemyById(id)));
+    const deck = YG.buildDeck(app.save);
+    battle.b = new YG.Battle(stage, deck);
+    /* 편성한 동료와 이 스테이지에 나오는 적의 그림을 미리 그려 둔다 */
+    YG.sprites.warm([...deck.map((d) => d.def), ...[...new Set(stage.waves.map((w) => w.id))].map((id) => YG.enemyById(id))]);
     battle.paused = false;
     battle.speed = 1;
     battle.acc = 0;
@@ -1329,7 +1330,7 @@
       if (events.some((e) => e.t === 'boss')) YG.audio.battleMusic(battle.stage, true);
     }
     YG.render.battle($('#field').getContext('2d'), b, battle.stage.theme);
-    YG.sprites.warmStep(4);
+    YG.sprites.warmStep(5);
     updateHud(b);
   }
 

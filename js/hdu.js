@@ -284,6 +284,9 @@
     for (const it of list) L.layer(() => it.def.draw(L, L.look, L.q, it.color));
   }
 
+  /* 소품 그림 안에서 제 모양에 맞춰 진화 반짝임(twinkle)을 직접 그리는 소품 (js/hdu_props_a.js). 나머지는 아래 evoSparkle 이 같은 일을 한다 */
+  const SELF_TWINKLE = new Set(['sheet', 'band', 'book', 'bookstack', 'salt', 'wrench', 'mic', 'light', 'beaker', 'magnet', 'whistle', 'paper', 'stick', 'mop', 'brush']);
+
   /* 진화한 소품은 끝이 반짝인다 (각성은 두 군데). 소품 그림과 따로 한곳에서 그린다 */
   function evoSparkle(L, look, q) {
     const [gx, gy] = L.along(9);
@@ -318,7 +321,7 @@
     if (look.prop === 'bag') bag(L);
     arm(L, false);
     if (look.prop && look.prop !== 'bag' && HDU.prop[look.prop]) L.layer(() => HDU.prop[look.prop](L, look, q));
-    if (look.evo && look.prop) evoSparkle(L, look, q);
+    if (look.evo && look.prop && !SELF_TWINKLE.has(look.prop)) evoSparkle(L, look, q);
     wearLayer(L, items, 'front');
   }
 
