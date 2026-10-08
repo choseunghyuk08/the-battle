@@ -71,7 +71,7 @@
   const SKIN = '#f0c8a0';
   const SKIN_SHADE = '#d9a77c';
 
-  const REPLACES_HAIR = new Set(['cap', 'cap2', 'chef', 'hardhat', 'strawhat', 'tophat', 'helmet', 'beanie', 'fedora', 'bucket']);
+  const REPLACES_HAIR = new Set(['cap', 'cap2', 'chef', 'hardhat', 'strawhat', 'tophat', 'helmet', 'beanie', 'fedora', 'bucket', 'hazmat']);
 
   function drawHair(b, look, ux, uy, q) {
     const hy = uy - 25;
@@ -264,6 +264,14 @@
         b.r(ux - 6, hy - 1, 12, 1, '#3a3f4b');
         b.r(ux - 8, hy + 3, 3, 6, look.trim);
         b.r(ux + 5, hy + 3, 3, 6, look.trim);
+        break;
+      case 'hazmat':
+        b.r(ux - 7, hy - 2, 14, 13, look.trim);
+        b.r(ux - 7, hy + 10, 14, 1, darken(look.trim, 0.75));
+        b.r(ux - 4, hy + 3, 9, 6, '#bfe8f0');
+        b.r(ux - 2, hy + 4, 2, 2, '#1b1820');
+        b.r(ux + 2, hy + 4, 2, 2, '#1b1820');
+        b.px(ux - 4, hy + 3, '#ffffff');
         break;
       case 'bucket':
         b.r(ux - 5, hy - 2, 10, 4, look.trim);
@@ -589,6 +597,12 @@
         b.r(ex - 3, ey - 2, 7, 1, '#9a7a4a');
         break;
       }
+      case 'penlight':
+        b.r(hx - 1, hy - 7, 3, 7, '#3a3f4b');
+        b.r(hx - 1, hy - 8, 3, 1, '#9ed8e8');
+        b.spark(hx, hy - 10, '#e8fbff');
+        b.spark(hx - 2, hy - 9, '#bfe8f0');
+        break;
       case 'pickaxe': {
         const [ex, ey] = along(10);
         b.line(hx, hy, ex, ey, '#8a5a34', 2);

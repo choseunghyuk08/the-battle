@@ -593,6 +593,71 @@
         { top: '#14121a', gear: ['cape:#f2d450', 'epaulette2', 'laurel', 'halo'] },
       ],
     },
+
+    guard: {
+      name: '경비 대장', name2: '보안 책임자',
+      blurb: '전기충격봉이 두 배로 길어졌다.', blurb2: '문이 닫히면 그 안은 이 사람 소관이다.',
+      look: [
+        { gear: ['scarf:#e0b62c', 'epaulette'] },
+        { top: '#1c2430', trim: '#e0b62c', gear: ['cape:#1c2430', 'epaulette2', 'plate:#3a3f4b'] },
+      ],
+    },
+    researcher: {
+      name: '선임 연구원', name2: '이상 현상 권위자',
+      blurb: '조사 결과가 노트북 한 화면에 다 들어간다.', blurb2: '보고서 한 장에 이상 현상이 분류된다.',
+      look: [
+        { gear: ['scarf:#4a9ad0', 'medal'] },
+        { top: '#2a3a5a', trim: '#6fd0e8', gear: ['cape:#2a3a5a', 'epaulette2', 'halo'] },
+      ],
+    },
+    hazmat: {
+      name: '방호복 책임자', name2: '무균의 수호자',
+      blurb: '장갑이 두꺼워졌다. 오염 구역도 문제없다.', blurb2: '오염이 다가오기 전에 먼저 소독된다.',
+      look: [
+        { gear: ['plate:#cfd5dc', 'scarf:#d9483b'] },
+        { top: '#b8892c', trim: '#f2d450', gear: ['cape:#e0b62c', 'epaulette2', 'halo'] },
+      ],
+    },
+    amnesic: {
+      name: '기억 소거 전문가', name2: '망각의 집행관',
+      blurb: '소거 범위가 한 층 전체로 넓어졌다.', blurb2: '당신은 이 문장도 곧 잊는다.',
+      look: [
+        { gear: ['scarf:#14121a', 'medal'] },
+        { top: '#0c0b10', trim: '#9ed8e8', gear: ['cape:#14121a', 'epaulette2', 'wings:#bfe8f0'] },
+      ],
+    },
+    mtf: {
+      name: '기동특무부대 팀장', name2: '특무부대 지휘관',
+      blurb: '팀장이 앞에 서면 대원들이 흩어지지 않는다.', blurb2: '무전 한 마디에 전 대원이 같은 곳을 쏜다.',
+      look: [
+        { gear: ['plate', 'scarf:#3a4a3a'] },
+        { top: '#1f2a1f', trim: '#e0b62c', gear: ['cape:#1f2a1f', 'epaulette2', 'plate:#6b7280'] },
+      ],
+    },
+    containment: {
+      name: '격리 총괄', name2: '봉인의 관리자',
+      blurb: '격리 장치가 방 하나를 통째로 감싼다.', blurb2: '풀리지 않는 봉인은 이 사람이 걸었다.',
+      look: [
+        { gear: ['scarf:#4a9ad0', 'epaulette'] },
+        { top: '#efe9dc', trim: '#4a9ad0', gear: ['wings:#bfe8f0', 'epaulette2', 'halo', 'cape:#9fd8f0'] },
+      ],
+    },
+    director: {
+      name: '사이트 총괄 이사', name2: '재단의 얼굴',
+      blurb: '결재 한 번에 구역 하나가 열리고 닫힌다.', blurb2: '이 시설에서 그의 서명 없이 움직이는 건 없다.',
+      look: [
+        { gear: ['scarf', 'epaulette', 'medal'] },
+        { top: '#1c1a22', trim: '#f2d450', gear: ['cape:#2a2a33', 'epaulette2', 'medal', 'halo'] },
+      ],
+    },
+    o5: {
+      name: '의장 대리', name2: '그림자 의장',
+      blurb: '회의는 늘 전원 일치로 끝난다.', blurb2: '그가 침묵하면 학교가 닫히고, 말하면 세상이 닫힌다.',
+      look: [
+        { gear: ['scarf', 'epaulette', 'medal'] },
+        { top: '#0c0b10', gear: ['cape:#14121a', 'epaulette2', 'wings:#f2d450', 'halo'] },
+      ],
+    },
   };
 
   for (const u of YG.UNITS) {

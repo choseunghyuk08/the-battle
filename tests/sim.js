@@ -1,7 +1,7 @@
 const path = require('path');
 const assert = require('assert');
 const root = path.join(__dirname, '..', 'js');
-['data.js', 'units2.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'world.js', 'world2.js', 'engine.js', 'game.js', 'lore.js', 'lore_world.js', 'dex.js', 'unitdex.js', 'missions.js', 'cutscene.js', 'scenery.js', 'scenery2.js', 'poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js'].forEach((f) => require(path.join(root, f)));
+['data.js', 'units2.js', 'units3.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'world.js', 'world2.js', 'engine.js', 'game.js', 'lore.js', 'lore_world.js', 'dex.js', 'unitdex.js', 'missions.js', 'cutscene.js', 'scenery.js', 'scenery2.js', 'poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js'].forEach((f) => require(path.join(root, f)));
 const YG = globalThis.YG;
 
 function seeded(seed) {
@@ -156,7 +156,7 @@ function testGacha() {
 function testRoster() {
   const by = {};
   for (const u of YG.UNITS) (by[u.grade] = by[u.grade] || []).push(u);
-  assert.deepStrictEqual([4, 3, 2, 1, 0].map((g) => by[g].length), [13, 21, 18, 12, 8], '등급별 유닛 수');
+  assert.deepStrictEqual([4, 3, 2, 1, 0].map((g) => by[g].length), [13, 23, 21, 14, 9], '등급별 유닛 수');
   const ids = new Set(YG.UNITS.map((u) => u.id));
   assert.strictEqual(ids.size, YG.UNITS.length, 'id 중복 없음');
   for (const u of YG.UNITS) {
