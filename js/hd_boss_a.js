@@ -484,7 +484,8 @@
       h.poly([O(-42, bot - 5), O(42, bot - 5), O(42, bot), O(-42, bot)], c.woodDk);
       /* 틀의 나뭇결과 조각 장식 */
       for (let i = 0; i < 12; i++) {
-        const y = top + 8 + i * 8.5;
+        const y = top + 8 + i * 7.8;
+        if (y > bot - 9) break;
         const hp = i % 2 ? c.woodHi : c.woodDk;
         h.r(-40 + sh(y), y, 2, 4, hp);
         h.r(38 + sh(y), y + 1, 2, 4, i % 3 ? c.woodDk : c.woodLt);
@@ -768,7 +769,7 @@
 
     /* 치마와 윗옷 */
     const skPts = [[-72, 11], [-62, 14], [-44, 22], [-24, 30], [-10, 34]];
-    const upPts = [[shy - 2, 14], [shy + 4, 20], [-82, 17], [-72, 12]];
+    const upPts = [[shy - 2, 17], [shy + 4, 23], [-82, 19], [-72, 12]];
     h.layer(() => {
       band(h, skPts, cxf, -1, 1, c.skirt);
       band(h, skPts, cxf, -1, -0.35, c.skirtLt);
@@ -789,7 +790,7 @@
       }
       /* 윗옷: 카디건 */
       band(h, upPts, cxf, -1, 1, c.top);
-      h.ell(cxf(shy + 3), shy + 4, 19, 6, c.top);
+      h.ell(cxf(shy + 3), shy + 5, 23, 7, c.top);
       band(h, upPts, cxf, -1, -0.2, c.topLt);
       band(h, upPts, cxf, 0.5, 1, c.topSh);
       const mid = (y) => cxf(y) + 2;
@@ -876,7 +877,7 @@
     } else if (shh < 0.5) h.r(hx - 1, my, 8, 1, c.mouth);
 
     /* 책을 든 팔 */
-    const s1 = [cxf(shy + 4) + 14, shy + 4];
+    const s1 = [cxf(shy + 4) + 19, shy + 5];
     const rest = [cxf(-66) + 27, -62];
     const windW = [-30 + lean * 0.4, -106];
     const fireW = [60, -70];
@@ -919,7 +920,7 @@
     clawHand(h, k1.tx, k1.ty, Math.atan2(k1.ty - k1.ey, k1.tx - k1.ex) * 0.4, holding ? 0.15 : 0.9, c.skin, c.skinHi, c.skinDk, c.edge, 0.5);
 
     /* 입에 손가락을 댄 팔: "쉿" */
-    const s2 = [cxf(shy + 4) - 14, shy + 4];
+    const s2 = [cxf(shy + 4) - 19, shy + 5];
     const mouthW = [hx + 5, hy + 20];
     const lowW = [cxf(-66) - 20 - s.w * 6, -62 - s.a * 4];
     const W2 = [lerp(lowW[0], mouthW[0], shh), lerp(lowW[1], mouthW[1], shh)];
@@ -1266,6 +1267,15 @@
       const b0 = P(2, -11 - R(s.w * 1));
       const b1 = P(15, -6 + R(s.a * 1));
       h.line(b0[0], b0[1], b1[0], b1[1], c.deep, 2);
+    }
+
+    /* 붉은 눈빛과 왕관의 반짝임 */
+    if (!hurt) sparkDisc(h, R(eyeC[0] + 1), R(eyeC[1]), 7, `rgba(229,101,75,${(0.16 + 0.1 * Math.sin(t) + s.a * 0.15).toFixed(2)})`);
+    {
+      const gp = C(((q.n * 7) % 3 - 1) * 8, -18);
+      const gl = 0.5 + 0.5 * Math.sin(t * (walk ? 2 : 1) + 1);
+      h.spark(gp[0] - 1, gp[1] - 3, 2, 7, `rgba(255,248,200,${(0.5 + 0.4 * gl).toFixed(2)})`);
+      h.spark(gp[0] - 3, gp[1] - 1, 7, 2, `rgba(255,248,200,${(0.5 + 0.4 * gl).toFixed(2)})`);
     }
 
     /* 수염 */
