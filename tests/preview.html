@@ -2,8 +2,8 @@
 <html lang="ko"><head><meta charset="utf-8"><title>sprite preview</title>
 <style>body{margin:0;background:#0e1319;color:#efe9dc;font:12px sans-serif}canvas{image-rendering:pixelated;display:block}</style></head>
 <body><canvas id="sheet"></canvas><canvas id="scene" width="320" height="180" style="width:960px;height:540px"></canvas>
-<script src="../js/data.js"></script><script src="../js/units2.js"></script><script src="../js/evolutions.js"></script><script src="../js/bestiary.js"></script><script src="../js/engine.js"></script><script src="../js/game.js"></script>
-<script src="../js/poses.js"></script><script src="../js/sprites.js"></script><script src="../js/sprites2.js"></script><script src="../js/render.js"></script>
+<script src="../js/data.js"></script><script src="../js/units2.js"></script><script src="../js/evolutions.js"></script><script src="../js/bestiary.js"></script><script src="../js/bestiary2.js"></script><script src="../js/engine.js"></script><script src="../js/game.js"></script>
+<script src="../js/poses.js"></script><script src="../js/sprites.js"></script><script src="../js/sprites2.js"></script><script src="../js/sprites3.js"></script><script src="../js/render.js"></script>
 <script>
 const YG = globalThis.YG;
 const q = new URLSearchParams(location.search);
@@ -13,11 +13,16 @@ const set = new URLSearchParams(location.search).get('set') || 'units';
 const evoLv = Number(q.get('lv') || 1);
 const evolved = YG.UNITS.map((u) => YG.resolveDef(u, evoLv));
 const OLD = ['dust','ghost','mannequin','shadow','locker','portrait','tray','skeleton','mirror','principal','megamirror'];
-const mobs = YG.ENEMIES.filter((e) => !e.boss && !OLD.includes(e.id));
-const bosses = YG.ENEMIES.filter((e) => e.boss && !OLD.includes(e.id));
+const mobs = YG.ENEMIES.filter((e) => !e.boss && !e.region && !OLD.includes(e.id));
+const bosses = YG.ENEMIES.filter((e) => e.boss && !e.region && !OLD.includes(e.id));
+/* 해외편: ?set=abroad (잡몹) / abroadboss, region=일본 으로 지역 고르기, ids=a,b 로 직접 고르기 */
+const region = q.get('region');
+const abroad = YG.ENEMIES.filter((e) => e.region && !e.boss && (!region || e.region === region));
+const abroadBoss = YG.ENEMIES.filter((e) => e.region && e.boss && (!region || e.region === region));
+const picked = (q.get('ids') || '').split(',').filter(Boolean).map((i) => YG.enemyById(i));
 const variants = ['rat:red','bat:blue','zombie:violet','vending:gold','cat:ink','slimeking:red','mecha:gold','librarian:violet'].map((i) => YG.enemyById(i));
-const defs = set === 'evo' ? evolved : set === 'enemies' ? YG.ENEMIES.filter((e) => OLD.includes(e.id)) : set === 'mobs' ? mobs : set === 'bosses' ? bosses : set === 'variants' ? variants : YG.UNITS;
-const sc = 2, cw = YG.sprites.CW*sc, ch = YG.sprites.CH*sc;
+const defs = picked.length ? picked : set === 'abroad' ? abroad : set === 'abroadboss' ? abroadBoss : set === 'evo' ? evolved : set === 'enemies' ? YG.ENEMIES.filter((e) => OLD.includes(e.id)) : set === 'mobs' ? mobs : set === 'bosses' ? bosses : set === 'variants' ? variants : YG.UNITS;
+const sc = Number(q.get('scale') || 2), cw = YG.sprites.CW*sc, ch = YG.sprites.CH*sc;
 const sheet = document.getElementById('sheet');
 sheet.width = phases.length*cw; sheet.height = defs.length*ch;
 const sctx = sheet.getContext('2d'); sctx.imageSmoothingEnabled=false;

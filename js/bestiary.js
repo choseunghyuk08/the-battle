@@ -10,6 +10,8 @@
     ranged: { hp: 300, atk: 20, range: 58, speed: 0.3, interval: 70, anim: { hit: 12, total: 24 }, kb: 3, drop: 30 },
   };
 
+  YG.ROLES = ROLE;
+
   const MOBS = [
     { id: 'slime', name: '젤리 괴물', trait: 'none', role: 'grunt', look: { arch: 'slime', body: '#6fcf8f', shine: '#d9ffe4' } },
     { id: 'rat', name: '쥐', trait: 'none', role: 'swarm', look: { arch: 'beast', body: '#7a6f66', belly: '#a39789', ear: 'round', size: 0.8, eye: '#e5654b' } },

@@ -566,7 +566,7 @@
     } else if (f.kind === 'proj') {
       const x = f.x0 + (f.x1 - f.x0) * p;
       const y = gy + f.z - 16;
-      PROJ[f.sub](ctx, f, x, y, p);
+      (PROJ[f.sub] || (YG.PROJ_EXTRA || {})[f.sub] || PROJ.flash)(ctx, f, x, y, p);
     } else if (f.kind === 'cannon') {
       const reach = 40 + p * (VIEW.enemyBaseX - 40);
       ctx.globalAlpha = 0.9 * (1 - p * 0.6);
