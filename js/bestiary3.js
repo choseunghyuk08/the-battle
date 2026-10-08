@@ -16,7 +16,7 @@
   const MOBS = [
     /* ---- 검문소와 보관실 ---- */
     {
-      id: 'hazmat', name: '방호복', region: '재단', trait: 'specimen', role: 'grunt', over: { hp: 260, speed: 0.38 },
+      id: 'hazmat', name: '방호복', region: '재단', trait: 'specimen', role: 'grunt', over: { hp: 210, speed: 0.48 },
       look: { arch: 'folk', skin: '#d6b82a', shade: '#b89a1a', top: '#d6b82a', trim: '#e8cc40', pants: '#c4a620', face: 'visor', style: 'bald', deco: ['tank'], belt: '#3a3a3a', shoe: '#2a2a2e', eyes: '#7ad0e8' },
     },
     {
@@ -24,7 +24,7 @@
       look: { arch: 'machine', kind: 'sentry', body: '#c9d2d8', dark: '#4a525c', accent: '#f2a03a', lens: '#ff4a3a' },
     },
     {
-      id: 'camera', name: '감시 카메라', region: '재단', trait: 'metal', role: 'ranged', float: true, ranged: 'laser', over: { hp: 240, atk: 18, range: 52, speed: 0.34 },
+      id: 'camera', name: '감시 카메라', region: '재단', trait: 'metal', role: 'ranged', float: true, ranged: 'laser', over: { hp: 170, atk: 16, range: 52, speed: 0.46 },
       look: { arch: 'machine', kind: 'camera', body: '#b8c0c8', dark: '#3a424c', lens: '#ff4a3a' },
     },
     {
@@ -32,7 +32,7 @@
       look: { arch: 'blob', kind: 'tickle', body: '#f2a03c', shine: '#ffe0a0', size: 1.1 },
     },
     {
-      id: 'scp173', name: '조각상', region: '재단', trait: 'specimen', role: 'fast', over: { hp: 130, atk: 70, speed: 0.95, interval: 90, anim: { hit: 6, total: 20 }, kb: 2 },
+      id: 'scp173', name: '조각상', region: '재단', trait: 'specimen', role: 'fast', over: { hp: 120, atk: 90, speed: 0.95, interval: 90, anim: { hit: 6, total: 20 }, kb: 2 },
       watch: 60, perk: '앞쪽 60 안에 아군이 있으면 꼼짝 못 한다', ...scpOf(173, 'Euclid'),
       look: { arch: 'statue', body: '#a39b88', paint: '#c0392b', paint2: '#2f8f86' },
     },
@@ -42,11 +42,11 @@
     },
     /* ---- 연구동 ---- */
     {
-      id: 'scp049_2', name: '치료받은 자', region: '재단', trait: 'specimen', role: 'grunt', over: { hp: 300, speed: 0.34 }, ...scpOf(49, 'Euclid', 2),
+      id: 'scp049_2', name: '치료받은 자', region: '재단', trait: 'specimen', role: 'grunt', over: { hp: 210, speed: 0.46 }, ...scpOf(49, 'Euclid', 2),
       look: { arch: 'folk', skin: '#9aa89a', shade: '#7f8e80', hair: '#2a2a2a', style: 'wild', top: '#8fb4bc', trim: '#a8c8cf', pants: '#7a9aa2', cloth: 'tatters', skirt: '#8fb4bc', face: 'stitched', sockets: true, eyes: '#d8e4a8', claws: '#c8c0a8', bareArms: true, shoe: '#4a4a4a' },
     },
     {
-      id: 'scp035', name: '도자기 가면', region: '재단', trait: 'ghost', role: 'brute', over: { hp: 420, atk: 34, speed: 0.38 }, ...scpOf(35, 'Keter'),
+      id: 'scp035', name: '도자기 가면', region: '재단', trait: 'ghost', role: 'brute', over: { hp: 360, atk: 30, speed: 0.44 }, ...scpOf(35, 'Keter'),
       look: { arch: 'folk', skin: '#e8d6c0', shade: '#d0bca4', hair: '#2a2430', style: 'short', top: '#eef2f4', trim: '#cfd8dc', pants: '#3a4250', deco: ['labcoat'], face: 'porcelain', maskColor: '#f4f1ea', ooze: '#0a0a10', shoe: '#2a2a30' },
     },
     /* ---- 격리 구역 ---- */
@@ -55,11 +55,11 @@
       look: { arch: 'folk', stance: 'float', skin: '#dcdce2', style: 'bald', top: '#0e0e16', trim: '#16161e', robe: '#0e0e16', hat: 'hood', hatColor: '#0e0e16', face: 'void', bareArms: true, arms: 1.2, outline: '#050509' },
     },
     {
-      id: 'blastdoor', name: '격벽 문', region: '재단', trait: 'none', role: 'tank', over: { hp: 900, atk: 30, speed: 0.34 },
+      id: 'blastdoor', name: '격벽 문', region: '재단', trait: 'none', role: 'tank', over: { hp: 520, atk: 24, speed: 0.46 },
       look: { arch: 'machine', kind: 'door', body: '#7a828c', dark: '#3a4048', stripe: '#f2c230', eye: '#ff6a3a' },
     },
     {
-      id: 'rack', name: '서버 랙', region: '재단', trait: 'metal', role: 'tank', over: { hp: 700, atk: 28, speed: 0.4 },
+      id: 'rack', name: '서버 랙', region: '재단', trait: 'metal', role: 'tank', over: { hp: 420, atk: 22, speed: 0.5 },
       look: { arch: 'machine', kind: 'rack', body: '#2a3038', dark: '#14181e', led: '#5aff9a', eye: '#5ad0ff' },
     },
     {
@@ -72,7 +72,7 @@
       look: { arch: 'redact', paper: '#e8e4d6', ink: '#0a0a0e', stamp: '#c23a3a' },
     },
     {
-      id: 'ooze', name: '검은 점액', region: '재단', trait: 'dark', role: 'grunt', over: { hp: 320, atk: 14, speed: 0.3, slow: { chance: 0.25, frames: 60 } },
+      id: 'ooze', name: '검은 점액', region: '재단', trait: 'dark', role: 'grunt', over: { hp: 230, atk: 14, speed: 0.44, slow: { chance: 0.2, frames: 45 } },
       look: { arch: 'blob', kind: 'ooze', body: '#14161c', shine: '#5a6a78', eye: '#cfe08a', size: 1.1 },
     },
   ];
@@ -152,5 +152,5 @@
     return v ? `${id}:${v}` : id;
   };
 
-  YG.WORLD3 = { first: FIRST, last: LAST, bossPlan: BOSS_PLAN, bossFor, elite, mobId, finalBoss: FINAL_BOSS };
+  YG.WORLD3 = { first: FIRST, last: LAST, bossPlan: BOSS_PLAN, bossFor, elite, mobId, finalBoss: FINAL_BOSS, variants: VARIANT_SEQ };
 })(globalThis);
