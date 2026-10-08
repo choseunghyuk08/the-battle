@@ -2,7 +2,7 @@
 <html lang="ko"><head><meta charset="utf-8"><title>sprite preview</title>
 <style>body{margin:0;background:#0e1319;color:#efe9dc;font:12px sans-serif}canvas{image-rendering:pixelated;display:block}</style></head>
 <body><canvas id="sheet"></canvas><canvas id="scene" width="320" height="180" style="width:960px;height:540px"></canvas>
-<script src="../js/data.js"></script><script src="../js/bestiary.js"></script><script src="../js/engine.js"></script><script src="../js/game.js"></script>
+<script src="../js/data.js"></script><script src="../js/units2.js"></script><script src="../js/evolutions.js"></script><script src="../js/bestiary.js"></script><script src="../js/engine.js"></script><script src="../js/game.js"></script>
 <script src="../js/poses.js"></script><script src="../js/sprites.js"></script><script src="../js/sprites2.js"></script><script src="../js/render.js"></script>
 <script>
 const YG = globalThis.YG;
@@ -10,7 +10,8 @@ const q = new URLSearchParams(location.search);
 const anim = q.get('anim') || 'atk';
 const phases = anim === 'atk' ? ['atk0','atk1','atk2','atk3','atk4','atk5','hurt0'] : anim === 'walk' ? ['walk0','walk1','walk2','walk3','walk4','walk5','idle0'] : ['idle0','idle1','idle2','idle3','hurt0'];
 const set = new URLSearchParams(location.search).get('set') || 'units';
-const evolved = YG.UNITS.map((u) => YG.resolveDef(u, 1));
+const evoLv = Number(q.get('lv') || 1);
+const evolved = YG.UNITS.map((u) => YG.resolveDef(u, evoLv));
 const OLD = ['dust','ghost','mannequin','shadow','locker','portrait','tray','skeleton','mirror','principal','megamirror'];
 const mobs = YG.ENEMIES.filter((e) => !e.boss && !OLD.includes(e.id));
 const bosses = YG.ENEMIES.filter((e) => e.boss && !OLD.includes(e.id));

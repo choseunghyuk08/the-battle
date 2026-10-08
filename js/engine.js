@@ -185,8 +185,10 @@
         this.fx.push({ kind: 'proj', sub: e.def.ranged, x0: e.x, x1: aimX, z: e.z, life: 9, max: 9, dir: e.dir });
       }
       for (const v of targets) {
-        const dealt = calcDamage(e, v, e.atk);
-        this.applyDamage(v, dealt, { from: e, big: dealt >= e.atk * 1.4 });
+        let dealt = calcDamage(e, v, e.atk);
+        const crit = !!e.def.crit && this.rng() < e.def.crit;
+        if (crit) dealt *= 2;
+        this.applyDamage(v, dealt, { from: e, big: crit || dealt >= e.atk * 1.4 });
         if (!e.def.ranged) this.fx.push({ kind: 'slash', x: v.x, z: v.z, h: 14, dir: e.dir, side: e.side, life: 7, max: 7 });
         if (e.def.freeze && v.def.trait !== 'metal' && this.rng() < e.def.freeze.chance) {
           v.freeze = e.def.freeze.frames;
@@ -220,8 +222,13 @@
       v.flash = 4;
       this.fx.push({ kind: 'dmg', side: v.side, x: v.x, z: v.z, h: 26, v: dmg, life: 22, max: 22 });
       this.fx.push({ kind: 'spark', x: v.x, z: v.z, h: 12, life: 6, max: 6 });
+      if (v.hp <= 0 && v.def.survive && !v.survived && this.rng() < v.def.survive) {
+        v.survived = true;
+        v.hp = 1;
+        this.fx.push({ kind: 'spark', x: v.x, z: v.z, h: 16, life: 8, max: 8 });
+      }
       if (v.hp <= 0) {
-        this.kill(v);
+        this.kill(v, opts.from);
         return;
       }
       let knock = !!opts.forceKb;
@@ -239,14 +246,15 @@
       v.kbVel = v.def.heavy ? speed * 0.5 : speed;
     }
 
-    kill(v) {
+    kill(v, by) {
       v.dying = 1;
       this.emit({ t: 'kill', side: v.side, boss: !!v.def.boss });
       v.state = 'dead';
       v.hp = 0;
       if (v.side === 'enemy') {
         this.stats.kills++;
-        this.money = Math.min(this.worker.max, this.money + v.drop);
+        const loot = by && by.def.loot ? by.def.loot : 1;
+        this.money = Math.min(this.worker.max, this.money + Math.round(v.drop * loot));
       }
     }
 

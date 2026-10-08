@@ -71,22 +71,65 @@
   const SKIN = '#f0c8a0';
   const SKIN_SHADE = '#d9a77c';
 
-  const REPLACES_HAIR = new Set(['cap', 'cap2', 'chef', 'hardhat']);
+  const REPLACES_HAIR = new Set(['cap', 'cap2', 'chef', 'hardhat', 'strawhat', 'tophat', 'helmet', 'beanie', 'fedora']);
 
-  function drawHair(b, look, ux, uy) {
+  function drawHair(b, look, ux, uy, q) {
     const hy = uy - 25;
     if (look.hat && REPLACES_HAIR.has(look.hat)) return;
+    const hc = look.hair;
     if (look.style === 'bald') {
-      b.r(ux - 7, hy + 3, 2, 4, look.hair);
-      b.r(ux + 5, hy + 3, 2, 3, look.hair);
+      b.r(ux - 7, hy + 3, 2, 4, hc);
+      b.r(ux + 5, hy + 3, 2, 3, hc);
       return;
     }
-    b.r(ux - 6, hy, 12, 4, look.hair);
-    b.r(ux - 7, hy + 2, 2, 5, look.hair);
-    b.r(ux + 5, hy + 2, 2, 4, look.hair);
-    b.r(ux - 5, hy + 4, 6, 1, look.hair);
-    if (look.style === 'long') b.r(ux - 8, hy + 3, 3, 12, look.hair);
-    if (look.style === 'bun') b.disc(ux - 1, hy - 2, 2, look.hair);
+    if (look.style === 'afro') {
+      b.disc(ux - 1, hy, 7, hc);
+      b.r(ux - 8, hy + 1, 3, 6, hc);
+      b.r(ux + 5, hy + 2, 2, 3, hc);
+      return;
+    }
+    b.r(ux - 6, hy, 12, 4, hc);
+    b.r(ux - 7, hy + 2, 2, 5, hc);
+    b.r(ux + 5, hy + 2, 2, 4, hc);
+    b.r(ux - 5, hy + 4, 6, 1, hc);
+    switch (look.style) {
+      case 'long':
+        b.r(ux - 8, hy + 3, 3, 12, hc);
+        break;
+      case 'bun':
+        b.disc(ux - 1, hy - 2, 2, hc);
+        break;
+      case 'bob':
+        b.r(ux - 8, hy + 2, 3, 10, hc);
+        b.r(ux + 5, hy + 4, 2, 6, hc);
+        break;
+      case 'twin':
+        b.r(ux - 9, hy + 3, 3, 9, hc);
+        b.r(ux + 6, hy + 3, 3, 8, hc);
+        b.px(ux - 8, hy + 3, look.trim);
+        b.px(ux + 7, hy + 3, look.trim);
+        break;
+      case 'pony': {
+        const sw = Math.round((q ? q.step : 0) * 1.5);
+        b.r(ux - 8, hy + 1, 3, 3, hc);
+        b.px(ux - 8, hy + 2, look.trim);
+        b.r(ux - 10 + sw, hy + 4, 3, 9, hc);
+        break;
+      }
+      case 'spiky':
+        b.r(ux - 5, hy - 2, 2, 2, hc);
+        b.r(ux - 2, hy - 3, 2, 3, hc);
+        b.r(ux + 1, hy - 3, 2, 3, hc);
+        b.r(ux + 4, hy - 2, 2, 2, hc);
+        break;
+      case 'curly':
+        b.disc(ux - 3, hy, 3, hc);
+        b.disc(ux + 2, hy - 1, 3, hc);
+        b.r(ux - 8, hy + 2, 3, 5, hc);
+        break;
+      default:
+        break;
+    }
   }
 
   function drawHat(b, look, ux, uy) {
@@ -169,6 +212,69 @@
       case 'visor':
         b.r(ux - 6, hy, 12, 2, look.trim);
         b.r(ux + 3, hy + 2, 8, 2, look.trim);
+        break;
+      case 'strawhat':
+        b.r(ux - 9, hy + 1, 18, 2, '#e0c070');
+        b.r(ux - 5, hy - 3, 10, 5, '#e0c070');
+        b.r(ux - 5, hy, 10, 1, '#8a5a34');
+        b.r(ux - 7, hy + 3, 2, 4, look.hair);
+        break;
+      case 'tophat':
+        b.r(ux - 4, hy - 6, 8, 7, '#1c1a22');
+        b.r(ux - 7, hy, 14, 2, '#1c1a22');
+        b.r(ux - 4, hy - 1, 8, 1, '#c25a5a');
+        b.r(ux - 7, hy + 3, 2, 4, look.hair);
+        break;
+      case 'fedora':
+        b.r(ux - 8, hy + 1, 16, 2, look.trim);
+        b.r(ux - 5, hy - 3, 10, 5, look.trim);
+        b.r(ux - 5, hy, 10, 1, '#14121a');
+        b.r(ux - 7, hy + 3, 2, 4, look.hair);
+        break;
+      case 'beanie':
+        b.r(ux - 6, hy - 1, 12, 5, look.trim);
+        b.r(ux - 6, hy + 3, 12, 2, look.top);
+        b.r(ux - 1, hy - 3, 3, 2, look.trim);
+        b.r(ux - 7, hy + 4, 2, 3, look.hair);
+        break;
+      case 'helmet':
+        b.r(ux - 7, hy - 2, 14, 7, look.trim);
+        b.r(ux - 1, hy - 2, 2, 7, '#efe9dc');
+        b.r(ux + 4, hy + 4, 4, 2, look.trim);
+        b.r(ux - 7, hy + 5, 2, 3, look.hair);
+        break;
+      case 'fenceup':
+        b.r(ux - 6, hy - 3, 12, 5, '#cfd5dc');
+        for (let k = 0; k < 6; k++) b.px(ux - 5 + k * 2, hy - 1, '#8a929c');
+        b.r(ux - 6, hy + 2, 12, 1, '#8a929c');
+        break;
+      case 'crown':
+        b.r(ux - 5, hy - 2, 10, 3, '#f2d450');
+        b.r(ux - 5, hy - 4, 2, 2, '#f2d450');
+        b.r(ux - 1, hy - 5, 2, 3, '#f2d450');
+        b.r(ux + 3, hy - 4, 2, 2, '#f2d450');
+        b.px(ux, hy - 1, '#d9483b');
+        break;
+      case 'cheerbow':
+        b.r(ux - 5, hy - 4, 4, 4, look.trim);
+        b.r(ux + 1, hy - 4, 4, 4, look.trim);
+        b.r(ux - 1, hy - 3, 2, 2, look.top);
+        break;
+      case 'earmuffs':
+        b.r(ux - 6, hy - 1, 12, 1, '#3a3f4b');
+        b.r(ux - 8, hy + 3, 3, 6, look.trim);
+        b.r(ux + 5, hy + 3, 3, 6, look.trim);
+        break;
+      case 'bandana':
+        b.r(ux - 6, hy, 12, 4, look.trim);
+        b.r(ux - 9, hy + 3, 4, 3, look.trim);
+        b.px(ux - 3, hy + 1, look.top);
+        b.px(ux + 1, hy + 2, look.top);
+        break;
+      case 'ribbon':
+        b.r(ux - 6, hy + 3, 12, 1, look.trim);
+        b.r(ux - 9, hy + 1, 3, 3, look.trim);
+        b.px(ux - 8, hy + 2, look.top);
         break;
       default:
         if (look.prop === 'band') {
@@ -354,9 +460,306 @@
         b.r(hx, hy - 4, 1, 3, '#f2d450');
         b.r(hx - 2, hy - 1, 5, 2, '#c9a24a');
         break;
+      case 'trowel': {
+        const [ex, ey] = along(5);
+        b.line(hx, hy, ex, ey, '#8a5a34', 2);
+        const [tx, ty] = along(11);
+        b.line(ex, ey, tx, ty, '#b9c1c9', 3);
+        break;
+      }
+      case 'racket': {
+        const [ex, ey] = along(6);
+        b.line(hx, hy, ex, ey, '#8a5a34', 2);
+        const [cx, cy] = along(10);
+        b.disc(cx, cy, 3, '#d9483b');
+        b.px(cx, cy, '#efe9dc');
+        b.px(cx - 1, cy, '#efe9dc');
+        break;
+      }
+      case 'camera':
+        b.r(hx - 3, hy - 6, 8, 6, '#4a4f5b');
+        b.r(hx - 1, hy - 5, 4, 4, '#9ed8e8');
+        b.r(hx - 3, hy - 7, 3, 1, '#d9483b');
+        b.px(hx + 3, hy - 7, '#f4efb4');
+        break;
+      case 'pompom':
+        b.disc(hx, hy - 4, 3, look.trim);
+        b.px(hx - 3, hy - 6, look.top);
+        b.px(hx + 3, hy - 3, look.top);
+        b.px(hx - 1, hy - 8, look.trim);
+        b.px(hx + 1, hy - 1, look.top);
+        break;
+      case 'foil': {
+        const [ex, ey] = along(19);
+        b.line(hx, hy, ex, ey, '#d8dee5', 1);
+        b.r(hx - 1, hy - 1, 3, 3, '#8a5a34');
+        b.px(ex, ey, '#ffffff');
+        break;
+      }
+      case 'telescope': {
+        const [ex, ey] = along(13);
+        b.line(hx, hy, ex, ey, '#8a5a34', 3);
+        const [mx, my] = along(7);
+        b.r(mx - 1, my - 1, 3, 3, '#c9a24a');
+        b.disc(ex, ey, 2, '#9ed8e8');
+        break;
+      }
+      case 'mask':
+        b.r(hx - 3, hy - 9, 7, 8, '#f6f3ea');
+        b.px(hx - 1, hy - 7, '#14121a');
+        b.px(hx + 2, hy - 7, '#14121a');
+        b.r(hx - 1, hy - 4, 3, 1, '#c25a5a');
+        b.px(hx - 3, hy - 9, '#d9483b');
+        break;
+      case 'hammer': {
+        const [ex, ey] = along(10);
+        b.line(hx, hy, ex, ey, '#8a5a34', 2);
+        b.r(ex - 3, ey - 3, 7, 6, '#b9a06a');
+        b.r(ex - 3, ey - 3, 7, 1, '#d9c488');
+        break;
+      }
+      case 'rifle': {
+        const [ex, ey] = along(17);
+        b.line(hx, hy, ex, ey, '#3a3f4b', 2);
+        b.r(hx - 2, hy - 1, 5, 3, '#8a5a34');
+        b.px(ex, ey, '#6a6f7b');
+        break;
+      }
+      case 'sketch':
+        b.r(hx - 3, hy - 9, 8, 10, '#efe9dc');
+        b.r(hx - 3, hy - 9, 1, 10, '#7a2e26');
+        b.r(hx - 1, hy - 7, 5, 4, '#6fcf8f');
+        b.px(hx + 1, hy - 5, '#d9483b');
+        b.px(hx, hy - 1, '#14121a');
+        break;
+      case 'cards':
+        b.r(hx - 4, hy - 8, 4, 7, '#f6f3ea');
+        b.r(hx - 2, hy - 9, 4, 7, '#f6f3ea');
+        b.r(hx, hy - 8, 4, 7, '#f6f3ea');
+        b.px(hx - 2, hy - 6, '#d9483b');
+        b.px(hx, hy - 7, '#14121a');
+        b.px(hx + 2, hy - 5, '#d9483b');
+        break;
+      case 'baton': {
+        const [ex, ey] = along(12);
+        b.line(hx, hy, ex, ey, '#efe9dc', 1);
+        b.r(hx - 1, hy - 1, 3, 3, '#8a5a34');
+        break;
+      }
+      case 'compass': {
+        const [ex, ey] = along(13);
+        b.line(hx, hy, ex, ey, '#9aa3ad', 1);
+        const c = Math.cos(0.45);
+        const sn = Math.sin(0.45);
+        const [fx, fy] = [Math.round(hx + (dx * c - dy * sn) * 13), Math.round(hy + (dx * sn + dy * c) * 13)];
+        b.line(hx, hy, fx, fy, '#9aa3ad', 1);
+        b.r(hx - 1, hy - 2, 3, 3, '#e0b62c');
+        break;
+      }
+      case 'bookstack':
+        b.r(hx - 3, hy - 3, 8, 3, '#b5483c');
+        b.r(hx - 3, hy - 6, 8, 3, '#4a7bd0');
+        b.r(hx - 2, hy - 2, 6, 1, '#efe9dc');
+        break;
+      case 'magnifier': {
+        const [ex, ey] = along(6);
+        b.line(hx, hy, ex, ey, '#8a5a34', 2);
+        const [cx, cy] = along(11);
+        b.disc(cx, cy, 3, '#c9a24a');
+        b.disc(cx, cy, 2, '#bfe8f0');
+        break;
+      }
+      case 'megaphone': {
+        const [ex, ey] = along(7);
+        b.line(hx, hy, ex, ey, '#d9483b', 3);
+        b.r(ex - 1, ey - 3, 3, 7, '#e8625a');
+        b.px(ex, ey, '#efe9dc');
+        break;
+      }
+      case 'gavel': {
+        const [ex, ey] = along(8);
+        b.line(hx, hy, ex, ey, '#8a5a34', 1);
+        b.r(ex - 3, ey - 2, 7, 4, '#6a4a2a');
+        b.r(ex - 3, ey - 2, 7, 1, '#9a7a4a');
+        break;
+      }
+      case 'guitar': {
+        const [ex, ey] = along(12);
+        b.line(hx, hy, ex, ey, '#8a5a34', 1);
+        b.disc(hx - dx * 2, hy - dy * 2 - 1, 3, '#c0392b');
+        b.px(hx - dx * 2, hy - dy * 2 - 1, '#14121a');
+        b.r(ex - 1, ey - 1, 3, 2, '#3a2a1f');
+        break;
+      }
+      case 'tube':
+        b.r(hx - 3, hy - 9, 7, 2, '#e8625a');
+        b.r(hx - 3, hy - 2, 7, 2, '#e8625a');
+        b.r(hx - 5, hy - 7, 2, 5, '#e8625a');
+        b.r(hx + 3, hy - 7, 2, 5, '#e8625a');
+        b.px(hx, hy - 9, '#efe9dc');
+        b.px(hx, hy - 1, '#efe9dc');
+        break;
+      case 'ribbon': {
+        const [ex, ey] = along(6);
+        b.line(hx, hy, ex, ey, '#e8e4d6', 1);
+        const w = Math.round(q.step * 2);
+        b.r(ex - 1 - dx * 2, ey - 3 + w, 2, 2, '#e5654b');
+        b.r(ex - 4 - dx * 2, ey - 5 + w, 3, 2, '#f2d450');
+        b.r(ex - 7 - dx * 2, ey - 3 - w, 3, 2, '#e5654b');
+        break;
+      }
       default:
         break;
     }
+    if (look.evo && look.prop) {
+      /* 진화한 소품은 끝이 반짝인다 (각성은 두 군데) */
+      const [gx, gy] = along(9);
+      b.spark(gx + (q.i % 2 ? 2 : -1), gy - 2, '#f2d450');
+      if (look.evo >= 2) b.spark(gx - (q.i % 3 ? 2 : -2), gy + 2, '#fff6c8');
+    }
+  }
+
+  /* 복장과 진화 장비. 'name:#색' 으로 색을 바꿀 수 있다. layer 순서: back(몸 뒤) -> torso(몸) -> head(머리) -> front(맨 앞) */
+  const GOLD = '#f2d450';
+  const lighten = (hex, k) => {
+    const n = parseInt(hex.slice(1), 16);
+    const ch = (v) => Math.round(v + (255 - v) * k).toString(16).padStart(2, '0');
+    return `#${ch((n >> 16) & 255)}${ch((n >> 8) & 255)}${ch(n & 255)}`;
+  };
+  const darken = (hex, k) => {
+    const n = parseInt(hex.slice(1), 16);
+    const ch = (v) => Math.round(v * k).toString(16).padStart(2, '0');
+    return `#${ch((n >> 16) & 255)}${ch((n >> 8) & 255)}${ch(n & 255)}`;
+  };
+  const WEAR = {
+    scarf: { layer: 'back', draw(b, look, ux, uy, q, c) {
+      const sc = c || (look.legend ? GOLD : '#d9483b');
+      b.r(ux - 9, uy - 14, 6, 3, sc);
+      b.r(ux - 12 - Math.round(q.atk * 2) + (q.step < 0 ? 1 : 0), uy - 12 + Math.round(q.step), 4, 2, sc);
+    } },
+    cape: { layer: 'back', draw(b, look, ux, uy, q, c) {
+      const col = c || '#7a2e3a';
+      const sw = Math.round(q.step * 1.5) - Math.round(q.atk * 2);
+      b.r(ux - 8, uy - 14, 5, 5, col);
+      b.r(ux - 10 + sw, uy - 9, 6, 6, col);
+      b.r(ux - 11 + sw * 2, uy - 3, 6, 4, col);
+      b.r(ux - 11 + sw * 2, uy, 6, 1, GOLD);
+    } },
+    wings: { layer: 'back', draw(b, look, ux, uy, q, c) {
+      const col = c || '#e8eef2';
+      const f = q.i % 2;
+      b.r(ux - 10, uy - 19 + f, 3, 4, col);
+      b.r(ux - 13, uy - 16 + f, 4, 4, col);
+      b.r(ux - 15, uy - 12 + f, 4, 3, col);
+      b.r(ux - 9, uy - 15, 3, 5, col);
+    } },
+    bulk: { layer: 'torso', first: true, draw(b, look, ux, uy) {
+      b.r(ux - 6, uy - 14, 12, 8, look.top);
+      b.r(CX - 6, BY - 8, 12, 3, look.pants);
+    } },
+    epaulette: { layer: 'torso', draw(b, look, ux, uy, q, c) {
+      const col = c || '#e6c24a';
+      b.r(ux - 5, uy - 14, 2, 2, col);
+      b.r(ux + 3, uy - 14, 2, 2, col);
+      b.r(ux - 3, uy - 13, 6, 1, col);
+    } },
+    epaulette2: { layer: 'torso', draw(b, look, ux, uy, q, c) {
+      const col = c || GOLD;
+      b.r(ux - 6, uy - 15, 3, 3, col);
+      b.r(ux + 3, uy - 15, 3, 3, col);
+      b.r(ux - 1, uy - 11, 2, 2, col);
+    } },
+    sash: { layer: 'torso', draw(b, look, ux, uy, q, c) {
+      b.line(ux - 3, uy - 14, ux + 3, uy - 8, c || '#d9483b', 2);
+      b.px(ux + 2, uy - 8, GOLD);
+    } },
+    medal: { layer: 'torso', draw(b, look, ux, uy, q, c) {
+      b.px(ux + 1, uy - 13, c || '#d9483b');
+      b.r(ux + 1, uy - 12, 2, 2, GOLD);
+    } },
+    plate: { layer: 'torso', draw(b, look, ux, uy, q, c) {
+      const col = c || '#aab4c0';
+      b.r(ux - 3, uy - 13, 6, 4, col);
+      b.r(ux - 6, uy - 15, 3, 3, col);
+      b.r(ux + 3, uy - 15, 3, 3, col);
+      b.px(ux, uy - 11, '#e6c24a');
+    } },
+    belt: { layer: 'torso', draw(b, look, ux, uy, q, c) {
+      b.r(ux - 4, uy - 8, 8, 2, c || '#14121a');
+      b.r(ux, uy - 8, 2, 2, '#e6c24a');
+    } },
+    apron: { layer: 'torso', draw(b, look, ux, uy, q, c) {
+      const col = c || '#efe9dc';
+      b.r(ux - 3, uy - 12, 6, 6, col);
+      b.r(ux - 3, uy - 14, 1, 2, col);
+      b.r(ux + 2, uy - 14, 1, 2, col);
+    } },
+    vest: { layer: 'torso', draw(b, look, ux, uy, q, c) {
+      const col = c || '#3a3f4b';
+      b.r(ux - 4, uy - 14, 2, 8, col);
+      b.r(ux + 2, uy - 14, 2, 8, col);
+    } },
+    tie: { layer: 'torso', draw(b, look, ux, uy, q, c) {
+      const col = c || '#b23b32';
+      b.r(ux, uy - 14, 2, 2, col);
+      b.r(ux, uy - 12, 2, 4, col);
+    } },
+    coat: { layer: 'torso', draw(b, look, ux, uy, q, c) {
+      const col = c || '#efe9dc';
+      b.r(ux - 5, uy - 14, 2, 13, col);
+      b.r(ux + 3, uy - 14, 2, 12, col);
+      b.r(ux - 5, uy - 2, 10, 1, col);
+    } },
+    stripe: { layer: 'torso', draw(b, look, ux, uy, q, c) {
+      const col = c || '#efe9dc';
+      b.r(ux - 4, uy - 11, 8, 1, col);
+      b.r(ux - 4, uy - 9, 8, 1, col);
+    } },
+    skirt: { layer: 'torso', draw(b, look, ux, uy, q, c) {
+      const col = c || look.pants;
+      b.r(ux - 5, uy - 8, 10, 4, col);
+      const sh = darken(col, 0.7);
+      b.r(ux - 3, uy - 7, 1, 3, sh);
+      b.r(ux, uy - 7, 1, 3, sh);
+      b.r(ux + 3, uy - 7, 1, 3, sh);
+    } },
+    armband: { layer: 'torso', draw(b, look, ux, uy, q, c) {
+      b.r(ux + 3, uy - 12, 2, 2, c || '#d9483b');
+    } },
+    laurel: { layer: 'head', draw(b, look, ux, uy, q, c) {
+      const col = c || '#e6c24a';
+      const hy = uy - 25;
+      b.r(ux - 6, hy, 12, 1, col);
+      b.px(ux - 5, hy - 1, col);
+      b.px(ux - 1, hy - 1, col);
+      b.px(ux + 3, hy - 1, col);
+    } },
+    halo: { layer: 'head', draw(b, look, ux, uy, q, c) {
+      const col = c || (q.i % 2 ? '#fff6c8' : GOLD);
+      const hy = uy - 31;
+      for (let dx = -3; dx <= 3; dx++) b.spark(ux + dx, hy + (Math.abs(dx) >= 3 ? 1 : 0), col);
+      b.spark(ux - 4, hy + 2, col);
+      b.spark(ux + 4, hy + 2, col);
+    } },
+    aura: { layer: 'front', draw(b, look, ux, uy, q, c) {
+      const spots = [[-10, -28], [10, -25], [9, -12], [-10, -14], [0, -31], [12, -18], [-12, -22], [6, -30]];
+      const n = look.evo >= 2 ? 4 : 3;
+      for (let k = 0; k < n; k++) {
+        const [sx, sy] = spots[(q.i + k * 2) % spots.length];
+        b.spark(ux + sx, uy + sy + 2, c || GOLD);
+      }
+    } },
+  };
+
+  function drawWear(b, look, items, layer, ux, uy, q) {
+    const list = items
+      .map((raw) => {
+        const [name, color] = raw.split(':');
+        return { def: WEAR[name], color };
+      })
+      .filter((it) => it.def && it.def.layer === layer)
+      .sort((a, c) => (c.def.first ? 1 : 0) - (a.def.first ? 1 : 0));
+    for (const it of list) it.def.draw(b, look, ux, uy, q, it.color);
   }
 
   function drawStudent(look, q) {
@@ -374,12 +777,10 @@
     b.line(ux - 4, uy - 12, handB[0], handB[1], look.top, 2);
     b.r(handB[0] - 1, handB[1] - 1, 3, 3, skin);
 
-    if (evo) {
-      const sc = look.legend ? '#f2d450' : '#d9483b';
-      const flutter = Math.round(q.step);
-      b.r(ux - 9, uy - 14, 6, 3, sc);
-      b.r(ux - 12 - Math.round(q.atk * 2) + (q.step < 0 ? 1 : 0), uy - 12 + flutter, 4, 2, sc);
-    }
+    const gear = look.gear || (evo >= 2 ? ['scarf', 'epaulette', 'epaulette2'] : evo ? ['scarf', 'epaulette'] : []);
+    const items = [...(look.wear || []), ...gear];
+    if ((look.legend || evo >= 2) && !items.some((i) => i.startsWith('aura'))) items.push('aura');
+    drawWear(b, look, items, 'back', ux, uy, q);
 
     for (const [lx, [ldx, ldy]] of [[CX - 4, q.l], [CX + 1, q.r]]) {
       b.r(lx + ldx, BY - 6 + ldy, 3, 4, look.pants);
@@ -389,23 +790,14 @@
 
     b.r(ux - 4, uy - 14, 8, 8, look.top);
     b.r(ux - 3, uy - 14, 6, 2, look.trim);
-    if (evo) {
-      b.r(ux - 5, uy - 14, 2, 2, '#e6c24a');
-      b.r(ux + 3, uy - 14, 2, 2, '#e6c24a');
-      b.r(ux - 3, uy - 13, 6, 1, '#e6c24a');
-    }
-    if (evo >= 2) {
-      b.r(ux - 6, uy - 15, 3, 3, '#f2d450');
-      b.r(ux + 3, uy - 15, 3, 3, '#f2d450');
-      b.r(ux - 1, uy - 11, 2, 2, '#f2d450');
-    }
+    drawWear(b, look, items, 'torso', ux, uy, q);
     if (look.hat === 'chef') b.r(ux - 4, uy - 10, 8, 4, '#f6f3ea');
     if (look.top === '#b23b32') b.r(ux - 4, uy - 10, 8, 1, look.trim);
     b.r(ux - 4, uy - 7, 8, 1, '#1f1d24');
 
     b.r(ux - 6, uy - 25, 12, 11, skin);
     b.r(ux - 6, uy - 17, 12, 2, look.skinShade || SKIN_SHADE);
-    drawHair(b, look, ux, uy);
+    drawHair(b, look, ux, uy, q);
     const eye = look.eyes || '#1b1820';
     if (look.face === 'glasses') {
       b.r(ux - 2, uy - 20, 3, 4, '#bfe3f2');
@@ -426,7 +818,21 @@
     if (q.atk > 0.5 || q.hurt) b.r(ux + 1, uy - 16, 3, 2, '#7a2e26');
     else b.px(ux + 2, uy - 16, '#a9604f');
     if (look.face === 'mask') b.r(ux - 2, uy - 17, 8, 3, '#efe9dc');
+    if (look.face === 'mustache') b.r(ux, uy - 17, 6, 1, look.hair);
+    if (look.face === 'eyepatch') {
+      b.r(ux + 2, uy - 20, 3, 3, '#14121a');
+      b.r(ux - 6, uy - 21, 10, 1, '#14121a');
+    }
+    if (look.face === 'blush') {
+      b.r(ux - 5, uy - 17, 2, 1, '#e8826a');
+      b.r(ux + 3, uy - 17, 2, 1, '#e8826a');
+    }
+    if (look.face === 'bandage') {
+      b.r(ux + 3, uy - 17, 3, 2, '#efe9dc');
+      b.px(ux + 4, uy - 17, '#d9483b');
+    }
     drawHat(b, look, ux, uy);
+    drawWear(b, look, items, 'head', ux, uy, q);
     if (look.prop === 'whistle') {
       b.r(ux + 4, uy - 17, 3, 2, '#d6dade');
       b.px(ux + 3, uy - 15, '#d6dade');
@@ -434,9 +840,10 @@
 
     if (hasBag) {
       const gx = ux + 4 + bagShift;
-      b.r(gx, uy - 19, 8, 14, '#8a5a34');
-      b.r(gx + 1, uy - 17, 6, 4, '#a8703f');
-      b.r(gx + 1, uy - 10, 6, 3, '#6d4526');
+      const bc = look.bagColor || '#8a5a34';
+      b.r(gx, uy - 19, 8, 14, bc);
+      b.r(gx + 1, uy - 17, 6, 4, lighten(bc, 0.2));
+      b.r(gx + 1, uy - 10, 6, 3, darken(bc, 0.78));
       b.r(gx + 3, uy - 12, 2, 2, '#e0b55a');
       b.line(ux - 4, uy - 14, gx, uy - 17, look.top, 1);
     }
@@ -444,14 +851,7 @@
     b.r(handF[0] - 1, handF[1] - 1, 3, 3, skin);
     drawProp(b, look, q, handF[0], handF[1]);
 
-    if (look.legend || evo >= 2) {
-      const spots = [[-10, -28], [10, -25], [9, -12], [-10, -14], [0, -31], [12, -18]];
-      const n = look.legend ? 3 : 2;
-      for (let k = 0; k < n; k++) {
-        const [sx, sy] = spots[(q.i + k * 2) % spots.length];
-        b.spark(ux + sx, uy + sy + 2, '#f2d450');
-      }
-    }
+    drawWear(b, look, items, 'front', ux, uy, q);
     return b.flush();
   }
 

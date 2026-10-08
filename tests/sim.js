@@ -1,7 +1,7 @@
 const path = require('path');
 const assert = require('assert');
 const root = path.join(__dirname, '..', 'js');
-['data.js', 'bestiary.js', 'world.js', 'engine.js', 'game.js', 'scenery.js'].forEach((f) => require(path.join(root, f)));
+['data.js', 'units2.js', 'evolutions.js', 'bestiary.js', 'world.js', 'engine.js', 'game.js', 'scenery.js'].forEach((f) => require(path.join(root, f)));
 const YG = globalThis.YG;
 
 function seeded(seed) {
@@ -69,7 +69,7 @@ function testEvolution() {
   assert.strictEqual(s.owned.bat.evo, 2);
   const evo2 = YG.ownedDef(s, 'bat');
   assert.strictEqual(evo2.hp, Math.round(bat.hp * 2.4));
-  assert.strictEqual(evo2.name, '각성 4번 타자');
+  assert.strictEqual(evo2.name, '레전드 슬러거');
   assert(!YG.evolve(s, 'bat'), '3차는 없다');
   console.log('evolution ok');
 }
@@ -110,7 +110,7 @@ function testGacha() {
   const legendTotal = Object.values(feat).reduce((a, b) => a + b, 0);
   console.log(`한정  만점 ${((lc[0] / N) * 100).toFixed(2)}%  1등급 ${((lc[1] / N) * 100).toFixed(2)}%  픽업 ${lim.featured} ${feat[lim.featured]}/${legendTotal}`);
   assert(lc[0] / N > 0.01, '한정 뽑기 전설 확률은 1% 이상 (천장 포함)');
-  assert.strictEqual(Object.keys(feat).length, 4, '전설 4종이 모두 나온다');
+  assert.strictEqual(Object.keys(feat).length, YG.UNITS.filter((u) => u.grade === 0).length, '전설이 모두 나온다');
   const share = feat[lim.featured] / legendTotal;
   assert(share > 0.66 && share < 0.74, '픽업 비율 70%');
 
@@ -156,7 +156,7 @@ function testGacha() {
 function testRoster() {
   const by = {};
   for (const u of YG.UNITS) (by[u.grade] = by[u.grade] || []).push(u);
-  assert.deepStrictEqual([4, 3, 2, 1, 0].map((g) => by[g].length), [8, 10, 8, 5, 4], '등급별 유닛 수');
+  assert.deepStrictEqual([4, 3, 2, 1, 0].map((g) => by[g].length), [13, 17, 14, 9, 6], '등급별 유닛 수');
   const ids = new Set(YG.UNITS.map((u) => u.id));
   assert.strictEqual(ids.size, YG.UNITS.length, 'id 중복 없음');
   for (const u of YG.UNITS) {
@@ -164,7 +164,7 @@ function testRoster() {
     assert(u.look && u.look.top && u.look.pants, `${u.id} 외형`);
     assert(u.hp > 0 && u.atk > 0 && u.cost > 0 && u.cooldown > 0, `${u.id} 스탯`);
     for (const a of u.abilities) assert(YG.TRAITS[a.vs], `${u.id} 특성 ${a.vs}`);
-    if (u.ranged) assert(['salt', 'beam', 'book', 'wave', 'beaker', 'exam', 'note', 'laser', 'chalk', 'ball', 'arrow', 'foam', 'bolt'].includes(u.ranged), `${u.id} 투사체 ${u.ranged}`);
+    if (u.ranged) assert(['salt', 'beam', 'book', 'wave', 'beaker', 'exam', 'note', 'laser', 'chalk', 'ball', 'arrow', 'foam', 'bolt', 'shuttle', 'flash', 'star', 'pellet', 'card', 'ink', 'water'].includes(u.ranged), `${u.id} 투사체 ${u.ranged}`);
     assert.strictEqual(u.grade === 0, !!u.limited, `${u.id} 전설만 한정`);
   }
   for (const trait of ['ghost', 'specimen', 'dark', 'metal']) {
@@ -174,13 +174,13 @@ function testRoster() {
     }
   }
   const s = YG.newSave();
-  for (const [id, unit] of [[2, 'cleaner'], [4, 'basket'], [6, 'pingpong'], [9, 'calli']]) {
+  for (const [id, unit] of [[2, 'cleaner'], [4, 'basket'], [6, 'pingpong'], [9, 'calli'], [11, 'shuttle'], [15, 'garden'], [19, 'photo'], [25, 'soccer'], [29, 'cheer']]) {
     const r = YG.applyReward(s, YG.STAGES[id - 1]);
     assert.strictEqual(r.unit, unit, `${id}번 스테이지 첫 클리어 보상`);
     assert(s.owned[unit]);
     assert.strictEqual(YG.applyReward(s, YG.STAGES[id - 1]).unit, null, '재클리어는 중복 지급 없음');
   }
-  console.log('roster ok (유닛 35종)');
+  console.log(`roster ok (유닛 ${YG.UNITS.length}종)`);
 }
 
 function testWorld() {

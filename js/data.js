@@ -535,12 +535,12 @@
     evoCache[key] = {
       ...def,
       name: second ? e.name2 || `각성 ${e.name}` : e.name,
-      blurb: e.blurb || def.blurb,
+      blurb: (second && e.blurb2) || e.blurb || def.blurb,
       hp: Math.round(def.hp * (second ? 2.4 : 1.6)),
       atk: Math.round(def.atk * (second ? 2.1 : 1.5)),
       cooldown: Math.round(def.cooldown * (second ? 0.8 : 0.9)),
       abilities,
-      look: { ...def.look, evo: lvl },
+      look: { ...def.look, ...((e.look || [])[0] || {}), ...(second ? (e.look || [])[1] || {} : {}), evo: lvl },
       spriteKey: `${def.id}:e${lvl}`,
       evolved: lvl,
     };
@@ -562,6 +562,9 @@
     if (def.area) out.push({ trait: null, text: '범위 공격' });
     if (def.freeze) out.push({ trait: null, text: `${Math.round(def.freeze.chance * 100)}% 확률로 정지` });
     if (def.slow) out.push({ trait: null, text: `${Math.round(def.slow.chance * 100)}% 확률로 둔화` });
+    if (def.crit) out.push({ trait: null, text: `${Math.round(def.crit * 100)}% 확률로 치명타 (2배)` });
+    if (def.survive) out.push({ trait: null, text: `${Math.round(def.survive * 100)}% 확률로 한 번 버틴다` });
+    if (def.loot) out.push({ trait: null, text: `처치 용돈 ×${def.loot}` });
     return out;
   };
 

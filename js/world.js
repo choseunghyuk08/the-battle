@@ -141,6 +141,7 @@
   }
 
   YG.STAGES[8].unlock = 'calli';
+  for (const [id, unit] of Object.entries(YG.EXTRA_UNLOCKS || {})) YG.STAGES[id - 1].unlock = unit;
 
   YG.regenStage = (id) => {
     const st = YG.STAGES[id - 1];
