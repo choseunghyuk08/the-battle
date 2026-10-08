@@ -182,6 +182,7 @@
         /* 크기 점검이 쓰는 값: 화면 px 로 환산한 가로, 세로 */
         out.nat = { w: out.width / K, h: out.height / K, x0: 0, y0: 0 };
         out.hd = true;
+        out.parts = sparks.length + layers.reduce((n, l) => n + l.parts.length, 0);
         return out;
       },
     };

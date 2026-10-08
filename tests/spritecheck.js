@@ -37,7 +37,8 @@ function checkSprites(ids) {
           problems.push({ id: def.id, frame: key, why: `예외 ${e.message}` });
           continue;
         }
-        if (img.rects < 6) problems.push({ id: def.id, frame: key, why: `거의 비어 있음 (${img.rects}칸)` });
+        const drawn = Math.max(img.rects, img.parts || 0); /* HD 그림은 덩어리마다 따로 칠해서 parts 로 센다 */
+        if (drawn < 6) problems.push({ id: def.id, frame: key, why: `거의 비어 있음 (${drawn}칸)` });
         if (!(img.width > 0 && img.height > 0)) problems.push({ id: def.id, frame: key, why: '크기가 0' });
         if (!(Number.isFinite(img.ax) && Number.isFinite(img.ay))) problems.push({ id: def.id, frame: key, why: '기준점이 숫자가 아님' });
         if (img.width / K > 220 || img.height / K > 200) problems.push({ id: def.id, frame: key, why: `너무 큼 ${img.width / K}x${img.height / K}` });
