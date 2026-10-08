@@ -224,9 +224,12 @@
     return YG.CHAPTERS.filter((c) => YG.chapterStages(c.id).every((s) => save.cleared[s.id])).length;
   }
 
-  /* 해외편 장 (51장~). 해외편이 없으면 빈 목록이라 업적도 나오지 않는다 */
-  const overseasChapters = () => YG.CHAPTERS.filter((c) => c.region && c.region !== '국내');
-  const abroadChapters = (save) => overseasChapters().filter((c) => YG.chapterStages(c.id).every((s) => save.cleared[s.id])).length;
+  /* 해외편 장 (51~70장)과 재단편 장 (71장~). 편이 없으면 빈 목록이라 업적도 나오지 않는다 */
+  const overseasChapters = () => YG.CHAPTERS.filter((c) => c.region && c.region !== '국내' && c.region !== '재단');
+  const foundationChapters = () => YG.CHAPTERS.filter((c) => c.region === '재단');
+  const clearedOf = (list, save) => list.filter((c) => YG.chapterStages(c.id).every((s) => save.cleared[s.id])).length;
+  const abroadChapters = (save) => clearedOf(overseasChapters(), save);
+  const foundationDone = (save) => clearedOf(foundationChapters(), save);
   const brokenCap = (save) => !!save.cleared[YG.PROG.breakStage];
 
   function statValue(save, key) {
@@ -260,6 +263,11 @@
     stat('chapters', 'clear', '장 돌파', 'chaptersCleared', () => [1, 5, 15, 35, YG.CHAPTERS.length], (n) => `${n}개 장을 끝까지 클리어`),
     stat('firsts', 'clear', '새 교실 탐험', 'firstClears', () => [10, 40, 100, 200, YG.STAGES.length], (n) => `서로 다른 스테이지 ${n}개 클리어`),
     derived('abroad', 'clear', '월드 투어', abroadChapters, () => within([1, 4, 8, 14, overseasChapters().length], overseasChapters().length), (n) => `해외 ${n}개 장을 끝까지 클리어`, 1.2),
+    /* 재단편이 열린 뒤(해외 마지막 스테이지를 깬 뒤)에만 보인다 */
+    {
+      ...derived('foundation', 'clear', '재단 격리 해제', foundationDone, () => within([1, 4, foundationChapters().length], foundationChapters().length), (n) => `재단 ${n}개 장을 끝까지 클리어`, 1.3),
+      show: (save) => !!YG.OVERSEAS && !!save.cleared[YG.OVERSEAS.stages],
+    },
     stat('battles', 'clear', '출전 기록', 'battles', () => [10, 50, 200, 600], (n) => `전투 ${fmt(n)}번 치르기`, 0.6),
     stat('kills', 'combat', '퇴마 전문', 'kills', () => [100, 1000, 5000, 20000, 60000], (n) => `적 ${fmt(n)}마리 처치`),
     stat('bosses', 'combat', '보스 사냥', 'bossKills', () => [3, 20, 60, 150, 300], (n) => `보스 ${fmt(n)}마리 처치`),

@@ -357,6 +357,7 @@
         case 'kill': sfx('kill', e.boss ? 0.5 : ally ? 0.8 : 1); break;
         case 'base': sfx('base'); break;
         case 'boss': sfx('boss'); break;
+        case 'rage': sfx('boss', 0.7); break;
         case 'freeze': sfx('freeze'); break;
         case 'slow': sfx('slow'); break;
         default: break;

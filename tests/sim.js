@@ -1,7 +1,7 @@
 const path = require('path');
 const assert = require('assert');
 const root = path.join(__dirname, '..', 'js');
-['data.js', 'units2.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'world.js', 'world2.js', 'engine.js', 'game.js', 'lore.js', 'lore_world.js', 'dex.js', 'unitdex.js', 'missions.js', 'cutscene.js', 'scenery.js', 'scenery2.js', 'poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js'].forEach((f) => require(path.join(root, f)));
+['data.js', 'units2.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'bestiary3.js', 'world.js', 'world2.js', 'world3.js', 'engine.js', 'game.js', 'lore.js', 'lore_world.js', 'lore_scp.js', 'dex.js', 'unitdex.js', 'missions.js', 'cutscene.js', 'scenery.js', 'scenery2.js', 'scenery3.js', 'poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js', 'sprites4.js'].forEach((f) => require(path.join(root, f)));
 const YG = globalThis.YG;
 
 function seeded(seed) {
@@ -332,8 +332,8 @@ function testBalance() {
 }
 
 function testWorld() {
-  assert.strictEqual(YG.STAGES.length, 7 + 48 * 5 + 20 * 5, '스테이지 347개 (국내 247 + 해외 100)');
-  assert.strictEqual(YG.CHAPTERS.length, 70);
+  assert.strictEqual(YG.STAGES.length, 7 + 48 * 5 + 20 * 5 + 8 * 5, '스테이지 387개 (국내 247 + 해외 100 + 재단 40)');
+  assert.strictEqual(YG.CHAPTERS.length, 78);
   YG.STAGES.forEach((st, i) => {
     assert.strictEqual(st.id, i + 1, 'id는 연속');
     assert(YG.PALETTES[st.theme.split(':')[1]] || !st.theme.includes(':'), `팔레트 ${st.theme}`);
@@ -345,7 +345,7 @@ function testWorld() {
     assert(st.reward.first.coins > 0 && st.reward.first.xp > 0 && st.reward.first.pens > 0);
   });
   const finales = YG.STAGES.filter((s) => s.sub.endsWith('-5') && s.chapter >= 3);
-  assert.strictEqual(finales.length, 68);
+  assert.strictEqual(finales.length, 76);
   assert(finales.every((s) => s.bosses && s.bosses.length >= 1), '장마다 마지막 스테이지는 보스');
   const bossNames = new Set(finales.map((s) => YG.enemyById(s.bosses[0].id).name));
   assert(bossNames.size >= 60, `보스 종류 ${bossNames.size}`);
@@ -360,16 +360,16 @@ function testWorld() {
 function testOverseas() {
   const REGIONS = ['일본', '중국', '동남아', '유럽', '아메리카'];
   const TRAITS = ['ghost', 'specimen', 'dark', 'metal', 'none'];
-  const over = YG.STAGES.slice(YG.DOMESTIC.stages);
+  const over = YG.STAGES.slice(YG.DOMESTIC.stages, YG.OVERSEAS.stages);
   assert.strictEqual(over.length, 100);
-  assert.deepStrictEqual(YG.REGIONS.map((r) => r.id), ['국내', ...REGIONS]);
+  assert.deepStrictEqual(YG.REGIONS.map((r) => r.id), ['국내', ...REGIONS, '재단']);
   assert.strictEqual(over[0].id, 248);
   assert.strictEqual(over[0].chapter, 51);
 
   /* 지역과 장: 지역마다 4장, 장마다 5스테이지, 마지막은 보스 */
   for (const c of YG.CHAPTERS) assert(c.region, `${c.id}장 지역`);
   assert.strictEqual(YG.CHAPTERS.filter((c) => c.region === '국내').length, 50);
-  for (const r of YG.REGIONS.slice(1)) {
+  for (const r of YG.REGIONS.slice(1, 6)) {
     const list = YG.CHAPTERS.filter((c) => c.region === r.id);
     assert.deepStrictEqual(list.map((c) => c.id), [0, 1, 2, 3].map((k) => r.from + k), `${r.id} 4장`);
     const traits = new Set();
@@ -395,7 +395,7 @@ function testOverseas() {
   for (const id of [248, 290, 330, 347]) assert.deepStrictEqual(YG.regenStage(id), YG.STAGES[id - 1], `${id} 재생성`);
 
   /* 새 적: 모두 풀리고, 지역/특성/외형/전설 데이터가 있다 */
-  const fresh = YG.ENEMIES.filter((e) => e.region);
+  const fresh = YG.ENEMIES.filter((e) => e.region && e.region !== '재단');
   const mobs = fresh.filter((e) => !e.boss);
   const bosses = fresh.filter((e) => e.boss);
   assert(mobs.length >= 25 && bosses.length >= 10, `새 적 잡몹 ${mobs.length} 보스 ${bosses.length}`);
@@ -488,8 +488,8 @@ function testOverseas() {
   /* 업적과 임무가 세계 크기를 따라간다 */
   const ach = (save, id) => YG.achievementStatus(save).find((a) => a.id === id);
   const as = YG.newSave();
-  assert.strictEqual(YG.achievementTiers('chapters').slice(-1)[0].goal, 70);
-  assert.strictEqual(YG.achievementTiers('firsts').slice(-1)[0].goal, 347);
+  assert.strictEqual(YG.achievementTiers('chapters').slice(-1)[0].goal, YG.CHAPTERS.length);
+  assert.strictEqual(YG.achievementTiers('firsts').slice(-1)[0].goal, YG.STAGES.length);
   assert.deepStrictEqual(YG.achievementTiers('abroad').map((t) => t.goal), [1, 4, 8, 14, 20]);
   assert(!ach(as, 'maxLv2'), '레벨 상한이 풀리기 전에는 한계 돌파 업적이 안 보인다');
   for (const st of YG.STAGES) if (st.id <= 247) as.cleared[st.id] = true;
@@ -503,6 +503,290 @@ function testOverseas() {
   assert.strictEqual(ach(as, 'abroad').readyCount, 5);
 
   console.log(`overseas ok (적 ${fresh.length}종: 잡몹 ${mobs.length} 보스 ${bosses.length}, 난이도 ${ds[0].toFixed(0)}~${ds[ds.length - 1].toFixed(0)})`);
+}
+
+/* SCP 재단편: 71~78장, 스테이지 348~387 */
+function testScp() {
+  const crypto = require('crypto');
+  const fs = require('fs');
+  const TRAITS = ['ghost', 'specimen', 'dark', 'metal', 'none'];
+  const CLASSES = ['Safe', 'Euclid', 'Keter'];
+  const found = YG.STAGES.slice(YG.OVERSEAS.stages);
+  assert.strictEqual(YG.OVERSEAS.stages, 347);
+  assert.strictEqual(found.length, 40);
+  assert.strictEqual(found[0].id, 348);
+  assert.strictEqual(found[39].id, 387);
+  assert.strictEqual(found[0].chapter, 71);
+
+  /* 앞의 347개와 해외 70장은 한 값도 달라지지 않았다 (이 값은 재단편을 넣기 전 코드에서 구했다) */
+  const sha = (x) => crypto.createHash('sha1').update(JSON.stringify(x)).digest('hex').slice(0, 16);
+  assert.strictEqual(sha(YG.STAGES.slice(0, 347)), '7b43c25d4050845e', '스테이지 1~347 데이터');
+  assert.strictEqual(sha(YG.CHAPTERS.slice(0, 70)), '805aa0c3199a06c4', '장 1~70');
+  assert.strictEqual(sha(YG.ENEMIES.slice(0, 87)), 'f545fedc48e79e1f', '기존 적 87종');
+  assert.strictEqual(sha(Array.from({ length: 70 }, (_, i) => YG.bossIdFor(i + 1))), '20bc0e6fe1421773', '1~70장 보스');
+  assert.strictEqual(sha(Array.from({ length: 347 }, (_, g) => YG.difficulty(g, YG.STAGES[g].chapter))), 'a7307ff986f1a2ee', '1~347 난이도');
+  for (const id of [8, 100, 247, 248, 300, 347]) assert.deepStrictEqual(YG.regenStage(id), YG.STAGES[id - 1], `${id} 재생성`);
+  for (const id of [348, 360, 372, 380, 387]) assert.deepStrictEqual(YG.regenStage(id), YG.STAGES[id - 1], `${id} 재생성`);
+  assert.strictEqual(YG.PROG.breakLv, 70, '레벨 상한은 70 그대로');
+  assert.strictEqual(YG.maxLevel({ cleared: { 247: true } }), 70);
+
+  /* 지역과 장 */
+  const info = YG.regionInfo('재단');
+  assert.deepStrictEqual([info.from, info.to, info.opening], [71, 78, 'SCP 재단 격리구역 열림']);
+  assert.deepStrictEqual(YG.CHAPTERS.map((c) => c.id), Array.from({ length: 78 }, (_, i) => i + 1), '장 번호는 연속');
+  const chapters = YG.CHAPTERS.filter((c) => c.region === '재단');
+  assert.deepStrictEqual(chapters.map((c) => c.id), [71, 72, 73, 74, 75, 76, 77, 78]);
+  for (const c of chapters) assert(c.name.startsWith(`${c.id}장 `) && /[.?]$/.test(c.blurb), `${c.id}장 이름과 한 줄`);
+  const allTraits = new Set();
+  found.forEach((st, i) => {
+    assert.strictEqual(st.id, 348 + i, '스테이지 번호는 연속');
+    assert.strictEqual(st.chapter, 71 + Math.floor(i / 5));
+    assert.strictEqual(st.sub, `${st.chapter}-${(i % 5) + 1}`);
+    assert.strictEqual(!!st.bosses, i % 5 === 4, `${st.sub} 보스는 장의 마지막만`);
+    const [scene, pal] = st.theme.split(':');
+    assert(YG.scenery[scene] && YG.PALETTES[pal], `${st.sub} 배경 ${st.theme}`);
+    for (const w of st.waves) assert(YG.enemyById(w.id).region || YG.enemyById(w.id).boss, `${st.sub} ${w.id}`);
+    for (const t of YG.stageTraits(st)) allTraits.add(t);
+    assert(st.reward.first.coins > 0 && st.reward.first.xp > 0 && st.reward.first.pens > 0 && st.reward.repeat.coins > 0);
+    assert(st.reward.first.coins > st.reward.repeat.coins);
+  });
+  assert.deepStrictEqual([...allTraits].sort(), [...TRAITS].sort(), '재단편에 특성 다섯 가지가 모두 나온다');
+  for (const c of chapters) {
+    const list = YG.chapterStages(c.id);
+    assert.strictEqual(list.length, 5);
+    const traits = new Set();
+    for (const st of list) for (const t of YG.stageTraits(st)) traits.add(t);
+    assert(traits.size >= 3, `${c.id}장 특성 ${[...traits]}`);
+    const fin = list[4];
+    assert.strictEqual(fin.bosses[0].id, YG.bossIdFor(c.id));
+    assert(fin.bosses.every((b) => YG.enemyById(b.id).boss));
+  }
+  assert.strictEqual(YG.bossIdFor(70), 'globeking', '해외 보스 규칙은 그대로');
+  const last = YG.chapterStages(78)[4];
+  assert.deepStrictEqual(last.bosses.map((b) => b.id), ['scp682', 'redactlord'], '마지막은 파충류 다음에 말소된 존재');
+  assert.strictEqual(last.name, '[데이터 말소]');
+  assert.strictEqual(last.theme, 'void:redact');
+  assert(last.bosses[1].atHp < last.bosses[0].atHp);
+  assert.strictEqual(new Set(chapters.map((c) => YG.bossIdFor(c.id))).size, 8, '장마다 보스가 다르다');
+  assert.strictEqual(YG.chapterStages(72)[0].id, 353);
+  assert(YG.isUnlocked({ cleared: { 347: true } }, found[0]), '70-5(347)를 깨면 71장이 열린다');
+  assert(!YG.isUnlocked({ cleared: { 346: true } }, found[0]), '70-5 를 못 깼으면 안 열린다');
+  assert(!YG.isUnlocked({ cleared: { 347: true } }, found[1]), '재단편도 순서대로');
+
+  /* 새 적: 잡몹 14종 이상, 보스 6종 이상 */
+  const fresh = YG.ENEMIES.filter((e) => e.region === '재단');
+  const mobs = fresh.filter((e) => !e.boss);
+  const bosses = fresh.filter((e) => e.boss);
+  assert(mobs.length >= 14 && bosses.length >= 6, `재단 적 잡몹 ${mobs.length} 보스 ${bosses.length}`);
+  assert.strictEqual(fresh.length, YG.ENEMIES.length - 87, '재단 적 외에 새 적이 끼어들지 않았다');
+  assert.strictEqual(new Set(fresh.map((e) => e.id)).size, fresh.length);
+  const KNOWN_PROJ = ['laser', 'beaker', 'ooze', 'data', 'glitch'];
+  const ARCHS = ['human', 'box', 'slime', ...Object.keys(YG.ARCH3), ...Object.keys(YG.ARCH4)];
+  assert(['statue', 'shy', 'predator', 'reptile', 'machine', 'blob', 'redact', 'folk4'].every((a) => YG.ARCH4[a]), 'sprites4 아키타입');
+  const BEHAVIOR = ['watch', 'rage', 'regen'];
+  for (const e of fresh) {
+    assert.strictEqual(YG.enemyById(e.id), e);
+    assert(TRAITS.includes(e.trait), `${e.id} 특성`);
+    assert(e.hp > 0 && e.atk > 0 && e.range > 0 && e.speed > 0 && e.interval > 0 && e.drop > 0 && e.kb > 0, `${e.id} 스탯`);
+    assert(e.anim.hit > 0 && e.anim.total > e.anim.hit, `${e.id} 공격 모션`);
+    assert(typeof e.look === 'object' && ARCHS.includes(e.look.arch), `${e.id} 외형 ${e.look && e.look.arch}`);
+    assert(!e.ranged || KNOWN_PROJ.includes(e.ranged) || YG.PROJ_EXTRA[e.ranged], `${e.id} 투사체 ${e.ranged}`);
+    for (const k of Object.keys(YG.PROJ_EXTRA)) assert.strictEqual(typeof YG.PROJ_EXTRA[k], 'function');
+    assert(e.name && [...e.name].length <= 12, `${e.id} 이름`);
+    /* 도감 데이터: 설정 번호, 등급, 원문 주소 */
+    if (e.scp) {
+      assert(/^SCP-(\d{3,4}(-\d+)?|████)$/.test(e.scp), `${e.id} 번호 ${e.scp}`);
+      if (e.scp.includes('█')) assert(!e.source, `${e.id} 지워진 번호엔 원문이 없다`);
+      else assert.strictEqual(e.source, `https://scp-wiki.wikidot.com/scp-${e.scp.split('-')[1]}`, `${e.id} 원문 주소`);
+    }
+    if (e.source) assert(e.scp && e.cls, `${e.id} 원문이 있으면 번호와 등급도`);
+    if (e.cls) assert(CLASSES.includes(e.cls), `${e.id} 등급 ${e.cls}`);
+    /* 특수 행동이 있는 적만 perk 를 갖는다 */
+    const special = BEHAVIOR.filter((k) => e[k]);
+    assert.strictEqual(!!e.perk, special.length > 0, `${e.id} perk 는 행동이 있을 때만`);
+    if (e.perk) assert(typeof e.perk === 'string' && /[가-힣]/.test(e.perk) && e.perk.length <= 40, `${e.id} perk`);
+    const lore = YG.LORE[e.id];
+    assert(lore && lore.beats.length === 3 && lore.beats.every((b) => [...b].length <= 36) && lore.desc.length >= 20, `${e.id} 도감 이야기`);
+    assert(!/(https?:|wikidot)/.test(lore.desc), `${e.id} 설명에 주소가 없다`);
+    assert(YG.dex.placeOk(lore.place), `${e.id} 배경 ${lore.place}`);
+    for (const v of ['red', 'blue', 'violet', 'gold', 'ink']) {
+      const vv = YG.enemyById(`${e.id}:${v}`);
+      assert(vv.hp > e.hp && vv.tint && vv.scp === e.scp && vv.cls === e.cls && vv.perk === e.perk && vv.source === e.source, `${e.id}:${v}`);
+    }
+    const first = YG.dex.firstStage(e.id);
+    assert(first && first.id > 347, `${e.id} 첫 등장은 재단편`);
+  }
+  const scpDerived = fresh.filter((e) => e.scp && e.source);
+  assert(scpDerived.length >= 12, `SCP 문서에서 가져온 적 ${scpDerived.length}종`);
+  assert(new Set(scpDerived.map((e) => e.cls)).size === 3, 'Safe, Euclid, Keter 모두 나온다');
+  for (const t of TRAITS) assert(mobs.filter((e) => e.trait === t).length >= 2, `${t} 잡몹 2종 이상`);
+  assert.deepStrictEqual(fresh.filter((e) => e.perk).map((e) => e.id).sort(), ['scp096', 'scp173', 'scp682'], '특수 행동은 3종');
+  const sc = require('./spritecheck.js').checkSprites(fresh.map((e) => e.id));
+  assert.strictEqual(sc.problems.length, 0, `스프라이트 문제 ${sc.problems.slice(0, 5).map((p) => `${p.id}/${p.frame}/${p.why}`).join(', ')}`);
+
+  /* 배경: 새 장면과 팔레트가 있고, 몇 프레임 그려도 깨지지 않는다 */
+  const scenes = ['checkpoint', 'vault', 'research', 'cellblock', 'deepcell', 'amnesia', 'control', 'council', 'stairs', 'void'];
+  const pals = ['facility', 'sterile', 'shelf', 'warning', 'server', 'o5', 'concrete', 'redact'];
+  assert(scenes.every((s) => typeof YG.scenery[s] === 'function') && pals.every((p) => YG.PALETTES[p]));
+  const cx = { fillStyle: '#000', globalAlpha: 1, n: 0, fillRect() { this.n++; } };
+  for (const sc2 of scenes) {
+    const pal = YG.PALETTES[found.find((st) => st.theme.startsWith(`${sc2}:`)) ? found.find((st) => st.theme.startsWith(`${sc2}:`)).theme.split(':')[1] : 'concrete'];
+    cx.n = 0;
+    for (const f of [0, 37, 120, 601]) YG.scenery[sc2](cx, pal, f);
+    assert(cx.n > 40, `${sc2} 장면이 그려진다`);
+  }
+  assert(YG.OUTDOOR.has('void'));
+
+  /* 난이도: 해외 마지막 이상에서 이어지고, 보상 공식도 이어진다 */
+  const ds = found.map((st) => YG.difficulty(st.id - 1, st.chapter));
+  const lastOver = YG.difficulty(346, 70);
+  assert(ds.every((d) => d >= YG.difficulty(246, 50)), '재단 난이도는 국내 마지막 이상');
+  assert(ds[0] >= lastOver * 0.8 && ds[0] <= lastOver * 1.4, `재단 첫 난이도 ${ds[0].toFixed(1)} 는 해외 끝(${lastOver.toFixed(1)})에서 이어진다`);
+  const avg = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+  assert(avg(ds.slice(-10)) >= avg(ds.slice(0, 10)) * 0.95, '재단은 뒤로 갈수록 어려워진다 (BIAS 보정 안에서)');
+  const g = 347;
+  const xp = 500 + 3 * Math.pow(g - 6, 1.5);
+  assert.strictEqual(found[0].reward.first.xp, Math.round(xp / 10) * 10, '첫 보상은 국내 공식 그대로');
+  assert.strictEqual(found[0].reward.first.coins, Math.round((150 + g - 6) / 10) * 10);
+
+  /* 업적: 재단편이 열린 뒤에만 보이고 해외 업적은 그대로다 */
+  const by = (save, id) => YG.achievementStatus(save).find((a) => a.id === id);
+  const as = YG.newSave();
+  assert(!by(as, 'foundation'));
+  for (const st of YG.STAGES) if (st.id <= 347) as.cleared[st.id] = true;
+  assert.strictEqual(by(as, 'foundation').value, 0);
+  assert.deepStrictEqual(YG.achievementTiers('foundation').map((t) => t.goal), [1, 4, 8]);
+  assert.strictEqual(by(as, 'abroad').value, 20, '해외 업적은 재단 장을 세지 않는다');
+  for (const st of YG.chapterStages(71)) as.cleared[st.id] = true;
+  assert(by(as, 'foundation').ready && by(as, 'foundation').value === 1);
+  for (const st of YG.STAGES) as.cleared[st.id] = true;
+  assert.strictEqual(by(as, 'foundation').readyCount, 3);
+  assert.strictEqual(by(as, 'abroad').value, 20);
+
+  /* 문서: 크레딧 표에 SCP 항목이 전부 있다 */
+  const credits = fs.readFileSync(path.join(__dirname, '..', 'docs', 'credits.md'), 'utf8');
+  for (const e of scpDerived) assert(credits.includes(`\`${e.id}\``) && credits.includes(e.source), `credits.md 에 ${e.id}`);
+  assert(credits.includes('CC BY-SA 3.0') && credits.includes('https://creativecommons.org/licenses/by-sa/3.0/'));
+  assert(fs.readFileSync(path.join(__dirname, '..', 'README.md'), 'utf8').includes('docs/credits.md'));
+
+  /* 동작 1: watch 는 앞쪽 60 안에 아군이 있으면 움직이지도 공격하지도 않는다 */
+  const arena = () => new YG.Battle({ ...YG.STAGES[2], waves: [], bosses: [] }, [], seeded(4));
+  {
+    const b = arena();
+    const st = b.spawnUnit('enemy', YG.enemyById('scp173'), { mult: 1 });
+    st.x = 200;
+    for (let i = 0; i < 30; i++) b.step();
+    assert(st.x < 200 - 20, '지켜보는 사람이 없으면 달린다');
+    const ally = b.spawnUnit('ally', YG.unitById('basic'), { lv: 1, plus: 0 });
+    ally.freeze = 99999;
+    ally.x = st.x - 50;
+    const x0 = st.x;
+    for (let i = 0; i < 90; i++) b.step();
+    assert.strictEqual(st.x, x0, '앞 60 안에 아군이 있으면 멈춘다');
+    ally.x = st.x - 8;
+    const hp0 = ally.hp;
+    for (let i = 0; i < 180; i++) b.step();
+    assert.strictEqual(ally.hp, hp0, '지켜보는 동안은 공격도 못 한다');
+    ally.x = st.x - 70;
+    for (let i = 0; i < 20; i++) b.step();
+    assert(st.x < x0, '60 밖이면 다시 움직인다');
+    const back = b.spawnUnit('ally', YG.unitById('basic'), { lv: 1, plus: 0 });
+    back.freeze = 99999;
+    back.x = st.x + 20;
+    ally.dying = 1;
+    const x1 = st.x;
+    for (let i = 0; i < 20; i++) b.step();
+    assert(st.x < x1, '등 뒤의 아군과 죽은 아군은 지켜보는 게 아니다');
+    const plain = b.spawnUnit('enemy', YG.enemyById('dust'), { mult: 1 });
+    plain.x = 200;
+    const ally2 = b.spawnUnit('ally', YG.unitById('basic'), { lv: 1, plus: 0 });
+    ally2.freeze = 99999;
+    ally2.x = 170;
+    for (let i = 0; i < 30; i++) b.step();
+    assert(plain.x < 200, 'watch 가 없는 적은 그대로 움직인다');
+    assert(YG.enemyById('scp173:red').watch === 60);
+  }
+
+  /* 동작 2: rage 는 체력이 절반 아래로 내려가면 한 번만, 속도와 공격력과 간격이 바뀐다 */
+  {
+    const b = arena();
+    const e = b.spawnUnit('enemy', YG.enemyById('scp096'), { mult: 1 });
+    e.x = 250;
+    const atk0 = e.atk;
+    b.applyDamage(e, Math.round(e.maxHp * 0.3));
+    assert(!e.raged && e.atk === atk0, '70% 에서는 얌전하다');
+    b.drainEvents();
+    b.applyDamage(e, Math.round(e.maxHp * 0.25));
+    assert(e.raged && e.atk === Math.round(atk0 * 1.8), '45% 에서 분노');
+    assert(b.drainEvents().some((ev) => ev.t === 'rage') && b.fx.some((f) => f.kind === 'boss'));
+    b.applyDamage(e, 1);
+    assert.strictEqual(e.atk, Math.round(atk0 * 1.8), '분노는 한 번만');
+    e.kbVel = 0;
+    e.state = 'move';
+    const xs = e.x;
+    b.step();
+    assert(Math.abs((xs - e.x) - 0.18 * 3.2) < 1e-9, '분노하면 3.2배 빠르다');
+    const ally = b.spawnUnit('ally', YG.unitById('basic'), { lv: 1, plus: 0 });
+    ally.freeze = 99999;
+    ally.x = e.x - 10;
+    e.cd = 0;
+    b.step();
+    assert.strictEqual(e.state, 'atk');
+    assert.strictEqual(e.cd, 60, '공격 간격 100 -> 60');
+    const calm = b.spawnUnit('enemy', YG.enemyById('scp096'), { mult: 1 });
+    calm.x = 282;
+    const cx0 = calm.x;
+    calm.state = 'move';
+    b.step();
+    assert(Math.abs((cx0 - calm.x) - 0.18) < 1e-9, '분노하지 않은 개체는 그대로');
+    const slain = b.spawnUnit('enemy', YG.enemyById('scp096'), { mult: 1 });
+    b.applyDamage(slain, slain.maxHp);
+    assert(!slain.raged && slain.dying, '한 방에 죽으면 분노하지 않는다');
+    const red = b.spawnUnit('enemy', YG.enemyById('scp096:red'), { mult: 1 });
+    b.applyDamage(red, Math.round(red.maxHp * 0.6));
+    assert(red.raged, '색 변종도 분노한다');
+    const dust = b.spawnUnit('enemy', YG.enemyById('dust'), { mult: 1 });
+    b.applyDamage(dust, Math.round(dust.maxHp * 0.7));
+    assert(!dust.raged, 'rage 가 없는 적은 그대로');
+  }
+
+  /* 동작 3: regen 은 초당 비율만큼 되살아나되 최대치를 넘지 않고, 지나간 넉백 구간이 다시 걸린다 */
+  {
+    const b = arena();
+    const e = b.spawnUnit('enemy', YG.enemyById('scp682'), { mult: 1 });
+    e.x = 250;
+    e.hp = e.maxHp * 0.5;
+    const hp0 = e.hp;
+    for (let i = 0; i < 30; i++) b.step();
+    assert(Math.abs(e.hp - hp0 - e.maxHp * 0.003) < 1e-6, `1초에 0.3% (${(e.hp - hp0) / e.maxHp})`);
+    e.hp = e.maxHp - 1;
+    b.step();
+    assert.strictEqual(e.hp, e.maxHp, '최대치를 넘지 않는다');
+    e.hp = e.maxHp * 0.5 - 1;
+    e.kbIdx = 3;
+    b.step();
+    assert.strictEqual(e.kbIdx, 2, '체력이 오르면 넉백 구간이 다시 걸린다');
+    const dust = b.spawnUnit('enemy', YG.enemyById('dust'), { mult: 1 });
+    dust.hp = dust.maxHp / 2;
+    for (let i = 0; i < 30; i++) b.step();
+    assert.strictEqual(dust.hp, dust.maxHp / 2, 'regen 이 없는 적은 그대로');
+    const dead = b.spawnUnit('enemy', YG.enemyById('scp682'), { mult: 1 });
+    b.kill(dead);
+    b.step();
+    assert.strictEqual(dead.hp, 0, '죽은 적은 되살아나지 않는다');
+  }
+
+  /* 모든 재단 스테이지: 몇 초 돌려 봐도 깨지지 않는다 */
+  const save = YG.newSave();
+  for (const st of found) {
+    const b = new YG.Battle(st, YG.buildDeck(save), seeded(st.id));
+    for (let i = 0; i < 30 * 40; i++) {
+      b.step();
+      if (i === 30 * 20) b.baseHp.enemy = Math.floor(b.baseMax.enemy * 0.25);
+    }
+    for (const u of b.units) assert(Number.isFinite(u.x) && Number.isFinite(u.hp), `${st.sub} 유닛 값`);
+  }
+  console.log(`scp ok (재단 적 ${fresh.length}종: 잡몹 ${mobs.length} 보스 ${bosses.length}, SCP 문서 ${scpDerived.length}종, 난이도 ${ds[0].toFixed(0)}~${ds[ds.length - 1].toFixed(0)})`);
 }
 
 function testProgression() {
@@ -633,6 +917,7 @@ if (require.main === module) {
   testUnitDex();
   testWorld();
   testOverseas();
+  testScp();
   testGacha();
   testProgression();
   testMissions();
