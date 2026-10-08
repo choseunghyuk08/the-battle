@@ -591,40 +591,48 @@
     /* ---------------- 끝없는 계단 ---------------- */
     stairs(ctx, T, f) {
       R(ctx, 0, 30, W, 8, T.top);
-      /* 멀리 있는 계단은 어둡고, 가까울수록 밝다 */
-      for (let layer = 0; layer < 3; layer++) {
-        const k = 0.55 + layer * 0.22;
-        const stepW = 14 + layer * 4;
-        const stepH = 7 + layer * 2;
-        const base = 150 - layer * 6;
-        ctx.fillStyle = shade(T.tile, k);
-        for (let i = 0; i < 24; i++) {
-          const x = -10 + i * stepW;
-          const y = base - (i % 12) * stepH - (layer === 0 ? 30 : 0);
-          if (x > W) break;
-          R(ctx, x, y, stepW, stepH, shade(T.tile, k));
-          R(ctx, x, y, stepW, 1, shade(T.tile, k * 1.3));
-          R(ctx, x, y + stepH - 1, stepW, 1, shade(T.tile, k * 0.7));
-        }
-        /* 난간 */
-        for (let i = 0; i < 12; i++) {
-          const x = i * stepW * 2;
-          R(ctx, x, base - 36 - layer * 2 - (i % 6) * 2, 2, 22, shade('#5a5e66', k));
-        }
+      for (let x = 20; x < W; x += 60) R(ctx, x, 38, 1, 112, shade(T.wall, 0.75));
+      /* 왼쪽: 층계참까지 올라가는 계단 */
+      for (let i = 0; i < 15; i++) {
+        const x = i * 9 - 2;
+        const top = 146 - (i + 1) * 5;
+        R(ctx, x, top, 9, 150 - top, shade(T.tile, i % 2 ? 0.82 : 0.9));
+        R(ctx, x, top, 9, 1, shade(T.tile, 1.5));
+        R(ctx, x, top + 1, 1, 150 - top, shade(T.tile, 0.6));
       }
-      /* 아래로 뻗은 어둠과 두 개의 흰 점 */
-      R(ctx, 170, 40, 130, 110, '#06060a');
-      alpha(ctx, 0.5, () => R(ctx, 170, 40, 130, 20, T.top));
+      /* 층계참 */
+      R(ctx, 133, 71, 62, 5, shade(T.tile, 1.35));
+      R(ctx, 133, 76, 62, 74, shade(T.tile, 0.55));
+      for (let y = 82; y < 150; y += 12) R(ctx, 133, y, 62, 1, shade(T.tile, 0.45));
+      /* 아래로 내려가는 계단: 갈수록 어두워진다 */
+      for (let j = 0; j < 10; j++) {
+        const x = 195 + j * 10;
+        const top = 76 + j * 6;
+        const k = Math.max(0.12, 0.8 - j * 0.08);
+        R(ctx, x, top, 10, 150 - top, shade(T.tile, k));
+        R(ctx, x, top, 10, 1, shade(T.tile, k * 1.5));
+      }
+      /* 난간: 올라가는 쪽과 내려가는 쪽 */
+      const rail = (x0, y0, x1, y1, c) => {
+        const n = Math.abs(x1 - x0);
+        for (let k = 0; k <= n; k++) R(ctx, x0 + (x1 - x0) * (k / n), y0 + (y1 - y0) * (k / n), 2, 2, c);
+      };
+      rail(0, 118, 133, 47, '#7a7e86');
+      for (let x = 8; x < 133; x += 22) R(ctx, x, 118 - (x * 71) / 133, 1, 22 + (x * 71) / 133 * 0 + 4, '#5a5e66');
+      rail(195, 52, 290, 106, shade('#7a7e86', 0.6));
+      for (let x = 205; x < 290; x += 22) R(ctx, x, 52 + ((x - 195) * 54) / 95, 1, 20, shade('#5a5e66', 0.6));
+      /* 아래 어둠과 두 개의 흰 점 */
+      alpha(ctx, 0.78, () => R(ctx, 232, 96, 62, 54, '#030306'));
       const blink = Math.floor(f / 80) % 6 === 0;
       if (!blink) {
-        disc(ctx, 226, 118, 2, '#e8e8f0');
-        disc(ctx, 236, 118, 2, '#e8e8f0');
+        disc(ctx, 255, 124, 2, '#e8e8f0');
+        disc(ctx, 265, 124, 2, '#e8e8f0');
+        halo(ctx, 260, 124, 12, '#e8e8f0', 0.025);
       }
-      halo(ctx, 231, 118, 14, '#e8e8f0', 0.02);
       /* 깜빡이는 형광등 */
       const on = hash(Math.floor(f / 5)) > 0.2;
-      R(ctx, 70, 38, 30, 3, on ? '#f0f4f8' : '#3a3c42');
-      if (on) halo(ctx, 85, 50, 30, '#f0f4f8', 0.04);
+      R(ctx, 140, 38, 30, 3, on ? '#f0f4f8' : '#3a3c42');
+      if (on) halo(ctx, 155, 52, 34, '#f0f4f8', 0.04);
     },
 
     /* ---------------- 말소된 공간 ---------------- */
@@ -636,15 +644,23 @@
         const w = 18 + Math.floor(hash(i + 3) * 46);
         const y = 14 + Math.floor(hash(i + 40) * 124);
         const x = ((hash(i) * (W + 80) + f * (0.15 + hash(i + 70) * 0.4) * (i % 2 ? 1 : -1)) % (W + 80) + (W + 80)) % (W + 80) - 40;
-        R(ctx, x - 1, y - 1, w + 2, 6, '#2c2c34');
+        R(ctx, x - 1, y - 1, w + 2, 6, i % 2 ? '#5a5a68' : '#3c3c48');
         R(ctx, x, y, w, 4, '#000000');
-        if (i % 3 === 0) glyphs(ctx, x + 2, y + 8, 6, '#3a3a44', i);
+        if (i % 3 === 0) glyphs(ctx, x + 2, y + 8, 6, '#5a5a68', i);
         if (i % 5 === 0) R(ctx, x + w - 6, y, 4, 4, '#c23a3a');
       }
       for (let i = 0; i < 14; i++) {
         const x = Math.floor(hash(i + 90) * W);
         const y = (hash(i + 120) * 150 + f * (0.6 + hash(i + 150))) % 150;
         R(ctx, x, y, 1, 4 + (i % 4) * 3, i % 4 ? '#2a2a32' : '#8a2a2a');
+      }
+      /* 큰 검은 막대 두 개가 천천히 오간다: 지워진 문단 */
+      for (let i = 0; i < 2; i++) {
+        const w = 120 + i * 40;
+        const x = ((f * (0.2 + i * 0.12) + i * 150) % (W + w)) - w;
+        alpha(ctx, 0.9, () => R(ctx, x, 50 + i * 54, w, 14, '#000000'));
+        R(ctx, x, 50 + i * 54, w, 1, '#3c3c48');
+        R(ctx, x, 63 + i * 54, w, 1, '#3c3c48');
       }
       alpha(ctx, 0.06, () => R(ctx, 0, 90, W, 60, '#c23a3a'));
       R(ctx, 0, 149, W, 1, '#e8e8ee');

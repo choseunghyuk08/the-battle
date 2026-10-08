@@ -108,12 +108,12 @@
       look: { arch: 'machine', kind: 'terminal', big: true, body: '#cdc3a4', dark: '#6a6248', screen: '#0c1a10', glow: '#5aff7a' },
     },
     {
-      id: 'scp682', name: '난공불락 파충류', region: '재단', trait: 'specimen', hp: 22000, atk: 140, range: 30, speed: 0.2, interval: 105, anim: { hit: 20, total: 38 }, kb: 6, drop: 700, scale: 2.2,
+      id: 'scp682', name: '난공불락 파충류', region: '재단', trait: 'specimen', hp: 30000, atk: 140, range: 30, speed: 0.2, interval: 105, anim: { hit: 20, total: 38 }, kb: 6, drop: 700, scale: 2.2,
       regen: 0.003, perk: '체력이 초당 0.3%씩 되살아난다', ...scpOf(682, 'Keter'),
       look: { arch: 'reptile', body: '#4a5a3a', belly: '#a8a070', spike: '#2a3a24', eye: '#e8c43a' },
     },
     {
-      id: 'redactlord', name: '[데이터 말소]', region: '재단', trait: 'dark', hp: 20000, atk: 150, range: 60, area: true, speed: 0.17, interval: 100, anim: { hit: 22, total: 40 }, kb: 6, drop: 800, float: true, ranged: 'glitch',
+      id: 'redactlord', name: '[데이터 말소]', region: '재단', trait: 'dark', hp: 30000, atk: 160, range: 60, area: true, speed: 0.17, interval: 100, anim: { hit: 22, total: 40 }, kb: 6, drop: 800, float: true, ranged: 'glitch',
       scp: 'SCP-████', cls: 'Keter',
       look: { arch: 'redact', final: true, ink: '#08080c', stamp: '#c23a3a', outline: '#e8e8ee' },
     },
