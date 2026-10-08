@@ -172,6 +172,7 @@
 
   HD.principal = (h, q) => {
     const c = PR;
+    h.rim(c.edge);
     const s = act(q);
     const t = q.ph * TAU;
     const E = c.edge;
