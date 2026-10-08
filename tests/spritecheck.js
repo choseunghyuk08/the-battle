@@ -6,7 +6,7 @@ const root = path.join(__dirname, '..', 'js');
 /* builder.flush 는 외곽선을 먼저 모두 그리고 색을 나중에 칠한다. 외곽선 단계는 밖으로 나가도 안 보이므로 무시한다. */
 function fakeCanvas(w, h) {
   const grid = new Uint8Array(w * h);
-  const c = { width: w, height: h, grid, oob: 0 };
+  const c = { width: w, height: h, grid, oob: 0, box: [99, 99, -99, -99] };
   let outline = null;
   let filling = false;
   const ctx = {
@@ -17,8 +17,12 @@ function fakeCanvas(w, h) {
       if (!filling) return;
       for (let yy = y; yy < y + rh; yy++) {
         for (let xx = x; xx < x + rw; xx++) {
-          if (xx < 0 || yy < 0 || xx >= w || yy >= h) c.oob++;
-          else grid[yy * w + xx] = 1;
+          if (xx < 0 || yy < 0 || xx >= w || yy >= h) {
+            c.oob++;
+            c.box = [Math.min(c.box[0], xx), Math.min(c.box[1], yy), Math.max(c.box[2], xx), Math.max(c.box[3], yy)];
+          } else {
+            grid[yy * w + xx] = 1;
+          }
         }
       }
     },
@@ -51,7 +55,7 @@ function checkSprites(ids) {
       }
       const filled = img.grid.reduce((a, v) => a + v, 0);
       if (filled < 60) problems.push({ id: def.id, frame: key, why: `거의 비어 있음 (${filled}px)` });
-      if (img.oob > 0) problems.push({ id: def.id, frame: key, why: `캔버스 밖 ${img.oob}px` });
+      if (img.oob > 0) problems.push({ id: def.id, frame: key, why: `캔버스 밖 ${img.oob}px x${img.box[0]}..${img.box[2]} y${img.box[1]}..${img.box[3]}` });
     }
   }
   return { count: defs.length, problems };

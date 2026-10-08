@@ -12,7 +12,7 @@
       look: { arch: 'folk', skin: '#e6dfe4', hair: '#15161a', style: 'bob', top: '#f0ece4', trim: '#27345a', pants: '#5a3a3a', skirt: '#c23a3a', cloth: 'skirt', deco: ['sailor'], shoe: '#e8e4d8', eyes: '#14121a', mouth: '#a14a52' },
     },
     {
-      id: 'kuchisake', name: '입 찢어진 여자', region: '일본', trait: 'dark', role: 'brute',
+      id: 'kuchisake', name: '입 찢어진 여자', region: '일본', trait: 'dark', role: 'brute', over: { hp: 360, atk: 34, speed: 0.4 },
       look: { arch: 'folk', skin: '#e8dcd2', hair: '#14121a', style: 'long', top: '#c9b896', trim: '#e0d2b4', pants: '#3a3430', skirt: '#c9b896', cloth: 'robe', deco: ['coat'], face: 'mask', slit: true, prop: 'scissors', glow: '#e5654b' },
     },
     {
@@ -34,7 +34,7 @@
 
     /* ---- 중국 ---- */
     {
-      id: 'jiangshi', name: '강시', region: '중국', trait: 'specimen', role: 'brute', over: { speed: 0.3 },
+      id: 'jiangshi', name: '강시', region: '중국', trait: 'specimen', role: 'brute', over: { hp: 480, atk: 44, speed: 0.4 },
       look: { arch: 'folk', stance: 'hop', armsOut: true, skin: '#9fb8a8', shade: '#86a090', top: '#2c4a5e', trim: '#e8c94a', pants: '#1c2a36', hat: 'qing', hatColor: '#14121a', talismanFace: true, fangs: 'always', eyes: '#14121a', shoe: '#14121a', deco: ['beads'] },
     },
     {
@@ -42,7 +42,7 @@
       look: { arch: 'folk', stance: 'float', skin: '#e8e0e4', hair: '#14121a', style: 'long', top: '#f0ece4', trim: '#c23a3a', robe: '#e8e4dc', deco: ['sash'], deco1: '#c23a3a', prop: 'lantern', eyes: '#14121a', mouth: '#c23a3a' },
     },
     {
-      id: 'kumiho', name: '구미호', region: '중국', trait: 'dark', role: 'fast', over: { hp: 150 },
+      id: 'kumiho', name: '구미호', region: '중국', trait: 'dark', role: 'fast', over: { hp: 130, atk: 12 },
       look: { arch: 'quad', body: '#e8964a', belly: '#f6e8d0', muzzle: '#f6e8d0', ear: 'long', earIn: '#2a2a2a', tails: 9, tailColor: '#e8964a', tailTip: '#ffffff', tipFire: '#7ad0ff', eye: '#7ad0ff', fang: true },
     },
     {
@@ -50,7 +50,7 @@
       look: { arch: 'wisp', core: '#e8fff0', flame: '#4ae0a0', edge: '#1a8a6a' },
     },
     {
-      id: 'shishi', name: '석사자', region: '중국', trait: 'metal', role: 'tank', over: { hp: 1100, atk: 40, speed: 0.22 },
+      id: 'shishi', name: '석사자', region: '중국', trait: 'metal', role: 'tank', over: { hp: 520, atk: 28, speed: 0.45 },
       look: { arch: 'quad', body: '#6a8aa0', belly: '#8aa8bc', muzzle: '#8aa8bc', mane: '#2f6a6a', maneTip: '#e0b030', size: 1.15, cracks: '#3a4a5a', ear: 'round', eye: '#e0b030', fang: true },
     },
 
@@ -60,11 +60,11 @@
       look: { arch: 'flyhead', skin: '#e8dcd2', hair: '#15161a', gut: '#d9647a', glow: '#9ef0c0' },
     },
     {
-      id: 'manananggal', name: '마나낭갈', region: '동남아', trait: 'dark', role: 'brute', float: true,
+      id: 'manananggal', name: '마나낭갈', region: '동남아', trait: 'dark', role: 'brute', float: true, over: { hp: 360, atk: 32, speed: 0.4 },
       look: { arch: 'folk', stance: 'float', cloth: 'viscera', skin: '#d8c8c0', hair: '#14121a', style: 'long', top: '#6a2a3a', trim: '#8a3a4a', wings: 'bat', wingColor: '#3a2a40', robe: '#6a2a3a', gut: '#d9647a', fangs: 'always', eyes: '#e5304a', glow: '#ff6a6a', bareArms: true, claws: '#e8e2d0' },
     },
     {
-      id: 'pontianak', name: '폰티아낙', region: '동남아', trait: 'ghost', role: 'brute',
+      id: 'pontianak', name: '폰티아낙', region: '동남아', trait: 'ghost', role: 'brute', over: { hp: 380, atk: 38 },
       look: { arch: 'folk', skin: '#dfe4d8', hair: '#14121a', style: 'long', top: '#e8e4d0', trim: '#c9c2a0', pants: '#cfc9b0', skirt: '#e8e4d0', cloth: 'dress', flower: '#f6f0d8', eyes: '#14121a', mouth: '#9a1f2e', fangs: 'always', claws: '#e8e2d0' },
     },
     {
@@ -86,11 +86,11 @@
       look: { arch: 'folk', stance: 'float', skin: '#dfe6ea', hair: '#c8d4e8', style: 'long', top: '#aab8d0', trim: '#c8d4e8', robe: '#aab8d0', eyes: '#2a3a5a', mouth: '#14121a', bareArms: true },
     },
     {
-      id: 'blackshuck', name: '블랙 쉬크', region: '유럽', trait: 'dark', role: 'fast', over: { hp: 180, atk: 18, speed: 0.85 },
+      id: 'blackshuck', name: '블랙 쉬크', region: '유럽', trait: 'dark', role: 'fast', over: { hp: 130, atk: 12, speed: 0.85 },
       look: { arch: 'quad', body: '#14121a', belly: '#1f1a22', size: 1.25, fur: true, eye: '#ff5a3a', bigEye: true, fire: '#ff6a3a', fang: true },
     },
     {
-      id: 'gargoyle', name: '가고일', region: '유럽', trait: 'metal', role: 'tank', over: { hp: 1300, atk: 42, speed: 0.22 },
+      id: 'gargoyle', name: '가고일', region: '유럽', trait: 'metal', role: 'tank', over: { hp: 480, atk: 30, speed: 0.42 },
       look: { arch: 'thing', kind: 'gargoyle', body: '#7a8088', cracks: '#4a5058' },
     },
     {
@@ -104,7 +104,7 @@
 
     /* ---- 아메리카 ---- */
     {
-      id: 'bloodymary', name: '블러디 메리', region: '아메리카', trait: 'dark', role: 'fast',
+      id: 'bloodymary', name: '블러디 메리', region: '아메리카', trait: 'dark', role: 'fast', over: { hp: 110, atk: 10 },
       look: { arch: 'folk', skin: '#e6dfe4', hair: '#14121a', style: 'cover', top: '#f0ece4', trim: '#d8d2c8', pants: '#e8e4dc', skirt: '#e8e4dc', cloth: 'dress', tears: '#c0182a', prop: 'mirror', eyes: '#e5304a' },
     },
     {
@@ -113,7 +113,7 @@
     },
     {
       id: 'mothman', name: '모스맨', region: '아메리카', trait: 'specimen', role: 'fast', float: true, over: { speed: 0.75 },
-      look: { arch: 'folk', stance: 'fly', tall: 2, skin: '#5a5248', shade: '#4a4238', face: 'moth', hair: '#8a7a68', style: 'bald', top: '#5a5248', trim: '#6a6258', pants: '#4a4238', wings: 'moth', bareArms: true, claws: '#2a2420', shoe: '#2a2420' },
+      look: { arch: 'folk', stance: 'fly', skin: '#5a5248', shade: '#4a4238', face: 'moth', hair: '#8a7a68', style: 'bald', top: '#5a5248', trim: '#6a6258', pants: '#4a4238', wings: 'moth', bareArms: true, claws: '#2a2420', shoe: '#2a2420' },
     },
     {
       id: 'chupacabra', name: '추파카브라', region: '아메리카', trait: 'specimen', role: 'fast', over: { atk: 16 },
@@ -124,7 +124,7 @@
       look: { arch: 'folk', stance: 'float', skin: '#dfe6ea', hair: '#14121a', style: 'long', top: '#e8e4dc', trim: '#e8e4dc', robe: '#e8e4dc', deco: ['sash'], deco1: '#5a7a9a', tears: '#7ad0e8', eyes: '#14121a', mouth: '#14121a' },
     },
     {
-      id: 'jukebox', name: '주크박스', region: '아메리카', trait: 'metal', role: 'tank', ranged: 'note', over: { hp: 1100, atk: 40, range: 40, speed: 0.22 },
+      id: 'jukebox', name: '주크박스', region: '아메리카', trait: 'metal', role: 'tank', ranged: 'note', over: { hp: 380, atk: 26, range: 26, speed: 0.45 },
       look: { arch: 'thing', kind: 'jukebox', body: '#c0392b' },
     },
   ];
@@ -173,7 +173,7 @@
     },
     {
       id: 'wendigo', name: '웬디고', region: '아메리카', trait: 'specimen', hp: 12500, atk: 124, range: 26, speed: 0.2, interval: 100, anim: { hit: 20, total: 36 }, kb: 6, drop: 600,
-      look: { arch: 'folk', tall: 6, skin: '#6a7a82', shade: '#56666e', face: 'skull', bone: '#d8d3c0', antlers: '#d8d3c0', style: 'bald', top: '#4a5058', trim: '#5a6068', pants: '#3a3a3e', cloth: 'tatters', skirt: '#4a4038', deco: ['bones'], bareArms: true, claws: '#d8d3c0', arms: 1.5, glow: '#7ad0e8', shoe: '#2a2a2e' },
+      look: { arch: 'folk', tall: 2, skin: '#6a7a82', shade: '#56666e', face: 'skull', bone: '#d8d3c0', antlers: '#d8d3c0', style: 'bald', top: '#4a5058', trim: '#5a6068', pants: '#3a3a3e', cloth: 'tatters', skirt: '#4a4038', deco: ['bones'], bareArms: true, claws: '#d8d3c0', arms: 1.5, glow: '#7ad0e8', shoe: '#2a2a2e' },
     },
     /* ---- 월드 피날레 ---- */
     {

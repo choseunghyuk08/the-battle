@@ -25,7 +25,11 @@
     if (q.atk > 0.3) return 5;
     return q.hurt ? -4 : 0;
   };
-  const along = (q, hx, hy, len) => [Math.round(hx + q.dir[0] * len), Math.round(hy + q.dir[1] * len)];
+  /* 소품 끝은 캔버스 안에 머물게 자른다 */
+  const along = (q, hx, hy, len) => [
+    Math.min(45, Math.max(2, Math.round(hx + q.dir[0] * len))),
+    Math.min(33, Math.max(2, Math.round(hy + q.dir[1] * len))),
+  ];
   const wave = (q, k, amp = 1) => Math.round(Math.sin((q.kind === 'idle' ? q.i * 1.6 : q.i * 1.05) + k) * amp);
 
   /* 날개: 어깨 (x, y) 에서 뒤쪽 위로 뻗는다 */
@@ -34,7 +38,7 @@
       const c = p.wingColor || '#3a3050';
       const edge = p.wingEdge || lighten(c, 0.25);
       for (let i = 0; i < 15; i++) {
-        const lead = y - 1 - Math.round(i * 0.55 + (flap * i) / 15);
+        const lead = Math.max(1, y - 1 - Math.round(i * 0.55 + (flap * i) / 15));
         const tail = y + 6 - Math.round(i * 0.3 + (flap * i * 0.6) / 15) + (i % 5 === 4 ? 1 : 0);
         b.r(x - i, lead, 1, Math.max(2, tail - lead), i % 5 === 3 ? edge : c);
       }
@@ -44,7 +48,7 @@
       const edge = p.wingEdge || '#a89c88';
       for (let i = 0; i < 14; i++) {
         const swell = Math.sin((i / 14) * Math.PI);
-        const top = y - 1 - Math.round(swell * 9 + (flap * i) / 14);
+        const top = Math.max(1, y - 1 - Math.round(swell * 7 + (flap * i) / 18));
         const bot = y + 5 + Math.round(swell * 5) - Math.round((flap * i) / 28);
         b.r(x - i, top, 1, bot - top, i > 11 || i < 1 ? edge : c);
       }
@@ -54,23 +58,24 @@
     crow(b, x, y, flap, p) {
       const c = p.wingColor || '#1d1d26';
       const edge = p.wingEdge || '#3a3a4c';
-      [[-15, -11], [-17, -6], [-16, -1], [-13, 4]].forEach(([dx, dy], k) => {
-        b.line(x, y, x + dx, y + dy + 2 - Math.round((flap * (k + 1)) / 3), k % 2 ? edge : c, 3);
+      [[-12, -9], [-14, -5], [-13, -1], [-10, 3]].forEach(([dx, dy], k) => {
+        b.line(x, y, x + dx, y + dy + 1 - Math.round((flap * (k + 1)) / 5), k % 2 ? edge : c, 3);
       });
       b.r(x - 4, y - 3, 6, 6, c);
     },
-    cape(b, x, y, flap, p, q) {
+    cape(b, x, y, flap, p, q, floor) {
       const c = p.wingColor || '#14121a';
       const lin = p.wingEdge || '#9a1f2e';
       const sw = Math.round(q.step * 1.5) - Math.round(q.atk * 2);
+      const end = floor - 1;
       b.r(x - 2, y - 2, 6, 5, c);
-      b.r(x - 5 + sw, y + 2, 7, 8, c);
-      b.r(x - 6 + sw * 2, y + 9, 8, 8, c);
-      b.r(x - 6 + sw * 2, y + 16, 8, 2, lin);
+      b.r(x - 5 + sw, y + 2, 7, 7, c);
+      b.r(x - 6 + sw * 2, y + 8, 8, Math.max(2, end - (y + 8) - 2), c);
+      b.r(x - 6 + sw * 2, end - 1, 8, 2, lin);
       if (q.atk > 0.4 || q.wind > 0.6) {
-        for (let i = 0; i < 15; i++) {
-          const top = y - 3 - Math.round(i * 0.8);
-          b.r(x - i, top, 1, 15 - Math.round(i * 0.4), i % 4 === 3 ? lin : c);
+        for (let i = 0; i < 13; i++) {
+          const top = Math.max(1, y - 3 - Math.round(i * 0.7));
+          b.r(x - i, top, 1, Math.min(end - top, 14 - Math.round(i * 0.4)), i % 4 === 3 ? lin : c);
         }
       }
     },
@@ -158,7 +163,7 @@
         b.r(ux - 7, hy - 2, 14, 6, c);
         b.r(ux - 7, hy + 3, 3, 4, c);
         b.r(ux - 1, hy - 3, 2, 3, p.hatTrim || '#e6c24a');
-        b.r(ux - 1, hy - 8, 2, 5, '#d9483b');
+        b.r(ux - 1, hy - 6, 2, 3, '#d9483b');
         b.r(ux - 7, hy + 1, 14, 1, p.hatTrim || '#e6c24a');
         break;
       case 'hood':
@@ -197,11 +202,10 @@
       const sh = q.hurt ? 1 : 0;
       for (const d of [-1, 1]) {
         const bx = ux + d * 3;
-        b.line(bx, hy + 1, bx + d * 2, hy - 7 + sh, ac, 1);
-        b.line(bx + d * 2, hy - 7 + sh, bx + d * 5, hy - 11 + sh, ac, 1);
-        b.line(bx + d, hy - 3, bx + d * 6, hy - 5 + sh, ac, 1);
-        b.line(bx + d * 2, hy - 7 + sh, bx - d, hy - 11 + sh, ac, 1);
-        b.px(bx + d * 6, hy - 6 + sh, ac);
+        b.line(bx, hy + 1, bx + d * 2, hy - 3 + sh, ac, 1);
+        b.line(bx + d * 2, hy - 3 + sh, bx + d * 5, hy - 5 + sh, ac, 1);
+        b.line(bx + d, hy - 1, bx + d * 6, hy - 2 + sh, ac, 1);
+        b.line(bx + d * 2, hy - 3 + sh, bx, hy - 5 + sh, ac, 1);
       }
     }
   }
@@ -329,8 +333,8 @@
       b.r(ux + 1, uy - 23, 5, 6, e);
       b.px(ux - 4, uy - 22, '#ffd0d0');
       b.px(ux + 2, uy - 22, '#ffd0d0');
-      b.line(ux - 3, uy - 24, ux - 6, uy - 29 + (q.hurt ? 2 : 0), p.hair || '#6b6258', 1);
-      b.line(ux + 3, uy - 24, ux + 6, uy - 29 + (q.hurt ? 2 : 0), p.hair || '#6b6258', 1);
+      b.line(ux - 3, uy - 24, ux - 6, uy - 27 + (q.hurt ? 2 : 0), p.hair || '#6b6258', 1);
+      b.line(ux + 3, uy - 24, ux + 6, uy - 27 + (q.hurt ? 2 : 0), p.hair || '#6b6258', 1);
       b.r(ux, uy - 16, 2, q.atk > 0.5 ? 3 : 1, '#14121a');
     },
     tengu(b, q, p, ux, uy) {
@@ -345,16 +349,18 @@
   /* 소품: 앞손 (hx, hy) 에서 q.dir 방향으로 */
   const PROP = {
     scissors(b, q, hx, hy) {
-      const [ex, ey] = along(q, hx, hy, 11);
-      const open = q.atk > 0.3 || q.wind > 0.3 ? 5 : 2;
+      const [ex, ey] = along(q, hx, hy, 9);
+      const open = q.atk > 0.3 || q.wind > 0.3 ? 4 : 2;
       b.line(hx, hy, ex, ey, '#cfd5dc', 2);
-      b.line(hx, hy, ex, ey + open, '#9aa3ad', 1);
+      b.line(hx, hy, ex, Math.min(34, ey + open), '#9aa3ad', 1);
       b.r(hx - 3, hy - 2, 3, 2, '#d9483b');
       b.r(hx - 3, hy + 1, 3, 2, '#d9483b');
       if (q.atk > 0.5) b.spark(ex + 2, ey + 1, '#ffffff');
     },
     club(b, q, hx, hy) {
-      const [ex, ey] = along(q, hx, hy, 11);
+      const [ex0, ey0] = along(q, hx, hy, 11);
+      const ex = Math.min(ex0, 41);
+      const ey = Math.min(ey0, 30);
       b.line(hx, hy, ex, ey, '#2a2f38', 2);
       b.r(ex - 3, ey - 3, 7, 7, '#3a3f4b');
       for (const [dx, dy] of [[-3, -3], [3, -3], [-3, 3], [3, 3], [0, -4], [0, 4]]) b.px(ex + dx, ey + dy, '#aab4c0');
@@ -408,8 +414,9 @@
     wrap(b, q, hx, hy) {
       const [ex, ey] = along(q, hx, hy, 9);
       const sw = Math.round(q.step * 2);
-      b.line(hx, hy, ex - 1, ey + 2 + sw, '#e8dcc0', 1);
-      b.line(ex - 1, ey + 2 + sw, ex - 5, ey + 5, '#cfc3a6', 1);
+      const wy = Math.min(32, ey + 2 + sw);
+      b.line(hx, hy, ex - 1, wy, '#e8dcc0', 1);
+      b.line(ex - 1, wy, ex - 5, Math.min(33, wy + 3), '#cfc3a6', 1);
     },
     mirror(b, q, hx, hy) {
       b.r(hx - 3, hy - 9, 7, 8, '#8a5a34');
@@ -498,17 +505,19 @@
       b.r(ux - 4, uy - 7, 8, 3, darken(p.robe || p.top, 0.7));
       for (let k = 0; k < 4; k++) {
         const bx = ux - 3 + k * 2;
-        b.line(bx, uy - 4, bx + wave(q, k * 1.3, 2) - 1, uy + 6 + (k % 2) * 3, k % 2 ? gut : darken(gut, 0.78), 2);
+        b.line(bx, uy - 4, bx + wave(q, k * 1.3, 1) - 1, Math.min(BY - 2, uy + 4 + (k % 2) * 2), k % 2 ? gut : darken(gut, 0.78), 2);
       }
       return;
     }
     if (st === 'float') {
+      /* 치맛자락이 점점 가늘어지며 땅 가까이 흩어진다 */
       const c = p.robe || p.top;
-      const rows = [[10, 0], [9, 0], [8, 1], [7, 1], [6, 2], [5, 2], [3, 3]];
-      rows.forEach(([w, off], k) => {
-        const sw = wave(q, k * 0.8, off);
-        b.r(ux - Math.floor(w / 2) + sw, uy - 6 + k * 3, w, 3, k % 2 ? darken(c, 0.88) : c);
-      });
+      const n = Math.max(3, Math.floor((BY - 2 - (uy - 6)) / 2));
+      for (let k = 0; k < n; k++) {
+        const w = Math.max(2, Math.round(11 - (k * 9) / (n - 1)));
+        const sw = wave(q, k * 0.8, Math.min(2, Math.floor(k / 2)));
+        b.r(ux - Math.floor(w / 2) + sw, uy - 6 + k * 2, w, 2, k % 2 ? darken(c, 0.9) : c);
+      }
       return;
     }
     if (st === 'hop') {
@@ -564,9 +573,9 @@
     const top = p.top || '#38507a';
     const trim = p.trim || lighten(top, 0.35);
     const hopH = st === 'hop'
-      ? (q.kind === 'walk' ? Math.round((1 - Math.abs(q.step)) * 5) : q.kind === 'idle' ? [0, 0, 1, 0][q.i] : q.atk > 0.5 ? 2 : 0)
+      ? (q.kind === 'walk' ? Math.round((1 - Math.abs(q.step)) * 4) : q.kind === 'idle' ? [0, 0, 1, 0][q.i] : q.atk > 0.5 ? 2 : 0)
       : 0;
-    const bobF = st === 'float' || st === 'fly' ? 8 + q.bob * 2 : 0;
+    const bobF = st === 'float' ? 5 + q.bob : st === 'fly' ? 6 + q.bob : 0;
     const gy = BY - hopH - bobF;
     const ux = CX + Math.round(q.lunge * 0.6) - (q.hurt ? 0 : 0);
     const uy = gy - tall + q.rise - (st === 'walk' ? q.bob : 0);
@@ -587,7 +596,7 @@
     const armColor = p.bareArms ? skin : p.sleeve || top;
 
     /* 뒤쪽: 날개, 등껍질, 꼬리 */
-    if (p.wings) WINGS[p.wings](b, ux - 3, uy - 13, flapOf(q), p, q);
+    if (p.wings) WINGS[p.wings](b, ux - 3, uy - 13, flapOf(q), p, q, gy);
     if (p.shell) {
       b.r(ux - 9, uy - 15, 6, 10, p.shell);
       b.r(ux - 8, uy - 14, 3, 3, lighten(p.shell, 0.25));
@@ -602,7 +611,7 @@
       for (let k = 0; k < 4; k++) {
         const ph = wave(q, k * 1.7, 3);
         const dir = k % 2 ? 1 : -1;
-        b.line(ux - 3, uy - 12 + k, ux - 10 - k * 2 + ph, uy - 14 + k * 4 + dir * ph, p.tentacles, 1);
+        b.line(ux - 3, uy - 12 + k, Math.max(2, ux - 10 - k * 2 + ph), Math.min(33, uy - 14 + k * 4 + dir * ph), p.tentacles, 1);
       }
     }
     if (p.shroud) return shroudFolk(b, q, p, ux, uy, gy, hopH);
@@ -665,7 +674,7 @@
         b.px(hF[0] + 2, hF[1] + 2, p.claws);
         if (q.atk > 0.5) b.px(hF[0] + 3, hF[1] + 1, p.claws);
       }
-      if (p.prop && PROP[p.prop]) PROP[p.prop](b, q, hF[0], hF[1]);
+      if (p.prop && PROP[p.prop]) PROP[p.prop](b, q, hF[0], Math.max(hF[1], 13));
     }
     if (p.extra) p.extra(b, q, ux, uy);
   }
@@ -717,7 +726,7 @@
     const sy = y0 - 11;
     /* 팔: 앞팔은 뻗고 뒷팔은 당긴다 */
     const armTo = (phase) => {
-      if (q.atk > 0.2) return [sx + 8 + Math.round(q.atk * 9), y0 - 8 + Math.round(q.atk * 6) - (q.atk > 0.6 ? 0 : 3)];
+      if (q.atk > 0.2) return [sx + 6 + Math.round(q.atk * 6), y0 - 8 + Math.round(q.atk * 6) - (q.atk > 0.6 ? 0 : 3)];
       if (q.wind > 0.2) return [sx + 2, y0 - 16 - Math.round(q.wind * 4)];
       if (q.hurt) return [sx - 2, y0 - 6];
       const r = walk ? Math.round(q.step * 4 * phase) : phase;
@@ -810,7 +819,7 @@
     const flame = p.flame || '#5fb4e8';
     const edge = p.edge || '#2a6ac0';
     const swell = q.wind > 0.5 ? -1 : q.atk > 0.5 ? 2 : 0;
-    const cx = CX + q.lunge;
+    const cx = CX + 2 + q.lunge;
     const cy = BY - 15 - q.bob * 2 + q.rise;
     const R = 6 + swell + (q.hurt ? -1 : 0);
     const f = q.i % 3;
@@ -879,7 +888,7 @@
     const bw = Math.round(14 * s);
     const bh = Math.round(8 * s);
     const legH = Math.max(4, Math.round(4 * s));
-    const cx = CX + q.lunge;
+    const cx = CX + 3 + q.lunge;
     const crouch = Math.round(q.wind * 2);
     const top = BY - legH - bh + crouch - Math.round(q.atk * 2) + q.rise - (q.kind === 'walk' ? Math.round(q.bob * 0.6) : q.bob);
     const body = p.body;
@@ -1004,7 +1013,7 @@
       const plank = darken(wood, 0.72);
       const leg = p.leg || '#d9a830';
       const bob = q.kind === 'walk' ? Math.round(Math.abs(q.step) * 2) : q.bob;
-      const baseY = BY - 11 + q.rise - bob + Math.round(q.wind * 2);
+      const baseY = BY - 10 + q.rise - bob + Math.round(q.wind * 2);
       const kick = Math.round(q.atk * 3);
       for (const [hip, ph] of [[-5, 1], [5, -1]]) {
         const swing = q.kind === 'walk' ? Math.round(q.step * 3 * ph) : 0;
@@ -1021,12 +1030,12 @@
         b.px(fx - 2, fy, darken(leg, 0.7));
       }
       const lean = Math.round(q.atk * 2) - Math.round(q.wind * 2);
-      b.r(cx + 5 + lean, baseY - 21, 4, 7, '#5a4a3a');
-      for (let k = 0; k < 3; k++) b.disc(cx + 7 + lean + wave(q, k, 1), baseY - 24 - k * 3, 1 + (k > 1 ? 1 : 0), '#b8b4aa');
+      b.r(cx + 5 + lean, baseY - 17, 4, 6, '#5a4a3a');
+      b.r(cx + 6 + lean + wave(q, 0, 1), baseY - 20 - (q.i % 2), 3, 2, '#b8b4aa');
       const roof = p.roof || '#5a3a24';
-      for (let r = 0; r < 7; r++) {
-        const half = 4 + r * 2;
-        b.r(cx - half + lean, baseY - 19 + r * 2, half * 2 + 1, 2, r % 2 ? darken(roof, 0.85) : roof);
+      for (let r = 0; r < 5; r++) {
+        const half = Math.round(4 + r * 2.6);
+        b.r(cx - half + lean, baseY - 15 + r * 2, half * 2 + 1, 2, r % 2 ? darken(roof, 0.85) : roof);
       }
       b.r(cx - 12 + lean, baseY - 6, 25, 1, darken(roof, 0.7));
       b.r(cx - 11 + lean, baseY - 5, 23, 11, wood);
@@ -1047,7 +1056,7 @@
     },
 
     tuktuk(b, q, p) {
-      const cx = CX + q.lunge;
+      const cx = CX + 3 + q.lunge;
       const body = p.body || '#e8b83a';
       const dark = darken(body, 0.7);
       const roof = p.roof || '#3a8a6a';
@@ -1171,8 +1180,8 @@
 
     globe(b, q, p) {
       const cx = CX + q.lunge;
-      const cy = BY - 19 - q.bob * 2 + q.rise - Math.round(q.atk * 2) + Math.round(q.wind * 2);
-      const R = 11;
+      const cy = BY - 17 - q.bob + q.rise - Math.round(q.atk) + Math.round(q.wind * 2);
+      const R = 10;
       const sea = p.sea || '#2f6fc0';
       const land = p.land || '#5faa5a';
       const brass = p.brass || '#c9a24a';
@@ -1212,128 +1221,148 @@
       }
       b.r(cx - R - 2, cy - 1, 3, 3, brass);
       b.r(cx + R, cy - 1, 3, 3, brass);
-      b.r(cx - 5, cy - R - 4, 11, 3, '#f2d450');
-      b.r(cx - 5, cy - R - 6, 2, 2, '#f2d450');
-      b.r(cx - 1, cy - R - 7, 3, 3, '#f2d450');
-      b.r(cx + 4, cy - R - 6, 2, 2, '#f2d450');
-      b.px(cx, cy - R - 3, '#d9483b');
-      if (q.atk > 0.5) b.r(cx + R + 3, cy - 1, 8 + Math.round(q.atk * 6), 2, '#ff6a4a');
+      b.r(cx - 5, cy - R - 3, 11, 3, '#f2d450');
+      b.r(cx - 5, cy - R - 5, 2, 2, '#f2d450');
+      b.r(cx - 1, cy - R - 5, 3, 3, '#f2d450');
+      b.r(cx + 4, cy - R - 5, 2, 2, '#f2d450');
+      b.px(cx, cy - R - 2, '#d9483b');
+      if (q.atk > 0.5) b.r(cx + R + 3, cy - 1, 5 + Math.round(q.atk * 4), 2, '#ff6a4a');
       if (q.hurt) b.line(cx - 4, cy - 8, cx + 3, cy + 6, '#14121a', 1);
     },
   };
 
   const thing = (b, q, p) => THING[p.kind](b, q, p);
 
-  /* 나가: 똬리를 튼 몸에 머리 여럿 */
+  const ellipse = (b, cx, cy, rx, ry, c, band, phase = 0) => {
+    for (let y = -ry; y <= ry; y++) {
+      const half = Math.round(rx * Math.sqrt(1 - (y / ry) ** 2));
+      b.r(cx - half, cy + y, half * 2 + 1, 1, c);
+      if (band) for (let x = -half; x <= half; x++) if ((x + y * 2 + phase + 60) % 7 === 0) b.r(cx + x, cy + y, 2, 1, band);
+    }
+  };
+
+  /* 나가: 똬리를 튼 몸 위로 목이 솟고, 부채꼴로 머리가 여럿 펼쳐진다 */
   function serpent(b, q, p) {
     const cx = CX + q.lunge;
     const body = p.body || '#3a8a6a';
     const belly = p.belly || '#e8d890';
     const band = p.band || '#c9a24a';
-    const heads = p.heads || 5;
+    const n = p.heads || 5;
     const rise = q.rise - (q.kind === 'idle' ? q.bob : 0);
-    const lunge = Math.round(q.atk * 8) - Math.round(q.wind * 5) - (q.hurt ? 3 : 0);
-    for (let i = 0; i < 14; i++) {
-      const x = cx - 20 + i * 2;
-      const y = BY - 4 - Math.round(Math.sin(i * 0.9 + (q.kind === 'walk' ? q.i * 0.9 : 0)) * 2) - (i > 10 ? Math.round((i - 10) * 1.2) : 0);
-      b.disc(x, y, 4 - (i < 3 ? 1 : 0), i % 3 === 1 ? band : body);
-      b.r(x - 1, y + 2, 3, 2, belly);
+    const reach = Math.round(q.atk * 5) - Math.round(q.wind * 4) - (q.hurt ? 3 : 0);
+    const slither = q.kind === 'walk' ? q.i : 0;
+    /* 똬리 두 겹 */
+    ellipse(b, cx - 3, BY - 5, 13, 4, body, band, slither);
+    ellipse(b, cx - 3, BY - 3, 11, 2, belly);
+    ellipse(b, cx - 5, BY - 11, 9, 3, darken(body, 0.88), band, slither + 3);
+    /* 목 */
+    const nx = cx + 1;
+    const hx = cx + 4;
+    const hy = BY - 21 + rise;
+    b.line(nx, BY - 12, hx, hy + 4, body, 5);
+    for (let k = 0; k < 3; k++) b.r(nx + 1 + (k > 1 ? 1 : 0), BY - 14 - k * 3, 3, 1, belly);
+    /* 머리 부채: 가운데가 가장 크고 앞으로 가장 많이 뻗는다 */
+    const mid = (n - 1) / 2;
+    const heads = [];
+    for (let k = 0; k < n; k++) {
+      const u = (k - mid) / Math.max(1, mid);
+      const a = -Math.PI / 2 + u * 1.05;
+      const len = (Math.abs(u) < 0.2 ? 11 : 9 + (k % 2) * 2) + Math.round(reach * (1 - Math.abs(u) * 0.5));
+      heads.push({ k, u, ex: Math.min(36, Math.round(hx + Math.cos(a) * len + reach * 0.4)), ey: Math.round(hy + 3 + Math.sin(a) * len * 0.9) });
     }
-    const neck = [[cx + 8, BY - 8], [cx + 8, BY - 14], [cx + 7, BY - 20], [cx + 6, BY - 25]];
-    for (let i = 0; i < neck.length - 1; i++) {
-      b.line(neck[i][0], neck[i][1] + rise, neck[i + 1][0] + Math.round(lunge * (i / 3) * 0.3), neck[i + 1][1] + rise, body, 5);
-    }
-    for (let k = 0; k < 4; k++) b.r(cx + 9, BY - 10 - k * 5 + rise, 3, 2, belly);
-    const hy = BY - 28 + rise;
-    const hx = cx + 5;
-    b.disc(hx, hy + 2, 7, darken(body, 0.85));
-    b.disc(hx, hy + 2, 5, body);
-    const spread = [];
-    for (let k = 0; k < heads; k++) spread.push(k - (heads - 1) / 2);
-    spread.forEach((u, k) => {
-      const ang = u * 0.42 - 0.3;
-      const mid = Math.abs(u) < 0.6;
-      const reach = (mid ? 11 : 8) + (mid ? lunge : Math.round(lunge * 0.5)) + wave(q, k, 1);
-      const ex = hx + Math.round(Math.sin(ang + 1.0) * reach);
-      const ey = hy - Math.round(Math.cos(ang + 1.0) * reach * 0.9) + 6 + (q.wind > 0.5 ? -2 : 0);
-      b.line(hx, hy + 3, ex, ey, k % 2 ? body : darken(body, 0.9), 3);
-      b.r(ex - 1, ey - 2, 6, 4, k % 2 ? body : darken(body, 0.9));
-      b.px(ex + 2, ey - 1, q.atk > 0.5 ? '#ff6a4a' : p.eye || '#f4d24a');
-      if (q.atk > 0.3 && mid) {
-        b.r(ex + 4, ey, 3, 2, '#7a1f2a');
-        b.px(ex + 4, ey + 2, '#f6f3ea');
-        b.px(ex + 6, ey + 2, '#f6f3ea');
-      } else if (q.i % 2 && mid) {
-        b.r(ex + 5, ey + 1, 3, 1, '#d9483b');
+    heads.sort((x, y) => Math.abs(y.u) - Math.abs(x.u));
+    b.disc(hx, hy + 3, 6, darken(body, 0.82));
+    b.disc(hx, hy + 3, 4, body);
+    b.r(hx - 2, hy + 2, 5, 1, band);
+    for (const h of heads) {
+      const c = h.k % 2 ? body : darken(body, 0.92);
+      b.line(hx, hy + 3, h.ex, h.ey + 1, c, 3);
+      b.r(h.ex - 1, h.ey - 1, 6, 4, c);
+      b.r(h.ex + 3, h.ey + 1, 3, 2, belly);
+      b.px(h.ex + 3, h.ey, q.atk > 0.5 ? '#ff6a4a' : p.eye || '#f4d24a');
+      if (Math.abs(h.u) < 0.5 && q.atk > 0.3) {
+        b.r(h.ex + 5, h.ey + 2, 3, 2, '#7a1f2a');
+        b.px(h.ex + 5, h.ey + 4, '#f6f3ea');
+        b.px(h.ex + 7, h.ey + 4, '#f6f3ea');
+      } else if ((q.i + h.k) % 3 === 0) {
+        b.r(h.ex + 6, h.ey + 1, 2, 1, '#d9483b');
       }
-    });
-    b.r(hx - 3, hy - 1, 7, 2, band);
+    }
   }
 
-  /* 목 없는 기수: 말 위에 머리 없는 기사 */
+  /* 목 없는 기수: 불꽃 갈기의 말 위에 머리 없는 기사 */
   function rider(b, q, p) {
-    const cx = CX + q.lunge;
+    const cx = CX + 3 + q.lunge;
     const horse = p.horse || '#1c1a24';
     const maneC = p.mane || '#ff8a2a';
     const coat = p.coat || '#2a2434';
-    const rear = Math.round(q.wind * 5);
+    const rear = Math.round(q.wind * 4);
     const gallop = q.kind === 'walk' ? q.step : 0;
     const bob = q.kind === 'walk' ? Math.round(Math.abs(q.step)) : q.bob;
-    const y = BY - 10 + q.rise - bob - Math.round(rear * 0.4);
-    [[-11, -1], [-7, 1], [4, 1], [8, -1]].forEach(([lx, ph], i) => {
+    const y = BY - 16 + q.rise - bob - Math.round(rear * 0.5);
+    /* 말다리 */
+    [[-9, -1], [-5, 1], [3, 1], [7, -1]].forEach(([lx, ph], i) => {
       const front = i >= 2;
       const sw = Math.round(gallop * 3 * ph);
-      const up = front && rear ? rear + 2 : gallop * ph < -0.3 ? 2 : 0;
-      const fx = cx + lx + sw + (front && rear ? 3 : 0) + (q.atk > 0.4 && front ? 1 : 0);
-      b.line(cx + lx, y + 2, fx, BY - up - 1, horse, 3);
+      const up = front && rear ? rear + 1 : gallop * ph < -0.3 ? 2 : 0;
+      const fx = cx + lx + sw + (front && rear ? 2 : 0) + (q.atk > 0.4 && front ? 1 : 0);
+      b.line(cx + lx, y + 7, fx, BY - up - 2, horse, 3);
       b.r(fx - 1, BY - up - 2, 4, 2, '#3a3440');
     });
-    b.r(cx - 13, y - 7, 25, 10, horse);
-    b.r(cx - 12, y + 1, 22, 2, lighten(horse, 0.15));
-    b.line(cx + 9, y - 6, cx + 13, y - 15 - rear, horse, 5);
-    const hx = cx + 12;
-    const hy = y - 19 - rear;
-    b.r(hx, hy, 8, 6, horse);
-    b.r(hx + 5, hy + 3, 5, 4, horse);
+    /* 말 몸통, 목, 머리 */
+    b.r(cx - 10, y, 19, 9, horse);
+    b.r(cx - 9, y + 7, 17, 2, lighten(horse, 0.14));
+    b.line(cx + 7, y + 1, cx + 11, y - 6 - rear, horse, 5);
+    const hx = cx + 9;
+    const hy = Math.max(4, y - 11 - rear);
+    b.r(hx, hy, 7, 5, horse);
+    b.r(hx + 4, hy + 2, 5, 4, horse);
     b.r(hx + 1, hy - 3, 2, 3, horse);
-    b.r(hx + 5, hy - 3, 2, 3, horse);
-    b.r(hx + 3, hy + 1, 3, q.wind > 0.7 ? 1 : 2, q.atk > 0.5 ? '#ff6a4a' : '#ffb04a');
-    b.px(hx + 9, hy + 5, '#14121a');
-    for (let k = 0; k < 5; k++) {
+    b.r(hx + 4, hy - 3, 2, 3, horse);
+    b.r(hx + 2, hy + 1, 3, q.wind > 0.7 ? 1 : 2, q.atk > 0.5 ? '#ff6a4a' : '#ffb04a');
+    b.px(hx + 8, hy + 4, '#14121a');
+    /* 갈기와 꼬리의 불꽃 */
+    for (let k = 0; k < 4; k++) {
       const fl = (q.i + k) % 3;
-      b.r(cx + 6, y - 9 - k * 2 - rear + 3 + (k > 2 ? 4 : 0) - fl, 2, 3 + fl, k % 2 ? maneC : '#ffd24a');
+      b.r(cx + 5 - k * 2, y - 4 - k - rear + (k > 1 ? 1 : 0) - fl, 2, 3 + fl, k % 2 ? maneC : '#ffd24a');
     }
-    b.line(cx - 12, y - 4, cx - 18 + wave(q, 1, 2), y + 3 + wave(q, 2, 1), maneC, 3);
-    b.line(cx - 18 + wave(q, 1, 2), y + 3, cx - 21, y - 1 + wave(q, 3, 2), '#ffd24a', 2);
-    b.r(cx - 5, y - 9, 10, 3, '#5a3a24');
-    const ty = y - 23 - Math.round(rear * 0.5);
+    const t1 = cx - 10;
+    const tw = wave(q, 1, 2);
+    b.line(t1, y + 2, t1 - 6 + tw, y + 7 + wave(q, 2, 1), maneC, 3);
+    b.line(t1 - 6 + tw, y + 7, t1 - 8, y + 4 + wave(q, 3, 2), '#ffd24a', 2);
+    /* 안장과 기수 */
+    b.r(cx - 4, y - 2, 9, 3, '#5a3a24');
+    const ty = Math.max(7, y - 11 - Math.round(rear * 0.4));
     const lean = Math.round(q.atk * 2) - Math.round(q.wind * 2);
     for (let k = 0; k < 4; k++) {
       const sw2 = wave(q, k * 0.8, 1) - Math.round(q.atk * 2);
-      b.r(cx - 12 + k * 2 + sw2, y - 14 + k * 3, 8, 3, k > 1 ? p.capeLine || '#9a1f2e' : coat);
+      b.r(cx - 12 + k * 2 + sw2, ty + 2 + k * 3, 8, 3, k > 1 ? p.capeLine || '#9a1f2e' : coat);
     }
-    b.r(cx - 5 + lean, ty + 4, 10, 14, coat);
-    b.r(cx - 4 + lean, ty + 4, 8, 2, '#d8d3c0');
-    b.r(cx - 1 + lean, ty + 6, 2, 8, '#e8c14e');
-    b.r(cx - 5 + lean, ty + 16, 10, 2, '#14121a');
-    b.r(cx - 3 + lean, ty + 1, 6, 4, '#3a2a30');
-    b.r(cx - 2 + lean, ty - 1 + (q.i % 2), 4, 2, maneC);
-    b.px(cx + lean, ty - 3 - (q.i % 3), '#ffd24a');
-    const ax = cx + 6 + lean + Math.round(q.atk * 12) - Math.round(q.wind * 2);
-    const ay = ty + 7 - Math.round(q.wind * 10) + Math.round(q.atk * 9);
-    b.line(cx + 4 + lean, ty + 6, ax, ay, coat, 3);
+    b.r(cx - 4 + lean, ty, 9, 12, coat);
+    b.r(cx - 3 + lean, ty, 7, 2, '#d8d3c0');
+    b.r(cx + lean, ty + 2, 2, 7, '#e8c14e');
+    b.r(cx - 4 + lean, ty + 9, 9, 2, '#14121a');
+    /* 목 잘린 자리의 불씨 */
+    b.r(cx - 2 + lean, ty - 2, 5, 3, '#3a2a30');
+    b.r(cx - 1 + lean, ty - 3 - (q.i % 2), 3, 2, maneC);
+    b.px(cx + lean, ty - 4 - (q.i % 2), '#ffd24a');
+    /* 칼 든 팔 */
+    const ax = cx + 6 + lean + Math.round(q.atk * 9) - Math.round(q.wind * 2);
+    const ay = Math.max(6, ty + 4 - Math.round(q.wind * 5) + Math.round(q.atk * 7));
+    b.line(cx + 4 + lean, ty + 3, ax, ay, coat, 3);
     b.r(ax - 1, ay - 1, 3, 3, '#d8d3c0');
-    const [ex, ey] = along(q, ax, ay, 15);
+    const [ex, ey] = along(q, ax, ay, 12);
     b.line(ax, ay, ex, ey, '#d8dee5', 2);
     b.r(ax - 2, ay, 5, 2, '#c9a24a');
-    const px = cx - 7 + lean + (q.atk > 0.4 ? 1 : 0);
-    const py = ty + 14;
-    b.line(cx - 4 + lean, ty + 6, px, py, coat, 3);
-    b.disc(px - 1, py + 3, 4, '#e8812a');
+    /* 호박등을 든 팔 */
+    const px = cx - 7 + lean;
+    const py = ty + 5;
+    b.line(cx - 4 + lean, ty + 3, px, py, coat, 3);
+    b.disc(px - 1, py + 3, 3, '#e8812a');
     b.r(px - 3, py + 2, 2, 2, '#ffe08a');
     b.r(px + 1, py + 2, 2, 2, '#ffe08a');
-    b.r(px - 2, py + 5, 4, 1, '#ffe08a');
-    b.r(px - 1, py - 2, 2, 2, '#5a7a2a');
+    b.r(px - 2, py + 4, 4, 1, '#ffe08a');
+    b.r(px - 1, py - 1, 2, 2, '#5a7a2a');
   }
 
   const ARCH = { folk, crawler, kasa, wisp, flyhead, quad, thing, serpent, rider };
