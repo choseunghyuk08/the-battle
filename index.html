@@ -25,6 +25,7 @@
           <button class="btn big" data-go="formation">편성</button>
           <button class="btn big" data-go="gacha">문방구</button>
         </nav>
+        <button class="btn ghost" id="openSettings">소리 설정</button>
       </div>
     </section>
 
@@ -96,6 +97,7 @@
         <div class="b-name"><span id="bSub"></span> <b id="bName"></b></div>
         <div class="b-time" id="bTime">0:00</div>
         <div class="b-ctl">
+          <button class="btn small" id="bMute" aria-label="소리">소리</button>
           <button class="btn small" id="bSpeed" aria-label="배속">×1</button>
           <button class="btn small" id="bPause" aria-label="일시정지">멈춤</button>
         </div>
@@ -160,6 +162,20 @@
     <div class="sheet-actions"><button class="btn primary" id="chapterClose">닫기</button></div>
   </dialog>
 
+  <dialog id="settingsDlg" class="sheet small">
+    <div class="sheet-head">
+      <h3>소리.</h3>
+      <p class="eyebrow" id="bgmHint"></p>
+    </div>
+    <div class="vol-list">
+      <label class="vol"><span>전체</span><input type="range" id="vol-master" min="0" max="100"><output></output></label>
+      <label class="vol"><span>효과음</span><input type="range" id="vol-sfx" min="0" max="100"><output></output></label>
+      <label class="vol"><span>배경음</span><input type="range" id="vol-bgm" min="0" max="100"><output></output></label>
+      <label class="check"><input type="checkbox" id="vol-mute"><span>모두 끄기</span></label>
+    </div>
+    <div class="sheet-actions"><button class="btn primary" id="settingsClose">닫기</button></div>
+  </dialog>
+
   <dialog id="debugDlg" class="sheet small">
     <div class="sheet-head"><h3>디버그.</h3><p class="eyebrow">개발용 패널</p></div>
     <div class="debug-grid">
@@ -186,6 +202,7 @@
   <script src="js/sprites2.js"></script>
   <script src="js/scenery.js"></script>
   <script src="js/render.js"></script>
+  <script src="js/audio.js"></script>
   <script src="js/ui.js"></script>
   <script src="js/main.js"></script>
 </body>

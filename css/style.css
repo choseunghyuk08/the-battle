@@ -353,6 +353,16 @@ canvas { image-rendering: pixelated; }
 .cannon.ready { border-color: var(--accent); }
 .cannon.ready b { background: var(--accent); }
 
+/* 소리 설정 */
+.vol-list { display: grid; gap: 14px; }
+.vol { display: grid; grid-template-columns: 64px 1fr 36px; align-items: center; gap: 12px; font-size: 14px; color: var(--ink-2); }
+.vol output { text-align: right; color: var(--ink); font-family: var(--display); font-size: 16px; }
+.vol input[type='range'] { appearance: none; height: 6px; border-radius: 3px; background: var(--s4); outline-offset: 4px; }
+.vol input[type='range']::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 4px; background: var(--ink); border: 0; box-shadow: 0 2px 0 #9b927d; cursor: pointer; }
+.vol input[type='range']::-moz-range-thumb { width: 18px; height: 18px; border-radius: 4px; background: var(--ink); border: 0; cursor: pointer; }
+.check { display: flex; align-items: center; gap: 10px; font-size: 14px; color: var(--ink-2); cursor: pointer; }
+.check input { width: 18px; height: 18px; accent-color: var(--accent); }
+
 /* 시트 */
 dialog.sheet {
   background: var(--s1); color: var(--ink);

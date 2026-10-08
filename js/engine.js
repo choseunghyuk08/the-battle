@@ -54,6 +54,7 @@
       this.nextId = 1;
       this.result = null;
       this.stats = { kills: 0, summoned: 0 };
+      this.events = [];
     }
 
     get worker() {
@@ -102,12 +103,23 @@
       return !!s && !this.result && s.cd <= 0 && this.money >= s.def.cost;
     }
 
+    emit(ev) {
+      if (this.events.length < 240) this.events.push(ev);
+    }
+
+    drainEvents() {
+      const out = this.events;
+      this.events = [];
+      return out;
+    }
+
     summon(i) {
       if (!this.canSummon(i)) return false;
       const s = this.slots[i];
       this.money -= s.def.cost;
       s.cd = s.def.cooldown;
       this.spawnUnit('ally', s.def, { lv: s.lv, plus: s.plus });
+      this.emit({ t: 'summon' });
       this.stats.summoned++;
       return true;
     }
@@ -120,6 +132,7 @@
       if (!this.canUpgrade()) return false;
       this.money -= this.worker.up;
       this.workerLv++;
+      this.emit({ t: 'upgrade' });
       return true;
     }
 
@@ -130,6 +143,7 @@
     fireCannon() {
       if (!this.cannonReady) return false;
       this.cannon.charge = 0;
+      this.emit({ t: 'cannon' });
       this.fx.push({ kind: 'cannon', life: 20, max: 20 });
       for (const e of this.units) {
         if (e.side !== 'enemy' || e.dying) continue;
@@ -163,6 +177,7 @@
       const victims = this.unitsInRange(e);
       const base = this.baseInRange(e);
       if (!victims.length && !base) return;
+      this.emit({ t: 'atk', side: e.side, ranged: !!e.def.ranged });
 
       const targets = e.def.area ? victims : victims.slice(0, 1);
       const aimX = targets.length ? targets[targets.length - 1].x : e.dir > 0 ? VIEW.enemyBaseX : VIEW.allyBaseX;
@@ -170,13 +185,16 @@
         this.fx.push({ kind: 'proj', sub: e.def.ranged, x0: e.x, x1: aimX, z: e.z, life: 9, max: 9, dir: e.dir });
       }
       for (const v of targets) {
-        this.applyDamage(v, calcDamage(e, v, e.atk), { from: e });
+        const dealt = calcDamage(e, v, e.atk);
+        this.applyDamage(v, dealt, { from: e, big: dealt >= e.atk * 1.4 });
         if (e.def.freeze && v.def.trait !== 'metal' && this.rng() < e.def.freeze.chance) {
           v.freeze = e.def.freeze.frames;
+          this.emit({ t: 'freeze' });
           v.state = 'move';
           v.t = 0;
         } else if (e.def.slow && this.rng() < e.def.slow.chance) {
           v.slow = e.def.slow.frames;
+          this.emit({ t: 'slow' });
         }
       }
       if (!targets.length || (e.def.area && base)) this.hitBase(e);
@@ -186,6 +204,7 @@
       const side = e.side === 'ally' ? 'enemy' : 'ally';
       this.baseHp[side] = Math.max(0, this.baseHp[side] - e.atk);
       this.baseFlash[side] = 5;
+      this.emit({ t: 'base', side });
       this.fx.push({
         kind: 'dmg', side, x: side === 'enemy' ? VIEW.enemyBaseX + 4 : VIEW.allyBaseX - 4,
         z: 0, h: 40, v: e.atk, life: 22, max: 22,
@@ -196,6 +215,7 @@
     applyDamage(v, dmg, opts = {}) {
       if (v.dying) return;
       v.hp -= dmg;
+      this.emit({ t: 'hit', side: v.side, big: !!opts.big || !!opts.forceKb });
       v.flash = 4;
       this.fx.push({ kind: 'dmg', side: v.side, x: v.x, z: v.z, h: 26, v: dmg, life: 22, max: 22 });
       this.fx.push({ kind: 'spark', x: v.x, z: v.z, h: 12, life: 6, max: 6 });
@@ -220,6 +240,7 @@
 
     kill(v) {
       v.dying = 1;
+      this.emit({ t: 'kill', side: v.side, boss: !!v.def.boss });
       v.state = 'dead';
       v.hp = 0;
       if (v.side === 'enemy') {
@@ -289,6 +310,7 @@
       const ratio = this.baseHp.enemy / this.baseMax.enemy;
       while (this.bossPending.length && ratio <= this.bossPending[0].atHp) {
         const b = this.bossPending.shift();
+        this.emit({ t: 'boss' });
         this.spawnUnit('enemy', YG.enemyById(b.id), { mult: b.mult });
         this.fx.push({ kind: 'boss', life: 60, max: 60 });
       }

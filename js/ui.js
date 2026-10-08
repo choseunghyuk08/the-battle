@@ -6,6 +6,8 @@
   const reduceMotion = () => g.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const SLOT_KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0'];
 
+  const play = (name, pitch) => YG.audio && YG.audio.sfx(name, pitch);
+
   function el(tag, attrs = {}, kids = []) {
     const node = document.createElement(tag);
     for (const [k, v] of Object.entries(attrs)) {
@@ -76,6 +78,8 @@
     renderPurse();
     const next = screens[name];
     if (next && next.enter) next.enter();
+    const track = { home: ['title'], stages: ['stages', 'title'], formation: ['formation', 'title'], gacha: ['gacha', 'title'] }[name];
+    if (track) YG.audio.music(track);
     g.scrollTo(0, 0);
   }
 
@@ -281,6 +285,7 @@
         class: 'btn primary', disabled: !chk.ok, text: label,
         onclick: () => {
           YG.evolve(save, base.id);
+          play(second ? 'awaken' : 'evolve');
           persist();
           renderPurse();
           renderFormation();
@@ -343,6 +348,7 @@
             text: maxLv ? '최대 레벨' : `레벨업 · ${fmt(lvCost)}`,
             onclick: () => {
               YG.levelUp(app.save, base.id);
+              play('levelup');
               persist();
               renderPurse();
               renderFormation();
@@ -353,6 +359,7 @@
             text: maxPlus ? '최대 강화' : `+강화 · ${o.shards}/${pCost}`,
             onclick: () => {
               YG.enhance(app.save, base.id);
+              play('levelup', 1.3);
               persist();
               renderFormation();
             },
@@ -363,7 +370,10 @@
           class: `btn ${inDeck ? '' : 'primary'}`,
           text: inDeck ? '출전에서 빼기' : '출전시키기',
           onclick: () => {
-            if (!YG.toggleDeck(app.save, base.id)) toast(`출전은 ${YG.slotCount(app.save)}칸까지. 스테이지를 깨면 칸이 늘어난다.`);
+            if (!YG.toggleDeck(app.save, base.id)) {
+              play('error');
+              toast(`출전은 ${YG.slotCount(app.save)}칸까지. 스테이지를 깨면 칸이 늘어난다.`);
+            } else play('equip');
             persist();
             renderFormation();
           },
@@ -523,6 +533,7 @@
   function pull(count) {
     const res = YG.gacha.draw(app.save, count, Math.random, currentBanner());
     if (!res) {
+      play('error');
       toast('동전이 모자라다.');
       return;
     }
@@ -531,6 +542,7 @@
     renderPurse();
     renderGachaMeta();
     machineShake = reduceMotion() ? 0 : 18;
+    play('gachaShake');
     const delay = reduceMotion() ? 0 : 480;
     setTimeout(() => showPullResult(res), delay);
   }
@@ -554,6 +566,12 @@
         ]);
       })
     );
+    res.forEach((r, i) => {
+      setTimeout(() => {
+        play(`open${r.grade}`);
+        if (r.isNew) setTimeout(() => play('isnew'), 90);
+      }, i * 80);
+    });
     const again = app.pullCount === 11 ? YG.GACHA.cost11 : YG.GACHA.cost1;
     $('#pullAgain').textContent = app.pullCount === 11 ? '11연차 한 번 더' : '한 번 더';
     $('#pullAgain').disabled = app.save.coins < again;
@@ -648,6 +666,7 @@
     battle.last = performance.now();
     cancelAnimationFrame(battle.raf);
     battle.raf = requestAnimationFrame(battleTick);
+    YG.audio.battleMusic(stage);
     if (tip && !app.save.seenTip) {
       app.save.seenTip = true;
       persist();
@@ -659,7 +678,10 @@
     if (battle.paused || !battle.b) return;
     if (!battle.b.summon(i)) {
       const s = battle.b.slots[i];
-      if (s && s.cd <= 0 && battle.b.money < s.def.cost) toast('용돈이 모자라다.');
+      if (s && s.cd <= 0 && battle.b.money < s.def.cost) {
+        play('error');
+        toast('용돈이 모자라다.');
+      }
     }
   }
 
@@ -694,6 +716,11 @@
       }
       if (battle.ended && b.frame >= battle.endAt && !$('#battleEnd').open) finishBattle();
     }
+    const events = b.drainEvents();
+    if (events.length) {
+      YG.audio.battleEvents(events);
+      if (events.some((e) => e.t === 'boss')) YG.audio.battleMusic(battle.stage, true);
+    }
     YG.render.battle($('#field').getContext('2d'), b, battle.stage.theme);
     updateHud(b);
   }
@@ -716,6 +743,7 @@
     });
 
     const cn = $('#cannonBtn');
+    if (b.cannonReady && !cn.classList.contains('ready')) play('cannonReady');
     $('#cannonFill').style.transform = `scaleX(${Math.min(1, b.cannon.charge / b.cannon.max)})`;
     cn.classList.toggle('ready', b.cannonReady);
 
@@ -754,6 +782,8 @@
       box.replaceChildren(summary, el('p', { text: '편성을 바꾸거나 일꾼을 먼저 올려보자.' }));
     }
     $('#endRetry').textContent = win ? '한 번 더' : '다시';
+    play(win ? 'win' : 'lose');
+    YG.audio.music([win ? 'victory' : 'defeat'], { loop: false, ms: 300 });
     $('#battleEnd').showModal();
   }
 
@@ -794,6 +824,17 @@
     toast('적용했다.');
     const cur = screens[app.screen];
     if (cur && cur.enter) cur.enter();
+  }
+
+  function renderSettings() {
+    const st = YG.audio.settings;
+    for (const kind of ['master', 'sfx', 'bgm']) {
+      const input = $(`#vol-${kind}`);
+      input.value = Math.round(st[kind] * 100);
+      input.nextElementSibling.textContent = `${input.value}`;
+    }
+    $('#vol-mute').checked = st.muted;
+    $('#bgmHint').textContent = `배경음 파일은 ${YG.audio.BGM_DIR} 폴더에 넣으면 된다.`;
   }
 
   /* 연결 */
@@ -840,6 +881,11 @@
     });
     $('#cannonBtn').addEventListener('click', (e) => e.detail === 0 && doCannon());
     $('#bPause').addEventListener('click', () => togglePause());
+    $('#bMute').addEventListener('click', () => {
+      const muted = YG.audio.toggleMute();
+      $('#bMute').textContent = muted ? '소리 꺼짐' : '소리';
+      renderSettings();
+    });
     $('#bSpeed').addEventListener('click', () => {
       battle.speed = battle.speed === 1 ? 2 : 1;
       $('#bSpeed').textContent = `×${battle.speed}`;
@@ -904,8 +950,39 @@
       if (document.hidden && app.screen === 'battle' && !battle.ended) togglePause(true);
     });
 
+    document.addEventListener('click', (e) => {
+      const btn = e.target.closest && e.target.closest('button');
+      if (!btn || btn.disabled || btn.closest('#slots') || btn.id === 'upBtn' || btn.id === 'cannonBtn') return;
+      if (btn.dataset.go === 'home' || btn.id === 'pullClose' || btn.id === 'chapterClose') play('back');
+      else play('click');
+    });
+    $('#openSettings').addEventListener('click', () => {
+      renderSettings();
+      $('#settingsDlg').showModal();
+    });
+    $('#settingsClose').addEventListener('click', () => $('#settingsDlg').close());
+    for (const kind of ['master', 'sfx', 'bgm']) {
+      const input = $(`#vol-${kind}`);
+      input.addEventListener('input', () => {
+        YG.audio.set(kind, input.value / 100);
+        input.nextElementSibling.textContent = `${input.value}`;
+      });
+      input.addEventListener('change', () => {
+        YG.audio.save();
+        if (kind !== 'bgm') play('hit');
+      });
+    }
+    $('#vol-mute').addEventListener('change', (e) => {
+      YG.audio.set('muted', e.target.checked);
+      YG.audio.save();
+      $('#bMute').textContent = e.target.checked ? '소리 꺼짐' : '소리';
+    });
+
     show('home');
-    if (bonus) toast('출석 동전 +300.');
+    if (bonus) {
+      toast('출석 동전 +300.');
+      play('coin');
+    }
   }
 
   YG.ui = { init, show, toast, battle };
