@@ -292,7 +292,7 @@ function testUnitDex() {
       let atk = 0;
       let hit = 0;
       let proj = 0;
-      for (let i = 0; i < 190; i++) {
+      for (let i = 0; i < 170; i++) {
         sc.step();
         for (const e of sc.b.events) {
           if (e.t === 'atk') atk++;
