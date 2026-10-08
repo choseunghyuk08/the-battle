@@ -40,7 +40,7 @@
     },
     {
       id: 'runner', name: '육상부', grade: 4, role: '돌격',
-      hp: 170, atk: 26, range: 14, speed: 1.0, interval: 42, anim: { hit: 7, total: 14 },
+      hp: 190, atk: 26, range: 14, speed: 1.0, interval: 42, anim: { hit: 7, total: 14 },
       cost: 90, cooldown: 105, kb: 4, abilities: [],
       blurb: '복도에서 뛰지 말라는 말은 들은 적 없다.',
       evo: { name: '육상 에이스', blurb: '전국대회 기록이 복도에서 나왔다.' },
@@ -48,7 +48,7 @@
     },
     {
       id: 'reader', name: '도서부', grade: 4, role: '원거리',
-      hp: 150, atk: 20, range: 60, speed: 0.45, interval: 60, anim: { hit: 10, total: 20 },
+      hp: 150, atk: 22, range: 60, speed: 0.45, interval: 60, anim: { hit: 10, total: 20 },
       cost: 100, cooldown: 120, kb: 2, ranged: 'book', abilities: [],
       blurb: '반납 기한이 지난 책은 던져도 된다.',
       evo: { name: '도서부장', blurb: '백과사전을 투척하기 시작했다.' },
@@ -140,8 +140,8 @@
     },
     {
       id: 'warden', name: '학생주임', grade: 0, role: '전설', limited: true,
-      hp: 2600, atk: 160, range: 26, speed: 0.42, interval: 96, anim: { hit: 18, total: 32 },
-      cost: 900, cooldown: 660, kb: 2,
+      hp: 3300, atk: 190, range: 26, speed: 0.42, interval: 96, anim: { hit: 18, total: 32 },
+      cost: 880, cooldown: 660, kb: 2,
       abilities: [
         { vs: 'dark', type: 'massive' },
         { vs: 'dark', type: 'tough' },
@@ -163,7 +163,7 @@
     },
     {
       id: 'basket', name: '농구부', grade: 4, role: '원거리',
-      hp: 170, atk: 24, range: 54, speed: 0.45, interval: 62, anim: { hit: 11, total: 22 },
+      hp: 180, atk: 26, range: 54, speed: 0.45, interval: 62, anim: { hit: 11, total: 22 },
       cost: 110, cooldown: 130, kb: 3, abilities: [], ranged: 'ball',
       blurb: '복도에서 공을 던지면 안 되지만 지금은 괜찮다.',
       evo: { name: '농구부 주장', blurb: '3점 슛이 복도 끝까지 간다.' },
@@ -171,7 +171,7 @@
     },
     {
       id: 'pingpong', name: '탁구부', grade: 4, role: '속공',
-      hp: 140, atk: 12, range: 14, speed: 0.75, interval: 26, anim: { hit: 5, total: 12 },
+      hp: 160, atk: 13, range: 14, speed: 0.75, interval: 26, anim: { hit: 5, total: 12 },
       cost: 70, cooldown: 90, kb: 4, abilities: [],
       blurb: '손목 스냅 하나는 전국급이다.',
       evo: { name: '탁구 국가대표', blurb: '스매시 소리가 총소리 같다.' },
@@ -179,7 +179,7 @@
     },
     {
       id: 'calli', name: '서예부', grade: 4, role: '근접',
-      hp: 300, atk: 34, range: 20, speed: 0.42, interval: 66, anim: { hit: 12, total: 24 },
+      hp: 300, atk: 32, range: 20, speed: 0.42, interval: 66, anim: { hit: 12, total: 24 },
       cost: 80, cooldown: 100, kb: 3, abilities: [],
       blurb: '먹 한 방울이면 충분하다.',
       evo: { name: '서예 명인', blurb: '한 획에 괴담이 갈라진다.' },
@@ -219,7 +219,7 @@
     },
     {
       id: 'coder', name: '컴퓨터부', grade: 3, role: '원거리',
-      hp: 240, atk: 46, range: 76, speed: 0.38, interval: 72, anim: { hit: 12, total: 24 },
+      hp: 240, atk: 52, range: 76, speed: 0.38, interval: 72, anim: { hit: 12, total: 24 },
       cost: 250, cooldown: 190, kb: 3, abilities: [{ vs: 'dark', type: 'strong' }], ranged: 'laser',
       blurb: '코드 한 줄이면 어둠도 꺼진다.',
       evo: { name: '해커', blurb: '방화벽으로 그림자를 막는다.' },
@@ -267,7 +267,7 @@
     },
     {
       id: 'taekwon', name: '태권도부', grade: 2, role: '속공',
-      hp: 820, atk: 70, range: 18, speed: 0.62, interval: 44, anim: { hit: 8, total: 16 },
+      hp: 740, atk: 66, range: 18, speed: 0.62, interval: 44, anim: { hit: 8, total: 16 },
       cost: 380, cooldown: 260, kb: 3, abilities: [{ vs: 'ghost', type: 'massive' }],
       blurb: '발차기 한 번에 귀신이 날아간다.',
       evo: { name: '태권도 사범', blurb: '품새에 기합이 더해졌다.' },
@@ -307,7 +307,7 @@
     },
     {
       id: 'headmaster', name: '교장 선생님', grade: 0, role: '전설',
-      hp: 3400, atk: 130, range: 56, speed: 0.38, interval: 100, anim: { hit: 17, total: 32 },
+      hp: 3000, atk: 130, range: 56, speed: 0.38, interval: 100, anim: { hit: 17, total: 32 },
       cost: 950, cooldown: 720, kb: 2, abilities: [{ vs: '*', type: 'strong' }, { vs: '*', type: 'tough' }], limited: true, area: true, ranged: 'wave', freeze: { chance: 0.15, frames: 60 },
       blurb: '훈화 말씀 한 번에 전장이 조용해진다.',
       evo: { name: '명예 교장', blurb: '훈화가 끝나지 않는다.' },
@@ -315,8 +315,8 @@
     },
     {
       id: 'alumni', name: '전설의 졸업생', grade: 0, role: '전설',
-      hp: 2200, atk: 175, range: 28, speed: 0.55, interval: 78, anim: { hit: 13, total: 26 },
-      cost: 880, cooldown: 620, kb: 2, abilities: [{ vs: 'ghost', type: 'massive' }, { vs: 'dark', type: 'massive' }, { vs: 'metal', type: 'strong' }, { vs: 'specimen', type: 'strong' }], limited: true, freeze: { chance: 0.3, frames: 70 },
+      hp: 2700, atk: 185, range: 28, speed: 0.55, interval: 78, anim: { hit: 13, total: 26 },
+      cost: 850, cooldown: 620, kb: 2, abilities: [{ vs: 'ghost', type: 'massive' }, { vs: 'dark', type: 'massive' }, { vs: 'metal', type: 'strong' }, { vs: 'specimen', type: 'strong' }], limited: true, freeze: { chance: 0.3, frames: 70 },
       blurb: '전교 1등에서 전설이 된 사람.',
       evo: { name: '졸업생 대표', blurb: '졸업 가운이 전장을 휘감는다.' },
       look: { hair: '#2a2323', style: 'short', top: '#232a3d', trim: '#f2d450', pants: '#2a3046', prop: 'trophy', hat: 'gradcap', legend: true },

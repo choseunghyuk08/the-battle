@@ -183,6 +183,21 @@ function testRoster() {
   console.log(`roster ok (유닛 ${YG.UNITS.length}종)`);
 }
 
+function testBalance() {
+  const { power } = require('./power.js');
+  const med = (a) => [...a].sort((x, y) => x - y)[a.length >> 1];
+  for (const g of [4, 3, 2, 1, 0]) {
+    const grp = YG.UNITS.filter((u) => u.grade === g).map((u) => ({ u, v: power(u).ep / u.cost }));
+    const m = med(grp.map((r) => r.v));
+    for (const r of grp) {
+      /* 가장 싼 일반 학생은 값이 높게 나오는 게 정상이다 */
+      const hi = r.u.id === 'basic' ? 2.2 : 1.45;
+      assert(r.v / m >= 0.65 && r.v / m <= hi, `${r.u.id} 값어치 ${(r.v / m).toFixed(2)} (등급 중앙값 대비)`);
+    }
+  }
+  console.log('balance ok');
+}
+
 function testWorld() {
   assert.strictEqual(YG.STAGES.length, 7 + 48 * 5, '스테이지 247개');
   assert.strictEqual(YG.CHAPTERS.length, 50);
@@ -330,6 +345,7 @@ if (require.main === module) {
   testEvolution();
   testSlots();
   testRoster();
+  testBalance();
   testWorld();
   testGacha();
   testProgression();

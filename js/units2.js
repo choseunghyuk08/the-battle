@@ -14,7 +14,7 @@
     },
     {
       id: 'garden', name: '원예부', grade: 4, role: '근접',
-      hp: 340, atk: 26, range: 17, speed: 0.42, interval: 50, anim: { hit: 9, total: 18 },
+      hp: 320, atk: 24, range: 17, speed: 0.42, interval: 50, anim: { hit: 9, total: 18 },
       cost: 80, cooldown: 100, kb: 3, abilities: [],
       blurb: '화분에 심은 건 가끔 걸어 나온다.',
       look: { hair: '#5a3b2b', style: 'bob', top: '#5f8f4f', trim: '#efe9dc', pants: '#6b5a3a', prop: 'trowel', hat: 'strawhat' },
@@ -35,7 +35,7 @@
     },
     {
       id: 'cheer', name: '응원단', grade: 4, role: '속공',
-      hp: 120, atk: 10, range: 14, speed: 0.9, interval: 30, anim: { hit: 6, total: 12 },
+      hp: 135, atk: 10, range: 14, speed: 0.9, interval: 30, anim: { hit: 6, total: 12 },
       cost: 55, cooldown: 75, kb: 4, abilities: [],
       blurb: '목청이 큰 만큼 발도 빠르다.',
       look: { hair: '#5a3b2b', style: 'twin', top: '#e5654b', trim: '#efe9dc', pants: '#e5654b', prop: 'pompom', hat: 'cheerbow', wear: ['skirt:#efe9dc'] },
@@ -58,7 +58,7 @@
     },
     {
       id: 'astro', name: '천문부', grade: 3, role: '저격',
-      hp: 240, atk: 38, range: 82, speed: 0.36, interval: 80, anim: { hit: 14, total: 26 },
+      hp: 240, atk: 44, range: 82, speed: 0.36, interval: 80, anim: { hit: 14, total: 26 },
       cost: 240, cooldown: 190, kb: 3, ranged: 'star', crit: 0.3, abilities: [{ vs: 'dark', type: 'strong' }],
       blurb: '별똥별이 어둠 한가운데로 떨어진다.',
       look: { hair: '#2a2a3a', style: 'spiky', top: '#2b3a5c', trim: '#f2d450', pants: '#1f2a44', prop: 'telescope', face: 'glasses' },
@@ -79,7 +79,7 @@
     },
     {
       id: 'shoot', name: '사격부', grade: 3, role: '원거리',
-      hp: 240, atk: 56, range: 84, speed: 0.36, interval: 90, anim: { hit: 15, total: 28 },
+      hp: 240, atk: 62, range: 84, speed: 0.36, interval: 90, anim: { hit: 15, total: 28 },
       cost: 250, cooldown: 195, kb: 3, ranged: 'pellet', abilities: [{ vs: 'metal', type: 'strong' }],
       blurb: '숨을 멈추고 한 발. 철제는 소리부터 운다.',
       look: { hair: '#2a2220', style: 'short', top: '#4a5a3a', trim: '#cfd5dc', pants: '#2e3a2a', prop: 'rifle', hat: 'earmuffs' },
@@ -130,7 +130,7 @@
     },
     {
       id: 'detect', name: '탐정부', grade: 2, role: '제어',
-      hp: 600, atk: 74, range: 24, speed: 0.42, interval: 88, anim: { hit: 15, total: 28 },
+      hp: 680, atk: 74, range: 24, speed: 0.42, interval: 88, anim: { hit: 15, total: 28 },
       cost: 440, cooldown: 320, kb: 3, freeze: { chance: 0.25, frames: 60 },
       abilities: [{ vs: 'specimen', type: 'massive' }, { vs: 'ghost', type: 'strong' }],
       blurb: '증거 앞에서는 괴담도 멈춰 선다.',
@@ -148,7 +148,7 @@
     },
     {
       id: 'math', name: '수학 선생님', grade: 1, role: '저격',
-      hp: 1500, atk: 130, range: 80, speed: 0.4, interval: 96, anim: { hit: 16, total: 30 },
+      hp: 1500, atk: 142, range: 80, speed: 0.4, interval: 96, anim: { hit: 16, total: 30 },
       cost: 680, cooldown: 520, kb: 2, ranged: 'chalk', abilities: [{ vs: 'metal', type: 'massive' }, { vs: 'specimen', type: 'strong' }],
       blurb: '컴퍼스로 그린 원 안에서는 오차가 없다.',
       look: { hair: '#8d8d88', style: 'bald', top: '#4a5a7a', trim: '#efe9dc', pants: '#2a2a33', prop: 'compass', face: 'glasses', wear: ['tie:#d9483b'] },
@@ -162,7 +162,7 @@
     },
     {
       id: 'homeroom', name: '담임 선생님', grade: 1, role: '탱커',
-      hp: 2800, atk: 85, range: 22, speed: 0.46, interval: 70, anim: { hit: 12, total: 24 },
+      hp: 2600, atk: 85, range: 22, speed: 0.46, interval: 70, anim: { hit: 12, total: 24 },
       cost: 700, cooldown: 540, kb: 2, survive: 0.4, abilities: [{ vs: '*', type: 'strong' }, { vs: 'ghost', type: 'tough' }],
       blurb: '우리 반 애들은 내가 지킨다.',
       look: { hair: '#2a2323', style: 'short', top: '#4a5a7a', trim: '#efe9dc', pants: '#2a3046', prop: 'sheet', face: 'mustache', wear: ['tie:#b23b32'] },
@@ -179,8 +179,8 @@
     },
     {
       id: 'chair', name: '이사장', grade: 0, role: '전설', limited: true,
-      hp: 3000, atk: 190, range: 30, speed: 0.4, interval: 100, anim: { hit: 17, total: 32 },
-      cost: 920, cooldown: 700, kb: 2, crit: 0.25, loot: 2,
+      hp: 2800, atk: 170, range: 30, speed: 0.4, interval: 100, anim: { hit: 17, total: 32 },
+      cost: 920, cooldown: 700, kb: 2, crit: 0.2, loot: 2,
       abilities: [{ vs: 'metal', type: 'massive' }, { vs: 'ghost', type: 'massive' }, { vs: '*', type: 'tough' }],
       blurb: '돈이 흐르는 곳에 괴담은 오래 머물지 못한다.',
       look: { hair: '#d9d3c7', style: 'short', top: '#1c1a22', trim: '#f2d450', pants: '#14121a', prop: 'gavel', face: 'mustache', hat: 'tophat', wear: ['vest:#6a4a2a'], legend: true },
