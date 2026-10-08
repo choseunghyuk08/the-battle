@@ -19,7 +19,8 @@
 
 | 경로 | 내용 |
 |---|---|
-| `js/data.js` | 유닛 35종, 1~2장 스테이지, 뽑기 확률, 성장 수치. 밸런스는 여기서 조정 |
+| `js/units2.js`, `js/evolutions.js` | 동료 추가분과 유닛별 진화/각성 이름, 외형 |
+| `js/data.js` | 유닛 72종, 1~2장 스테이지, 뽑기 확률, 성장 수치. 밸런스는 여기서 조정 |
 | `js/bestiary.js` | 잡몹 23종 + 보스 14종 정의, 색 변종 생성 (`rat:red` 같은 id) |
 | `js/world.js` | 3~50장 표와 스테이지 생성기, 난이도 곡선 |
 | `js/engine.js` | 전투 엔진 (DOM 없음) |
@@ -43,6 +44,8 @@ node tests/sim.js            # 데미지/뽑기/성장/임무 검증
 node tests/sim.js --balance  # 1~2장 스테이지별 봇 시뮬레이션
 node tests/allcheck.js       # 3~50장 전체를 봇으로 돌려서 못 깨는 스테이지 찾기
 node tests/calibrate.js all  # 스테이지별로 봇이 이기는 최대 난이도 계산
+node tests/power.js          # 유닛 값어치(비용 대비)를 등급별로 비교
+node tests/unitbalance.js    # 유닛 하나만 내보내는 시뮬레이션으로 밸런스 확인
 ```
 
 ## 디버그
