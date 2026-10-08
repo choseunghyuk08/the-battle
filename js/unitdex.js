@@ -64,6 +64,7 @@
       { key: 'kb', label: '넉백', value: `${def.kb}회` },
       { key: 'cost', label: '비용', value: String(def.cost) },
       { key: 'cooldown', label: '재소환', value: secs(def.cooldown) },
+      ...(def.cm ? [{ key: 'size', label: '키', value: `약 ${YG.SIZES.cmText(def.cm)}` }] : []),
     ];
   }
 

@@ -1,7 +1,7 @@
 const path = require('path');
 const assert = require('assert');
 const root = path.join(__dirname, '..', 'js');
-['data.js', 'units2.js', 'units3.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'bestiary3.js', 'world.js', 'world2.js', 'world3.js', 'engine.js', 'game.js', 'lore.js', 'lore_world.js', 'lore_scp.js', 'dex.js', 'unitdex.js', 'missions.js', 'cutscene.js', 'scenery.js', 'scenery2.js', 'scenery3.js', 'poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js', 'sprites4.js'].forEach((f) => require(path.join(root, f)));
+['data.js', 'units2.js', 'units3.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'bestiary3.js', 'sizes.js', 'world.js', 'world2.js', 'world3.js', 'engine.js', 'game.js', 'lore.js', 'lore_world.js', 'lore_scp.js', 'dex.js', 'unitdex.js', 'missions.js', 'cutscene.js', 'scenery.js', 'scenery2.js', 'scenery3.js', 'poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js', 'sprites4.js'].forEach((f) => require(path.join(root, f)));
 const YG = globalThis.YG;
 
 function seeded(seed) {
@@ -280,7 +280,7 @@ function testUnitDex() {
     assert.strictEqual(f.length, 3);
     assert(f[0].name !== f[1].name && f[1].name !== f[2].name, `${u.id} 모습 이름이 모두 다르다`);
     const rows = YG.unitdex.statRows(f[2].def, { lv: 10, plus: 2 });
-    assert.strictEqual(rows.length, 8);
+    assert.strictEqual(rows.length, 9);
     assert(Number(rows[0].value) > Number(YG.unitdex.statRows(f[2].def, null)[0].value), '레벨을 반영한다');
   }
   assert.deepStrictEqual([...kinds].sort(), ['gacha', 'limited', 'stage', 'starter']);
@@ -314,6 +314,17 @@ function testUnitDex() {
   for (let i = 0; i < 6 * 30 + 5; i++) sc.step();
   assert.strictEqual(sc.b.stats.summoned, 2);
   console.log('unit dex ok');
+}
+
+/* 크기: 현실에서 더 큰 것이 화면에서 더 작지 않고, 좋은 동료일수록 크게 보인다 (tests/sizecheck.js 에서 실제로 그려서 잰다) */
+function testSizes() {
+  const r = require('./sizecheck').check();
+  assert.deepStrictEqual(r.problems, [], `크기 점검에 걸린 것 ${r.problems.length}개`);
+  /* 적과 동료 전부에 현실 크기가 있고, 변종은 원본 크기를 이어받는다 */
+  for (const e of YG.ENEMIES) assert.ok(e.cm > 0 && e.fit > 0, `${e.id} 크기 없음`);
+  for (const u of YG.UNITS) assert.ok(u.cm > 0 && u.fit > 0 && u.look.tall >= 0, `${u.id} 크기 없음`);
+  assert.strictEqual(YG.enemyById('rat:red').fit, YG.enemyById('rat').fit);
+  console.log(`sizes ok (적 ${r.foes}종, 동료 ${r.allies}종)`);
 }
 
 function testSpriteKeys() {
@@ -541,7 +552,13 @@ function testScp() {
   const sha = (x) => crypto.createHash('sha1').update(JSON.stringify(x)).digest('hex').slice(0, 16);
   assert.strictEqual(sha(YG.STAGES.slice(0, 347)), '7b43c25d4050845e', '스테이지 1~347 데이터');
   assert.strictEqual(sha(YG.CHAPTERS.slice(0, 70)), '805aa0c3199a06c4', '장 1~70');
-  assert.strictEqual(sha(YG.ENEMIES.slice(0, 87)), 'f545fedc48e79e1f', '기존 적 87종');
+  /* 크기 점검(cm, fit, scale)은 그림에만 쓰이는 값이라 빼고 센다 */
+  const noLook = (e) => {
+    const c = { ...e };
+    for (const k of ['cm', 'fit', 'scale']) delete c[k];
+    return c;
+  };
+  assert.strictEqual(sha(YG.ENEMIES.slice(0, 87).map(noLook)), 'abf110b9d3f3ac68', '기존 적 87종');
   assert.strictEqual(sha(Array.from({ length: 70 }, (_, i) => YG.bossIdFor(i + 1))), '20bc0e6fe1421773', '1~70장 보스');
   assert.strictEqual(sha(Array.from({ length: 347 }, (_, g) => YG.difficulty(g, YG.STAGES[g].chapter))), 'a7307ff986f1a2ee', '1~347 난이도');
   for (const id of [8, 100, 247, 248, 300, 347]) assert.deepStrictEqual(YG.regenStage(id), YG.STAGES[id - 1], `${id} 재생성`);
@@ -933,6 +950,7 @@ if (require.main === module) {
   testBalance();
   testSpecials();
   testSpriteKeys();
+  testSizes();
   testAwakenFx();
   testUnitDex();
   testWorld();

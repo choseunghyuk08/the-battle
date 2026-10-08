@@ -163,7 +163,7 @@
     },
     {
       id: 'basket', name: '농구부', grade: 4, role: '원거리',
-      hp: 180, atk: 26, range: 54, speed: 0.45, interval: 62, anim: { hit: 11, total: 22 },
+      hp: 210, atk: 30, range: 54, speed: 0.45, interval: 62, anim: { hit: 11, total: 22 },
       cost: 110, cooldown: 130, kb: 3, abilities: [], ranged: 'ball',
       blurb: '복도에서 공을 던지면 안 되지만 지금은 괜찮다.',
       evo: { name: '농구부 주장', blurb: '3점 슛이 복도 끝까지 간다.' },
@@ -179,7 +179,7 @@
     },
     {
       id: 'calli', name: '서예부', grade: 4, role: '근접',
-      hp: 300, atk: 32, range: 20, speed: 0.42, interval: 66, anim: { hit: 12, total: 24 },
+      hp: 265, atk: 28, range: 20, speed: 0.42, interval: 66, anim: { hit: 12, total: 24 },
       cost: 80, cooldown: 100, kb: 3, abilities: [],
       blurb: '먹 한 방울이면 충분하다.',
       evo: { name: '서예 명인', blurb: '한 획에 괴담이 갈라진다.' },
@@ -187,7 +187,7 @@
     },
     {
       id: 'kendo', name: '검도부', grade: 3, role: '근접',
-      hp: 400, atk: 58, range: 22, speed: 0.55, interval: 54, anim: { hit: 10, total: 20 },
+      hp: 360, atk: 52, range: 22, speed: 0.55, interval: 54, anim: { hit: 10, total: 20 },
       cost: 200, cooldown: 150, kb: 3, abilities: [{ vs: 'ghost', type: 'strong' }],
       blurb: '면을 노리면 귀신도 움찔한다.',
       evo: { name: '검도 4단', blurb: '죽도에 기합이 실린다.' },
@@ -203,7 +203,7 @@
     },
     {
       id: 'art', name: '미술부', grade: 3, role: '광역',
-      hp: 360, atk: 40, range: 26, speed: 0.45, interval: 62, anim: { hit: 12, total: 24 },
+      hp: 325, atk: 36, range: 26, speed: 0.45, interval: 62, anim: { hit: 12, total: 24 },
       cost: 200, cooldown: 150, kb: 3, abilities: [{ vs: 'dark', type: 'strong' }], area: true,
       blurb: '물감이 튀면 그림자도 물든다.',
       evo: { name: '미술부장', blurb: '팔레트가 방패가 됐다.' },
@@ -219,7 +219,7 @@
     },
     {
       id: 'coder', name: '컴퓨터부', grade: 3, role: '원거리',
-      hp: 240, atk: 52, range: 76, speed: 0.38, interval: 72, anim: { hit: 12, total: 24 },
+      hp: 285, atk: 62, range: 76, speed: 0.38, interval: 72, anim: { hit: 12, total: 24 },
       cost: 250, cooldown: 190, kb: 3, abilities: [{ vs: 'dark', type: 'strong' }], ranged: 'laser',
       blurb: '코드 한 줄이면 어둠도 꺼진다.',
       evo: { name: '해커', blurb: '방화벽으로 그림자를 막는다.' },
@@ -235,7 +235,7 @@
     },
     {
       id: 'fire', name: '소방훈련반', grade: 2, role: '광역',
-      hp: 640, atk: 46, range: 50, speed: 0.4, interval: 80, anim: { hit: 14, total: 26 },
+      hp: 580, atk: 42, range: 50, speed: 0.4, interval: 80, anim: { hit: 14, total: 26 },
       cost: 400, cooldown: 280, kb: 3, abilities: [{ vs: 'ghost', type: 'massive' }], area: true, ranged: 'foam', slow: { chance: 0.45, frames: 100 },
       blurb: '소화기는 불만 끄는 게 아니다.',
       evo: { name: '소방 교관', blurb: '호스가 괴담을 쓸어낸다.' },
@@ -267,7 +267,7 @@
     },
     {
       id: 'taekwon', name: '태권도부', grade: 2, role: '속공',
-      hp: 740, atk: 66, range: 18, speed: 0.62, interval: 44, anim: { hit: 8, total: 16 },
+      hp: 650, atk: 58, range: 18, speed: 0.62, interval: 44, anim: { hit: 8, total: 16 },
       cost: 380, cooldown: 260, kb: 3, abilities: [{ vs: 'ghost', type: 'massive' }],
       blurb: '발차기 한 번에 귀신이 날아간다.',
       evo: { name: '태권도 사범', blurb: '품새에 기합이 더해졌다.' },
@@ -275,7 +275,7 @@
     },
     {
       id: 'sciT', name: '과학 선생님', grade: 1, role: '광역',
-      hp: 1300, atk: 100, range: 60, speed: 0.42, interval: 90, anim: { hit: 15, total: 28 },
+      hp: 1230, atk: 95, range: 60, speed: 0.42, interval: 90, anim: { hit: 15, total: 28 },
       cost: 640, cooldown: 500, kb: 2, abilities: [{ vs: 'specimen', type: 'massive' }, { vs: 'metal', type: 'massive' }], area: true, ranged: 'beaker', slow: { chance: 0.5, frames: 110 },
       blurb: '실험은 안전이 제일이라고 했다. 이번만 빼고.',
       evo: { name: '화학 박사', blurb: '플라스크가 폭발물처럼 커졌다.' },
@@ -283,7 +283,7 @@
     },
     {
       id: 'nurseT', name: '보건 선생님', grade: 1, role: '제어',
-      hp: 1900, atk: 90, range: 24, speed: 0.44, interval: 84, anim: { hit: 14, total: 28 },
+      hp: 2040, atk: 97, range: 24, speed: 0.44, interval: 84, anim: { hit: 14, total: 28 },
       cost: 660, cooldown: 520, kb: 2, abilities: [{ vs: 'ghost', type: 'massive' }, { vs: 'ghost', type: 'tough' }, { vs: 'specimen', type: 'strong' }], freeze: { chance: 0.4, frames: 80 },
       blurb: '주사 한 방이면 조용해진다.',
       evo: { name: '보건 수석', blurb: '주사기가 무기급이 됐다.' },
@@ -291,7 +291,7 @@
     },
     {
       id: 'senior', name: '3학년 선배', grade: 1, role: '돌격',
-      hp: 2100, atk: 130, range: 20, speed: 0.5, interval: 80, anim: { hit: 14, total: 26 },
+      hp: 2330, atk: 144, range: 20, speed: 0.5, interval: 80, anim: { hit: 14, total: 26 },
       cost: 700, cooldown: 540, kb: 2, abilities: [{ vs: 'dark', type: 'massive' }, { vs: 'dark', type: 'tough' }, { vs: 'specimen', type: 'strong' }],
       blurb: '후배들은 그가 지나가면 길을 비킨다.',
       evo: { name: '전설의 3학년', blurb: '교복 소매가 피로 물든 적이 없다.' },
@@ -299,7 +299,7 @@
     },
     {
       id: 'vice', name: '교감 선생님', grade: 1, role: '광역',
-      hp: 1700, atk: 110, range: 62, speed: 0.42, interval: 92, anim: { hit: 15, total: 28 },
+      hp: 1530, atk: 99, range: 62, speed: 0.42, interval: 92, anim: { hit: 15, total: 28 },
       cost: 680, cooldown: 520, kb: 2, abilities: [{ vs: 'metal', type: 'massive' }, { vs: 'ghost', type: 'strong' }], area: true, ranged: 'wave', slow: { chance: 0.5, frames: 120 },
       blurb: '자로 재면 복장도 괴담도 불량이다.',
       evo: { name: '교감 (엄격 모드)', blurb: '자 끝에서 충격파가 나간다.' },
@@ -307,7 +307,7 @@
     },
     {
       id: 'headmaster', name: '교장 선생님', grade: 0, role: '전설',
-      hp: 3000, atk: 130, range: 56, speed: 0.38, interval: 100, anim: { hit: 17, total: 32 },
+      hp: 2600, atk: 113, range: 56, speed: 0.38, interval: 100, anim: { hit: 17, total: 32 },
       cost: 950, cooldown: 720, kb: 2, abilities: [{ vs: '*', type: 'strong' }, { vs: '*', type: 'tough' }], limited: true, area: true, ranged: 'wave', freeze: { chance: 0.15, frames: 60 },
       blurb: '훈화 말씀 한 번에 전장이 조용해진다.',
       evo: { name: '명예 교장', blurb: '훈화가 끝나지 않는다.' },
@@ -315,7 +315,7 @@
     },
     {
       id: 'alumni', name: '전설의 졸업생', grade: 0, role: '전설',
-      hp: 2700, atk: 185, range: 28, speed: 0.55, interval: 78, anim: { hit: 13, total: 26 },
+      hp: 3040, atk: 208, range: 28, speed: 0.55, interval: 78, anim: { hit: 13, total: 26 },
       cost: 850, cooldown: 620, kb: 2, abilities: [{ vs: 'ghost', type: 'massive' }, { vs: 'dark', type: 'massive' }, { vs: 'metal', type: 'strong' }, { vs: 'specimen', type: 'strong' }], limited: true, freeze: { chance: 0.3, frames: 70 },
       blurb: '전교 1등에서 전설이 된 사람.',
       evo: { name: '졸업생 대표', blurb: '졸업 가운이 전장을 휘감는다.' },
@@ -543,6 +543,7 @@
       look: { ...def.look, ...((e.look || [])[0] || {}), ...(second ? (e.look || [])[1] || {} : {}), evo: lvl },
       spriteKey: `${def.id}:e${lvl}`,
       evolved: lvl,
+      fit: YG.formFit ? YG.formFit(def.id, lvl, def.fit) : def.fit,
     };
     return evoCache[key];
   };

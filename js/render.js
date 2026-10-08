@@ -313,7 +313,7 @@
 
     ctx.globalAlpha = alpha * 0.35;
     ctx.fillStyle = '#05040a';
-    const sw = Math.round(14 * scale * (u.def.float && !d ? 0.7 : 1));
+    const sw = Math.round(14 * scale * Math.min(1.1, Math.max(0.5, u.def.fit || 1)) * (u.def.float && !d ? 0.7 : 1));
     ctx.fillRect(x - Math.floor(sw / 2), gy - 1, sw, 2);
     if (!d && u.side === 'ally' && u.def.evolved >= 2) {
       /* 각성한 유닛은 발밑에서 금빛 고리가 깜빡인다 */

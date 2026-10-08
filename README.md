@@ -24,6 +24,7 @@
 | `js/bestiary.js` | 잡몹 23종 + 보스 14종 정의, 색 변종 생성 (`rat:red` 같은 id) |
 | `js/bestiary2.js` | 해외편 적: 잡몹 28종 + 보스 11종 (일본, 중국, 동남아, 유럽, 아메리카), 새 적마다 `region`. 해외 장의 보스, 엘리트, 색 변종 규칙(`YG.WORLD`)도 여기 |
 | `js/bestiary3.js` | SCP 재단편 적: 잡몹 14종 + 보스 9종 (`region: '재단'`). SCP 문서에서 가져온 적에는 `scp`, `cls`, `source`, 특수 행동이 있으면 `perk`. 71~78장의 보스와 색 변종 규칙(`YG.WORLD3`)도 여기 |
+| `js/sizes.js` | 크기 규칙. 적 110종과 동료 81종의 현실 크기(cm), 그림을 줄이거나 키우는 배율(`fit`, 자동 계산 구간)과 동료 등급별 키(`look.tall`) |
 | `js/world.js` | 3~50장 표와 스테이지 생성기, 난이도 곡선 |
 | `js/lore.js` | 괴담 도감에 나오는 적별 이야기(자막 3줄, 설명, 배경, 등장 방식). 적을 추가하면 여기에 같은 모양으로 적는다 |
 | `js/dex.js` | 괴담 도감: 만난 적 기록, 항목 목록, 상세 창의 연출 대본과 재생기 (전투 화면과 같은 스프라이트/배경 사용) |
@@ -52,6 +53,7 @@
 | `tests/preview.html` | 스프라이트 시트 미리보기 (`?set=units`, `?set=evo`, `?set=enemies`, `?set=abroad&region=일본`, `?set=abroadboss`, `?set=scp`, `?set=scpboss`) |
 | `tests/backgrounds.html` | 배경 미리보기 (`?set=abroad`: 해외 20장, `?set=foundation`: 재단 8장, `?only=diner:desert`) |
 | `tests/spritecheck.js` | 해외와 재단 적 17프레임을 전부 그려서 칸 밖으로 잘리는 그림을 찾는다 |
+| `tests/sizecheck.js` | 실제로 그려서 키를 재고, 현실 크기와 화면 크기 순서가 맞는지 검사한다 (`--write`로 `fit` 표를 다시 계산) |
 
 ## 테스트
 
@@ -61,6 +63,7 @@ node tests/sim.js --balance  # 1~2장 스테이지별 봇 시뮬레이션
 node tests/allcheck.js       # 3장~재단편 전체를 봇으로 돌려서 못 깨는 스테이지 찾기 (FROM=348 로 재단편만, PART=i/n 으로 나눠 돌리기)
 node tests/calibrate.js all  # 스테이지별로 봇이 이기는 최대 난이도 계산 (abroad: 해외편, foundation: 재단편, --robust, PART=0/4)
 node tests/spritecheck.js    # 해외, 재단 적 스프라이트가 칸 안에 들어오는지 확인
+node tests/sizecheck.js      # 현실 크기(cm)와 화면에서 보이는 크기가 맞는지 확인 (그림을 바꿨으면 --write)
 node tests/power.js          # 유닛 값어치(비용 대비)를 등급별로 비교
 node tests/unitbalance.js    # 유닛 하나만 내보내는 시뮬레이션으로 밸런스 확인
 ```

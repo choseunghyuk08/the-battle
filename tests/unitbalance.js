@@ -111,6 +111,7 @@ if (require.main === module) {
       console.log(`  ${r.id.padEnd(11)}${r.role.padEnd(5)}${String(r.cost).padStart(5)}  ${String(r.E).padStart(7)}  ${String(r.K).padStart(8)}  ${String(r.V).padStart(5)}${flag}`);
     }
     console.log('\n등급별 중앙값 (용돈당 딜 / 용돈당 피격 / 비용)');
+    const med = (arr) => [...arr].sort((a, b) => a - b)[arr.length >> 1];
     for (const g of [4, 3, 2, 1, 0]) {
       const grp = rows.filter((r) => r.u.grade === g);
       const m = (k) => med(grp.map((r) => r[k]));

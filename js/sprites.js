@@ -7,6 +7,8 @@
   const BY = 34;
   const OUTLINE = '#141218';
 
+  let fitNow = 1;
+
   function canvas(w, h) {
     const c = document.createElement('canvas');
     c.width = w;
@@ -55,9 +57,19 @@
       flush(outline = OUTLINE) {
         const c = canvas(CW, CH);
         const ctx = c.getContext('2d');
+        /* fit: 발밑(CX, BY)을 기준으로 그림 전체를 줄이거나 키운다. 사각형의 모서리 좌표를 반올림해서 틈이 안 생기고, 외곽선은 1px 그대로다 */
+        const s = fitNow;
+        const edge = (v, a) => (s === 1 ? v : Math.round(a + (v - a) * s));
+        const box = (p) => {
+          if (s === 1) return p;
+          const x = edge(p.x, CX);
+          const y = edge(p.y, BY);
+          return { x, y, w: Math.max(1, edge(p.x + p.w, CX) - x), h: Math.max(1, edge(p.y + p.h, BY) - y), c: p.c, bare: p.bare };
+        };
+        const fitted = s === 1 ? parts : parts.map(box);
         ctx.fillStyle = outline;
-        for (const p of parts) if (p.c !== null && !p.bare) ctx.fillRect(p.x - 1, p.y - 1, p.w + 2, p.h + 2);
-        for (const p of parts) {
+        for (const p of fitted) if (p.c !== null && !p.bare) ctx.fillRect(p.x - 1, p.y - 1, p.w + 2, p.h + 2);
+        for (const p of fitted) {
           if (p.c === null) continue;
           ctx.fillStyle = p.c;
           ctx.fillRect(p.x, p.y, p.w, p.h);
@@ -833,7 +845,9 @@
     const skin = look.skin || SKIN;
     const ox = Math.round(q.lunge * 0.6);
     const ux = CX + ox;
-    const uy = BY + q.rise - q.bob;
+    /* tall: 다리를 이만큼 늘린다. 키 큰 사람은 다리가 길다 (등급이 높은 동료일수록 크게 그린다) */
+    const tall = look.tall || 0;
+    const uy = BY + q.rise - q.bob - tall;
     const hasBag = look.prop === 'bag';
     const bagShift = hasBag ? Math.round(q.atk * 3) : 0;
     const handF = [ux + q.armF[0] + bagShift, uy + q.armF[1]];
@@ -849,10 +863,10 @@
     drawWear(b, look, items, 'back', ux, uy, q);
 
     for (const [lx, [ldx, ldy]] of [[CX - 4, q.l], [CX + 1, q.r]]) {
-      b.r(lx + ldx, BY - 6 + ldy, 3, 4, look.pants);
+      b.r(lx + ldx, BY - 6 - tall + ldy, 3, 4 + tall, look.pants);
       b.r(lx + ldx, BY - 2 + ldy, 4, 2, '#26232b');
     }
-    b.r(CX - 4, BY - 8, 8, 3, look.pants);
+    b.r(CX - 4, BY - 8 - tall, 8, 3, look.pants);
 
     b.r(ux - 4, uy - 14, 8, 8, look.top);
     b.r(ux - 3, uy - 14, 6, 2, look.trim);
@@ -1290,9 +1304,14 @@
   function renderFrame(def, key) {
     const q = YG.POSES[key];
     let img;
-    if (typeof def.look === 'string') img = renderEnemy(def.look, q);
-    else if (def.look.arch && def.look.arch !== 'human') img = YG.archRender(def.look, q);
-    else img = drawStudent(def.look, q);
+    fitNow = def.fit || 1;
+    try {
+      if (typeof def.look === 'string') img = renderEnemy(def.look, q);
+      else if (def.look.arch && def.look.arch !== 'human') img = YG.archRender(def.look, q);
+      else img = drawStudent(def.look, q);
+    } finally {
+      fitNow = 1;
+    }
     return def.tint ? tint(img, def.tint.color, def.tint.alpha) : img;
   }
 

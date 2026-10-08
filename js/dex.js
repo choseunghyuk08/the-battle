@@ -137,6 +137,7 @@
       { key: 'kb', label: '넉백', value: `${def.kb}회` },
       { key: 'trait', label: '특성', value: (YG.TRAITS[def.trait] || YG.TRAITS.none).name, trait: def.trait || 'none' },
       { key: 'drop', label: '처치 시 용돈', value: String(def.drop) },
+      ...(def.cm ? [{ key: 'size', label: '크기', value: `약 ${YG.SIZES.cmText(def.cm)}` }] : []),
     ];
   }
 
