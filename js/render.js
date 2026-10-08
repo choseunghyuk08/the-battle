@@ -300,7 +300,7 @@
 
   function drawUnit(ctx, u) {
     const scale = u.def.scale || 1;
-    const mode = u.flash > 0 ? 'flash' : u.freeze > 0 ? 'frozen' : 'base';
+    const mode = u.flash > 0 ? 'flash' : u.freeze > 0 ? 'frozen' : u.raged ? 'rage' : 'base';
     const key = u.dying ? 'hurt0' : YG.frameKey(u);
     const img = S().frame(u.def, key, mode);
     const gy = VIEW.groundY + u.z;

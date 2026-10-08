@@ -1,12 +1,12 @@
 const { playBest, progressTier } = require('./sim.js');
 const YG = globalThis.YG;
 
-/* node tests/calibrate.js 92,97 | all | abroad [--csv] [--robust]
+/* node tests/calibrate.js 92,97 | all | abroad | foundation [--csv] [--robust]
    PART=i/n 으로 n개 프로세스에 나눠 돌릴 수 있다. --robust 는 S, 0.88S, 0.77S 에서 모두 이겨야 통과로 쳐서
    봇 결과가 들쭉날쭉한 구간(비단조)에 속지 않는다. */
 const arg = process.argv[2] || '8,12,20,30,50,80,120,160,200,240';
 const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
-let ids = arg === 'all' ? range(8, YG.STAGES.length) : arg === 'abroad' ? range(YG.DOMESTIC.stages + 1, YG.STAGES.length) : arg.split(',').map(Number);
+let ids = arg === 'all' ? range(8, YG.STAGES.length) : arg === 'abroad' ? range(YG.DOMESTIC.stages + 1, YG.OVERSEAS.stages) : arg === 'foundation' ? range(YG.OVERSEAS.stages + 1, YG.STAGES.length) : arg.split(',').map(Number);
 if (process.env.PART) {
   const [i, n] = process.env.PART.split('/').map(Number);
   ids = ids.filter((_, k) => k % n === i);

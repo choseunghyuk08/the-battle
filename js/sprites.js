@@ -1299,7 +1299,7 @@
   const cache = {};
   function setFor(def) {
     const key = def.spriteKey || def.id;
-    return cache[key] || (cache[key] = { frames: {}, flash: {}, frozen: {} });
+    return cache[key] || (cache[key] = { frames: {}, flash: {}, frozen: {}, rage: {} });
   }
 
   YG.spriteKit = { builder, canvas, CX, BY, CW, CH, OUTLINE };
@@ -1311,6 +1311,7 @@
       const base = set.frames[key] || (set.frames[key] = renderFrame(def, key));
       if (mode === 'flash') return set.flash[key] || (set.flash[key] = whiten(base));
       if (mode === 'frozen') return set.frozen[key] || (set.frozen[key] = tint(base, '#9fd3ee', 0.55));
+      if (mode === 'rage') return set.rage[key] || (set.rage[key] = tint(base, '#ff2a1a', 0.42));
       return base;
     },
     portrait(def, scale = 3, key = 'idle0') {

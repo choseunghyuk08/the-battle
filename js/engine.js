@@ -245,6 +245,7 @@
         this.kill(v, opts.from);
         return;
       }
+      if (v.def.rage && !v.raged && v.hp <= v.maxHp * v.def.rage.at) this.enrage(v);
       let knock = !!opts.forceKb;
       const segs = v.def.kb;
       while (v.kbIdx < segs - 1 && v.hp <= v.maxHp * (1 - (v.kbIdx + 1) / segs)) {
@@ -252,6 +253,32 @@
         knock = true;
       }
       if (knock) this.knockback(v, opts.forceKb || KB_SPEED);
+    }
+
+    /* rage: 체력이 정해진 비율 아래로 내려가면 한 번만 분노한다 (속도, 공격력, 공격 간격) */
+    enrage(v) {
+      const r = v.def.rage;
+      v.raged = true;
+      v.atk = Math.round(v.atk * r.atk);
+      this.emit({ t: 'rage' });
+      this.fx.push({ kind: 'boss', life: 30, max: 30 });
+      this.shake = Math.max(this.shake, 6);
+    }
+
+    /* watch: 앞쪽 def.watch 칸 안에 아군이 하나라도 있으면 지켜보는 것이다 */
+    watched(e) {
+      for (const o of this.units) {
+        if (o.side === e.side || o.dying) continue;
+        const d = (o.x - e.x) * e.dir;
+        if (d >= -6 && d <= e.def.watch) return true;
+      }
+      return false;
+    }
+
+    /* regen: 초당 최대 체력의 일정 비율을 되찾고, 넘은 만큼 지나간 넉백 구간도 다시 걸린다 */
+    regen(e) {
+      e.hp = Math.min(e.maxHp, e.hp + (e.maxHp * e.def.regen) / FPS);
+      while (e.kbIdx > 0 && e.hp > e.maxHp * (1 - e.kbIdx / e.def.kb)) e.kbIdx--;
     }
 
     knockback(v, speed) {
@@ -293,6 +320,7 @@
       }
       if (e.slow > 0) e.slow--;
       if (e.cd > 0) e.cd--;
+      if (e.def.regen && e.hp < e.maxHp) this.regen(e);
 
       if (e.state === 'kb') {
         e.x -= e.dir * e.kbVel;
@@ -310,15 +338,16 @@
         if (e.t >= e.def.anim.total) e.state = 'move';
         return;
       }
+      if (e.def.watch && this.watched(e)) return;
       if (this.hasTarget(e)) {
         if (e.cd <= 0) {
           e.state = 'atk';
           e.t = 0;
-          e.cd = e.def.interval;
+          e.cd = Math.round(e.def.interval * (e.raged ? e.def.rage.interval : 1));
         }
         return;
       }
-      const sp = e.def.speed * (e.slow > 0 ? 0.5 : 1);
+      const sp = e.def.speed * (e.slow > 0 ? 0.5 : 1) * (e.raged ? e.def.rage.speed : 1);
       e.x += e.dir * sp;
       e.walk += sp;
       e.moving = true;

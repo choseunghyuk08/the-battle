@@ -1377,6 +1377,14 @@
     $('#bTime').textContent = `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
   }
 
+  /* 다른 편으로 넘어가는 첫 클리어에 보이는 한 줄. 편마다 opening 이 있으면 그걸 쓴다 (재단편) */
+  function regionOpenLine(fromChapter, toChapter) {
+    const to = YG.regionOf(toChapter);
+    const info = YG.regionInfo(to);
+    if (info && info.opening) return info.opening;
+    return YG.regionOf(fromChapter) === '국내' ? `해외 원정 열림 · ${to}편` : `${to}편 열림`;
+  }
+
   function finishBattle() {
     const b = battle.b;
     const win = b.result === 'win';
@@ -1403,7 +1411,7 @@
           : null,
         slotsAfter > slotsBefore ? el('p', { text: `출전 칸 ${slotsAfter}칸으로 늘었다.` }) : null,
         !wasCleared && next && YG.regionOf(next.chapter) !== YG.regionOf(battle.stage.chapter)
-          ? el('p', { class: 'unlock-region', text: YG.regionOf(battle.stage.chapter) === '국내' ? `해외 원정 열림 · ${YG.regionOf(next.chapter)}편` : `${YG.regionOf(next.chapter)}편 열림` })
+          ? el('p', { class: 'unlock-region', text: regionOpenLine(battle.stage.chapter, next.chapter) })
           : null,
         !wasCleared && next ? el('p', { text: `${next.sub} ${next.name} 열림.` }) : null,
         !wasCleared && battle.stage.id === YG.PROG.breakStage ? el('p', { text: `레벨 상한이 ${YG.PROG.breakLv}으로 늘었다.` }) : null,

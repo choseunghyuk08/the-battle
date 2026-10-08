@@ -2,16 +2,18 @@
 <html lang="ko"><head><meta charset="utf-8"><title>background preview</title>
 <style>body{margin:0;background:#000;display:grid;grid-template-columns:repeat(3,420px);gap:4px}canvas{width:420px;height:236px;image-rendering:pixelated;display:block}</style></head>
 <body>
-<script src="../js/data.js"></script><script src="../js/units2.js"></script><script src="../js/evolutions.js"></script><script src="../js/bestiary.js"></script><script src="../js/bestiary2.js"></script><script src="../js/world.js"></script><script src="../js/world2.js"></script><script src="../js/engine.js"></script><script src="../js/game.js"></script>
-<script src="../js/poses.js"></script><script src="../js/sprites.js"></script><script src="../js/sprites2.js"></script><script src="../js/sprites3.js"></script><script src="../js/scenery.js"></script><script src="../js/scenery2.js"></script><script src="../js/render.js"></script>
+<script src="../js/data.js"></script><script src="../js/units2.js"></script><script src="../js/evolutions.js"></script><script src="../js/bestiary.js"></script><script src="../js/bestiary2.js"></script><script src="../js/bestiary3.js"></script><script src="../js/world.js"></script><script src="../js/world2.js"></script><script src="../js/world3.js"></script><script src="../js/engine.js"></script><script src="../js/game.js"></script>
+<script src="../js/poses.js"></script><script src="../js/sprites.js"></script><script src="../js/sprites2.js"></script><script src="../js/sprites3.js"></script><script src="../js/sprites4.js"></script><script src="../js/scenery.js"></script><script src="../js/scenery2.js"></script><script src="../js/scenery3.js"></script><script src="../js/render.js"></script>
 <script>
-/* ?all=1 국내 장 첫 스테이지 배경 / ?set=abroad 해외 20장 배경 / ?set=abroad&region=일본 / ?only=장면이름,... 기본은 국내 16개 장면 */
+/* ?all=1 국내 장 첫 스테이지 배경 / ?set=abroad 해외 20장 배경 / ?set=abroad&region=일본 / ?set=foundation 재단 8장 + 계단과 말소 장면 / ?only=장면이름,... 기본은 국내 16개 장면 */
 const YG = globalThis.YG;
 const q = new URLSearchParams(location.search);
 let themes;
 if (q.get('set') === 'abroad') {
   const region = q.get('region');
-  themes = YG.STAGES.filter((s) => s.chapter >= 51 && s.sub.endsWith('-1') && (!region || YG.regionOf(s.chapter) === region)).map((s) => s.theme);
+  themes = YG.STAGES.filter((s) => s.chapter >= 51 && s.chapter <= 70 && s.sub.endsWith('-1') && (!region || YG.regionOf(s.chapter) === region)).map((s) => s.theme);
+} else if (q.get('set') === 'foundation') {
+  themes = [...YG.STAGES.filter((s) => s.chapter >= 71 && s.sub.endsWith('-1')).map((s) => s.theme), 'stairs:concrete', 'void:redact'];
 } else if (q.get('all')) {
   themes = YG.STAGES.filter((s, i) => s.sub.endsWith('-1') || s.id <= 3).map((s) => s.theme);
 } else if (q.get('only')) {

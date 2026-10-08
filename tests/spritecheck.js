@@ -34,8 +34,8 @@ function fakeCanvas(w, h) {
 
 function load() {
   if (!globalThis.document) globalThis.document = { createElement: () => fakeCanvas(48, 36) };
-  if (!globalThis.YG || !globalThis.YG.ENEMIES) ['data.js', 'units2.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js'].forEach((f) => require(path.join(root, f)));
-  for (const f of ['poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js']) require(path.join(root, f));
+  if (!globalThis.YG || !globalThis.YG.ENEMIES) ['data.js', 'units2.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'bestiary3.js'].forEach((f) => require(path.join(root, f)));
+  for (const f of ['poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js', 'sprites4.js']) require(path.join(root, f));
   return globalThis.YG;
 }
 

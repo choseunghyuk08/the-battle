@@ -2,7 +2,8 @@ const { playBest, progressTier } = require('./sim.js');
 const YG = globalThis.YG;
 const seeds = Number(process.env.SEEDS || 4);
 /* node tests/allcheck.js            8번부터 끝까지
-   FROM=248 node tests/allcheck.js   해외편만 (FROM, TO 로 범위, PART=i/n 으로 나눠 돌리기) */
+   FROM=248 node tests/allcheck.js   해외편 이후 (FROM, TO 로 범위, PART=i/n 으로 나눠 돌리기)
+   FROM=348 node tests/allcheck.js   재단편만 */
 const from = Number(process.env.FROM || 8);
 const to = Number(process.env.TO || YG.STAGES.length);
 let ids = Array.from({ length: to - from + 1 }, (_, i) => from + i);
