@@ -19,14 +19,16 @@
 
 | 경로 | 내용 |
 |---|---|
-| `js/data.js` | 유닛, 1~2장 스테이지, 뽑기 확률, 성장 수치. 밸런스는 여기서 조정 |
+| `js/data.js` | 유닛 35종, 1~2장 스테이지, 뽑기 확률, 성장 수치. 밸런스는 여기서 조정 |
 | `js/bestiary.js` | 잡몹 23종 + 보스 14종 정의, 색 변종 생성 (`rat:red` 같은 id) |
 | `js/world.js` | 3~50장 표와 스테이지 생성기, 난이도 곡선 |
 | `js/engine.js` | 전투 엔진 (DOM 없음) |
 | `js/game.js` | 저장, 레벨업, 뽑기 (DOM 없음) |
+| `js/poses.js` | 대기/걷기/공격/피격 17프레임의 자세표와 프레임 고르는 규칙 |
 | `js/sprites.js`, `js/sprites2.js` | 도트 스프라이트를 코드로 그리는 곳 (학생/기존 적, 새 적 아키타입) |
 | `js/scenery.js` | 배경 아키타입과 팔레트 |
 | `js/render.js` | 전투 화면 그리기 |
+| `js/audio.js` | 효과음(합성)과 배경음 재생. 배경음 파일은 `assets/bgm/README.md` 참고 |
 | `js/ui.js` | 화면 전환과 HUD |
 | `docs/concept.md` | 컨셉 문서 |
 | `tests/sim.js` | 데미지, 뽑기, 밸런스 시뮬레이션 |

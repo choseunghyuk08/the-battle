@@ -26,6 +26,7 @@
     screen: 'home',
     selected: null,
     chapter: null,
+    filter: 'all',
     banner: 'normal',
     pullCount: 11,
     timers: {},
@@ -227,8 +228,11 @@
     $('#deck').replaceChildren(...cells);
 
     if (!app.selected) app.selected = save.deck[0] || 'basic';
+    $$('#rosterFilter button').forEach((btn) => btn.classList.toggle('on', btn.dataset.grade === app.filter));
+    const shown = sortedUnits().filter((u) => app.filter === 'all' || String(u.grade) === app.filter);
+    $('#rosterCount').textContent = `${shown.filter((u) => save.owned[u.id]).length}/${shown.length}`;
     $('#roster').replaceChildren(
-      ...sortedUnits().map((base) => {
+      ...shown.map((base) => {
         const owned = save.owned[base.id];
         const def = owned ? YG.ownedDef(save, base.id) : base;
         return el('button', {
@@ -775,6 +779,9 @@
         el('p', {}, [r.first ? '첫 클리어 · ' : '반복 · ', '동전 ', el('b', { text: `+${fmt(r.coins)}` })]),
         el('p', {}, ['경험치 ', el('b', { text: `+${fmt(r.xp)}` }), ' · 형광펜 ', el('b', { text: `+${r.pens}` })]),
         summary,
+        r.unit
+          ? el('p', { class: 'unlock' }, [YG.sprites.portrait(YG.unitById(r.unit), 2), el('span', { text: `새 동료 · ${YG.unitById(r.unit).name}` })])
+          : null,
         slotsAfter > slotsBefore ? el('p', { text: `출전 칸 ${slotsAfter}칸으로 늘었다.` }) : null,
         !wasCleared && next ? el('p', { text: `${next.sub} ${next.name} 열림.` }) : null
       );
@@ -856,6 +863,12 @@
     });
     $('#chTitle').addEventListener('click', openChapterList);
     $('#chapterClose').addEventListener('click', () => $('#chapterDlg').close());
+    for (const btn of $$('#rosterFilter button')) {
+      btn.addEventListener('click', () => {
+        app.filter = btn.dataset.grade;
+        renderFormation();
+      });
+    }
     for (const tab of $$('#bannerTabs button')) {
       tab.addEventListener('click', () => {
         app.banner = tab.dataset.banner;

@@ -140,6 +140,8 @@
     for (let k = 1; k <= STAGES_PER; k++) YG.STAGES.push(buildStage(ch, k, nextId++));
   }
 
+  YG.STAGES[8].unlock = 'calli';
+
   YG.regenStage = (id) => {
     const st = YG.STAGES[id - 1];
     return buildStage(chapterOf[st.chapter], Number(st.sub.split('-')[1]), id);

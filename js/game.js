@@ -151,7 +151,12 @@
     save.xp += r.xp;
     save.pens += r.pens;
     save.cleared[stage.id] = true;
-    return { first, coins: r.coins, xp: r.xp, pens: r.pens };
+    let unit = null;
+    if (first && stage.unlock && !save.owned[stage.unlock]) {
+      save.owned[stage.unlock] = { lv: 1, plus: 0, shards: 0, evo: 0 };
+      unit = stage.unlock;
+    }
+    return { first, coins: r.coins, xp: r.xp, pens: r.pens, unit };
   };
 
   YG.buildDeck = (save) =>

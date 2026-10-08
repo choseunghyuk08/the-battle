@@ -58,7 +58,20 @@
           <div class="deck" id="deck"></div>
         </div>
         <div class="roster-wrap">
-          <div class="roster" id="roster"></div>
+          <div class="roster-col">
+            <div class="roster-head">
+              <div class="seg five" id="rosterFilter" role="tablist" aria-label="등급 필터">
+                <button data-grade="all">전체</button>
+                <button data-grade="4">4등급</button>
+                <button data-grade="3">3등급</button>
+                <button data-grade="2">2등급</button>
+                <button data-grade="1">1등급</button>
+                <button data-grade="0">만점</button>
+              </div>
+              <span class="eyebrow">보유 <b id="rosterCount"></b></span>
+            </div>
+            <div class="roster" id="roster"></div>
+          </div>
           <aside class="detail" id="detail"></aside>
         </div>
       </div>

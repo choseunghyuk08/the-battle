@@ -343,6 +343,12 @@
         b.r(hx - 5, hy - 6, 2, 4, '#c9a24a');
         b.r(hx + 4, hy - 6, 2, 4, '#c9a24a');
         break;
+      case 'chain': {
+        const [ex, ey] = along(11);
+        b.line(hx, hy, ex, ey, '#9aa3ad', 1);
+        b.r(ex - 1, ey - 1, 3, 3, '#6b7280');
+        break;
+      }
       case 'trophy':
         b.r(hx - 2, hy - 8, 5, 4, '#f2d450');
         b.r(hx, hy - 4, 1, 3, '#f2d450');

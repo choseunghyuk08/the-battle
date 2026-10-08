@@ -380,6 +380,47 @@
       ctx.fillStyle = '#d9483b';
       ctx.fillRect(Math.round(x) + 1, Math.round(y) + 1, 1, 1);
     },
+    ball(ctx, f, x, y, p) {
+      const yy = Math.round(y - Math.sin(p * Math.PI) * 14);
+      ctx.fillStyle = '#141218';
+      ctx.fillRect(Math.round(x) - 1, yy - 1, 7, 7);
+      ctx.fillStyle = Math.floor(p * 8) % 2 ? '#d9663b' : '#f0e8c8';
+      ctx.fillRect(Math.round(x), yy, 5, 5);
+      ctx.fillStyle = '#7a3a1f';
+      ctx.fillRect(Math.round(x) + 2, yy, 1, 5);
+    },
+    arrow(ctx, f, x, y) {
+      ctx.fillStyle = '#141218';
+      ctx.fillRect(Math.round(x - f.dir * 8) - 1, Math.round(y) - 1, 12, 3);
+      ctx.fillStyle = '#c8a15a';
+      ctx.fillRect(Math.round(x - f.dir * 8), Math.round(y), 10, 1);
+      ctx.fillStyle = '#e8eef2';
+      ctx.fillRect(Math.round(x + (f.dir > 0 ? 2 : -3)), Math.round(y) - 1, 2, 3);
+    },
+    foam(ctx, f, x, y, p) {
+      ctx.globalAlpha = 0.9 - p * 0.4;
+      ctx.fillStyle = '#f6f3ea';
+      for (let k = 0; k < 6; k++) {
+        const r = 2 + (k % 3);
+        ctx.fillRect(Math.round(x - f.dir * k * 4), Math.round(y - 2 + ((k * 5) % 5) - 2), r, r);
+      }
+      ctx.globalAlpha = 1;
+    },
+    bolt(ctx, f, x, y, p) {
+      const len = Math.abs(f.x1 - f.x0);
+      const x0 = f.dir > 0 ? f.x0 + 6 : f.x0 - 6 - len;
+      ctx.globalAlpha = 1 - p * 0.6;
+      ctx.fillStyle = '#6fd0e8';
+      let cy = y;
+      for (let k = 0; k < len; k += 4) {
+        const ny = y + (((k * 7) % 9) - 4);
+        ctx.fillRect(Math.round(x0 + k), Math.min(cy, ny), 4, Math.abs(ny - cy) + 1);
+        cy = ny;
+      }
+      ctx.fillStyle = '#f4efb4';
+      ctx.fillRect(Math.round(x0), Math.round(y), Math.round(len), 1);
+      ctx.globalAlpha = 1;
+    },
     laser(ctx, f, x, y, p) {
       const len = Math.abs(f.x1 - f.x0);
       const x0 = f.dir > 0 ? f.x0 + 6 : f.x0 - 6 - len;

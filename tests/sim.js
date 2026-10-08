@@ -101,15 +101,17 @@ function testGacha() {
   assert(lim.featured && lim.endsAt > new Date(2026, 9, 7).getTime());
   const ls = YG.newSave();
   const lc = { 0: 0, 1: 0, 2: 0, 3: 0 };
-  const feat = { top: 0, warden: 0 };
+  const feat = {};
   for (let i = 0; i < N; i++) {
     const r = YG.gacha.pull(ls, rng, { banner: lim });
     lc[r.grade]++;
-    if (r.grade === 0) feat[r.id]++;
+    if (r.grade === 0) feat[r.id] = (feat[r.id] || 0) + 1;
   }
-  console.log(`한정  만점 ${((lc[0] / N) * 100).toFixed(2)}%  1등급 ${((lc[1] / N) * 100).toFixed(2)}%  픽업 ${lim.featured} ${feat[lim.featured]}/${feat.top + feat.warden}`);
+  const legendTotal = Object.values(feat).reduce((a, b) => a + b, 0);
+  console.log(`한정  만점 ${((lc[0] / N) * 100).toFixed(2)}%  1등급 ${((lc[1] / N) * 100).toFixed(2)}%  픽업 ${lim.featured} ${feat[lim.featured]}/${legendTotal}`);
   assert(lc[0] / N > 0.01, '한정 뽑기 전설 확률은 1% 이상 (천장 포함)');
-  const share = feat[lim.featured] / (feat.top + feat.warden);
+  assert.strictEqual(Object.keys(feat).length, 4, '전설 4종이 모두 나온다');
+  const share = feat[lim.featured] / legendTotal;
   assert(share > 0.66 && share < 0.74, '픽업 비율 70%');
 
   const hard = YG.newSave();
@@ -149,6 +151,36 @@ function testGacha() {
   poor.coins = 10;
   assert.strictEqual(YG.gacha.draw(poor, 1), null, '동전 부족');
   console.log('gacha ok');
+}
+
+function testRoster() {
+  const by = {};
+  for (const u of YG.UNITS) (by[u.grade] = by[u.grade] || []).push(u);
+  assert.deepStrictEqual([4, 3, 2, 1, 0].map((g) => by[g].length), [8, 10, 8, 5, 4], '등급별 유닛 수');
+  const ids = new Set(YG.UNITS.map((u) => u.id));
+  assert.strictEqual(ids.size, YG.UNITS.length, 'id 중복 없음');
+  for (const u of YG.UNITS) {
+    assert(u.evo && u.evo.name && u.evo.blurb, `${u.id} 진화 정보`);
+    assert(u.look && u.look.top && u.look.pants, `${u.id} 외형`);
+    assert(u.hp > 0 && u.atk > 0 && u.cost > 0 && u.cooldown > 0, `${u.id} 스탯`);
+    for (const a of u.abilities) assert(YG.TRAITS[a.vs], `${u.id} 특성 ${a.vs}`);
+    if (u.ranged) assert(['salt', 'beam', 'book', 'wave', 'beaker', 'exam', 'note', 'laser', 'chalk', 'ball', 'arrow', 'foam', 'bolt'].includes(u.ranged), `${u.id} 투사체 ${u.ranged}`);
+    assert.strictEqual(u.grade === 0, !!u.limited, `${u.id} 전설만 한정`);
+  }
+  for (const trait of ['ghost', 'specimen', 'dark', 'metal']) {
+    for (const g of [3, 2]) {
+      const n = by[g].filter((u) => u.abilities.some((a) => a.vs === trait)).length;
+      assert(n >= 2, `${g}등급 ${trait} 카운터 ${n}종`);
+    }
+  }
+  const s = YG.newSave();
+  for (const [id, unit] of [[2, 'cleaner'], [4, 'basket'], [6, 'pingpong'], [9, 'calli']]) {
+    const r = YG.applyReward(s, YG.STAGES[id - 1]);
+    assert.strictEqual(r.unit, unit, `${id}번 스테이지 첫 클리어 보상`);
+    assert(s.owned[unit]);
+    assert.strictEqual(YG.applyReward(s, YG.STAGES[id - 1]).unit, null, '재클리어는 중복 지급 없음');
+  }
+  console.log('roster ok (유닛 35종)');
 }
 
 function testWorld() {
@@ -295,6 +327,7 @@ if (require.main === module) {
   testDamage();
   testEvolution();
   testSlots();
+  testRoster();
   testWorld();
   testGacha();
   testProgression();
@@ -302,14 +335,18 @@ if (require.main === module) {
   console.log('\nall tests passed');
 }
 
-const ORDER = ['basic', 'bag', 'runner', 'reader', 'tech', 'bat', 'cook', 'radio', 'patrol', 'lab', 'robot', 'pe', 'top', 'warden'];
+const ORDER = [
+  'basic', 'bag', 'runner', 'reader', 'tech', 'bat', 'cook', 'radio', 'cleaner', 'basket', 'kendo', 'volley', 'patrol', 'lab', 'robot',
+  'art', 'drum', 'coder', 'nurse', 'pingpong', 'calli', 'fire', 'archer', 'pe', 'choir', 'electric', 'taekwon', 'sciT', 'nurseT', 'senior',
+  'vice', 'top', 'warden', 'headmaster', 'alumni',
+];
 const GRADE_SCORE = { 4: 1, 3: 3, 2: 4.5, 1: 6, 0: 7 };
 
 function progressTier(stageId) {
   const stage = YG.STAGES[stageId - 1];
   const g = stage.id - 1;
   const lv = Math.max(1, Math.min(50, Math.round(4 + 0.19 * g)));
-  const have = g < 6 ? 4 : g < 14 ? 6 : g < 22 ? 8 : g < 30 ? 10 : g < 40 ? 12 : 14;
+  const have = Math.min(ORDER.length, 4 + Math.floor(g / 3));
   const owned = ORDER.slice(0, have);
   const traits = new Set(YG.stageTraits(stage));
   const score = (id) => {
