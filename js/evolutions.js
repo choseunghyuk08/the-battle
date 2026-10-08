@@ -658,6 +658,14 @@
         { top: '#0c0b10', gear: ['cape:#14121a', 'epaulette2', 'wings:#f2d450', 'halo'] },
       ],
     },
+    dclass: {
+      name: '모범 수용자', name2: '탈출의 달인',
+      blurb: '규칙을 외웠다. 적어도 바닥 청소는 잘한다.', blurb2: '살아남았다. 그것만으로 전설이다.',
+      look: [
+        { gear: ['armband:#efe9dc', 'scarf:#e0762c'] },
+        { top: '#2a2a33', trim: '#e0762c', gear: ['cape:#e0762c', 'epaulette2', 'halo'] },
+      ],
+    },
   };
 
   for (const u of YG.UNITS) {

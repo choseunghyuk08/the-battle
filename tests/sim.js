@@ -156,7 +156,7 @@ function testGacha() {
 function testRoster() {
   const by = {};
   for (const u of YG.UNITS) (by[u.grade] = by[u.grade] || []).push(u);
-  assert.deepStrictEqual([4, 3, 2, 1, 0].map((g) => by[g].length), [13, 23, 21, 14, 9], '등급별 유닛 수');
+  assert.deepStrictEqual([4, 3, 2, 1, 0].map((g) => by[g].length), [14, 23, 21, 14, 9], '등급별 유닛 수');
   const ids = new Set(YG.UNITS.map((u) => u.id));
   assert.strictEqual(ids.size, YG.UNITS.length, 'id 중복 없음');
   for (const u of YG.UNITS) {
@@ -174,7 +174,7 @@ function testRoster() {
     }
   }
   const s = YG.newSave();
-  for (const [id, unit] of [[2, 'cleaner'], [4, 'basket'], [6, 'pingpong'], [9, 'calli'], [11, 'shuttle'], [15, 'garden'], [19, 'photo'], [25, 'soccer'], [29, 'cheer']]) {
+  for (const [id, unit] of [[2, 'cleaner'], [4, 'basket'], [6, 'pingpong'], [9, 'calli'], [11, 'shuttle'], [15, 'garden'], [19, 'photo'], [25, 'soccer'], [29, 'cheer'], [348, 'dclass']]) {
     const r = YG.applyReward(s, YG.STAGES[id - 1]);
     assert.strictEqual(r.unit, unit, `${id}번 스테이지 첫 클리어 보상`);
     assert(s.owned[unit]);

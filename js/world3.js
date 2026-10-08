@@ -116,11 +116,17 @@
     for (let k = 1; k <= STAGES_PER; k++) YG.STAGES.push(buildStage(chapterOf[num], k, nextId++));
   }
 
+  /* 첫 클리어 보상으로 얻는 동료 (스테이지 번호 -> 유닛). 71-1: 4등급 D계급 인원 */
+  const UNLOCKS = { [PREV_STAGES + 1]: 'dclass' };
+  for (const [id, unit] of Object.entries(UNLOCKS)) YG.STAGES[id - 1].unlock = unit;
+
   const prevRegen = YG.regenStage;
   YG.regenStage = (id) => {
     if (id <= PREV_STAGES) return prevRegen(id);
     const st = YG.STAGES[id - 1];
-    return buildStage(chapterOf[st.chapter], Number(st.sub.split('-')[1]), id);
+    const fresh = buildStage(chapterOf[st.chapter], Number(st.sub.split('-')[1]), id);
+    if (UNLOCKS[id]) fresh.unlock = UNLOCKS[id];
+    return fresh;
   };
 
   /* 장별 스테이지 목록은 해외편이 만든 것에 71장 이후를 더해 다시 만든다 */

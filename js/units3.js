@@ -4,6 +4,13 @@
   /* 재단 테마 동료. 능력 필드는 data.js와 같다. */
   const FOUNDATION = [
     {
+      id: 'dclass', name: 'D계급 인원', grade: 4, role: '속공',
+      hp: 120, atk: 20, range: 14, speed: 0.7, interval: 40, anim: { hit: 7, total: 14 },
+      cost: 60, cooldown: 80, kb: 4, abilities: [],
+      blurb: '번호만 있는 인원. 일단 앞에 세우면 시간은 번다.',
+      look: { hair: '#2a2323', style: 'short', top: '#e0762c', trim: '#e0762c', pants: '#e0762c', prop: null, face: 'bandage' },
+    },
+    {
       id: 'guard', name: '재단 경비 요원', grade: 3, role: '근접',
       hp: 560, atk: 56, range: 20, speed: 0.46, interval: 66, anim: { hit: 12, total: 24 },
       cost: 230, cooldown: 180, kb: 3, slow: { chance: 0.35, frames: 90 }, abilities: [{ vs: 'ghost', type: 'strong' }],
