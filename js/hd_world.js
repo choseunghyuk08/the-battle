@@ -102,28 +102,30 @@
     const gape = o.gape || 0;
     const fx = hx + rx;
     if (o.eye === 'closed') {
-      h.line(hx, ey0 - 1, hx + 3, ey0 + 1, '#15101a', 2);
-      h.line(hx + 5, ey0 - 1, fx - 1, ey0 + 1, '#15101a', 2);
+      h.line(hx - 2, ey0 - 1, hx + 2, ey0 + 1, '#15101a', 2);
+      h.line(hx + 4, ey0 - 1, fx - 1, ey0 + 1, '#15101a', 2);
     } else {
       const sock = o.sock || '#1a1220';
-      h.ell(hx + 2, ey0, 3, 2, sock);
+      h.ell(hx, ey0, 2, 2, sock);
       h.ell(fx - 2, ey0 + 1, 2, 2, sock);
       if (o.eye === 'white') {
-        h.r(hx + 1, ey0 - 1, 4, 3, o.eyeCol);
-        h.px(hx + 1, ey0 - 1, '#ffffff');
+        h.r(hx - 1, ey0 - 1, 3, 3, o.eyeCol);
+        h.px(hx - 1, ey0 - 1, '#ffffff');
         h.r(fx - 3, ey0, 3, 2, o.eyeCol);
       } else if (o.eye === 'glow') {
-        h.r(hx + 2, ey0 - 1, 3, 2, o.eyeCol);
-        h.px(hx + 2, ey0 - 1, '#ffffff');
-        h.px(hx + 4, ey0, h.tone(o.eyeCol, -0.5));
+        h.r(hx - 1, ey0 - 1, 3, 2, o.eyeCol);
+        h.px(hx - 1, ey0 - 1, '#ffffff');
+        h.px(hx + 1, ey0, h.tone(o.eyeCol, -0.5));
         h.r(fx - 3, ey0, 2, 2, o.eyeCol);
         h.px(fx - 3, ey0, '#ffffff');
       } else {
-        h.px(hx + 2, ey0 - 1, o.eyeCol);
-        h.px(hx + 3, ey0, h.tone(o.eyeCol, -0.4));
+        h.px(hx - 1, ey0 - 1, o.eyeCol);
+        h.px(hx, ey0, h.tone(o.eyeCol, -0.4));
         h.px(fx - 3, ey0, o.eyeCol);
+        h.px(fx - 2, ey0 + 1, h.tone(o.eyeCol, -0.4));
       }
-      h.line(hx - 1, ey0 - 3, hx + 5, ey0 - 2, o.brow || sk.dk, 1);
+      h.line(hx - 2, ey0 - 3, hx + 4, ey0 - 2, o.brow || sk.dk, 1);
+      h.line(hx + 5, ey0 - 2, fx - 1, ey0 - 1, o.brow || sk.dk, 1);
     }
     /* 입 */
     const fang = '#f6f2ec';
@@ -1083,14 +1085,14 @@
       const my = hy + 5;
       for (let i = 0; i < 3; i++) {
         const r = 5 + i * 6 + q.atk * 5;
-        for (let a = -0.9; a <= 0.9; a += 0.2) {
+        for (let a = -0.9; a <= 0.9; a += 0.12) {
           h.spark(rd(mx + 3 + cos(a) * r), rd(my + sin(a) * r * 1.1), 2, 2, `rgba(220,232,255,${0.8 - i * 0.18})`);
         }
       }
     }
     for (let i = 0; i < 6; i++) {
-      const a = t + i * 1.4;
-      h.spark(rd(bx - 12 + i * 5 + sin(a) * 2), rd(wy + 18 + hash(i + 4) * 9 + cos(a) * 1.5), 5 + (i % 3) * 2, 1, 'rgba(200,218,250,0.35)');
+      const life = ((q.n + i * 2) % 12) / 12;
+      h.spark(rd(bx - 9 + i * 4 + sin(i * 2.3 + q.n * 0.5) * 2), rd(wy + 8 + life * 22), 1, 2, `rgba(205,222,255,${0.6 - life * 0.5})`);
     }
     if (!hurt) {
       h.spark(hx + 3, hy - 1, 1, 1, '#ffffff');
