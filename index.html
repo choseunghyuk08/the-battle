@@ -24,6 +24,7 @@
           <button class="btn primary big" data-go="stages">출전</button>
           <button class="btn big" data-go="formation">편성</button>
           <button class="btn big" data-go="gacha">문방구</button>
+          <button class="btn big" id="openMissions">임무<i class="nav-badge" id="missionBadge" hidden></i></button>
         </nav>
         <button class="btn ghost" id="openSettings">소리 설정</button>
       </div>
@@ -175,6 +176,28 @@
     <div class="sheet-actions"><button class="btn primary" id="chapterClose">닫기</button></div>
   </dialog>
 
+  <dialog id="missionDlg" class="sheet mission" aria-labelledby="missionTitle">
+    <div class="sheet-head">
+      <div class="mission-top">
+        <div>
+          <h3 id="missionTitle">임무.</h3>
+          <p class="eyebrow" id="missionSub"></p>
+        </div>
+        <div class="purse" data-purse></div>
+      </div>
+      <div class="seg" id="missionTabs" role="tablist" aria-label="임무 종류">
+        <button role="tab" id="tabDaily" data-tab="daily" aria-controls="missionBody">오늘<i class="tab-n" hidden></i></button>
+        <button role="tab" id="tabAch" data-tab="ach" aria-controls="missionBody">업적<i class="tab-n" hidden></i></button>
+      </div>
+    </div>
+    <div class="mission-body" id="missionBody" role="tabpanel" tabindex="-1"></div>
+    <p class="sr-only" id="missionNote" role="status" aria-live="polite"></p>
+    <div class="sheet-actions">
+      <button class="btn" id="missionClose">닫기</button>
+      <button class="btn primary" id="missionAll">모두 받기</button>
+    </div>
+  </dialog>
+
   <dialog id="settingsDlg" class="sheet small">
     <div class="sheet-head">
       <h3>소리.</h3>
@@ -198,6 +221,8 @@
       <button class="btn" data-dbg="shards">조각 +10</button>
       <button class="btn" data-dbg="all">전 유닛 해금</button>
       <button class="btn" data-dbg="pity">천장 초기화</button>
+      <button class="btn" data-dbg="missionDone">오늘 임무 전부 완료</button>
+      <button class="btn" data-dbg="missionReset">임무/기록 초기화</button>
       <button class="btn" data-dbg="clear">스테이지 전부 해금</button>
       <button class="btn danger" data-dbg="reset">세이브 초기화</button>
     </div>
@@ -211,6 +236,7 @@
   <script src="js/world.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/game.js"></script>
+  <script src="js/missions.js"></script>
   <script src="js/poses.js"></script>
   <script src="js/sprites.js"></script>
   <script src="js/sprites2.js"></script>

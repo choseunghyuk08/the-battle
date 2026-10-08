@@ -5,6 +5,17 @@
   const DAILY_COINS = 300;
   const DAY = 86400000;
 
+  /* 누적 기록. unitsOwned 같은 값은 세이브에서 바로 세므로 저장하지 않는다. */
+  YG.STAT_KEYS = [
+    'stagesCleared', 'firstClears', 'chaptersCleared', 'kills', 'bossKills', 'summons', 'cannonShots',
+    'pulls', 'topPulls', 'legendPulls', 'shardsGot', 'levelUps', 'plusUps', 'evolves',
+    'dailyDone', 'missionsDone', 'battles', 'days',
+  ];
+  const newStats = () => Object.fromEntries(YG.STAT_KEYS.map((k) => [k, 0]));
+  const newDaily = () => ({ day: null, picks: [], progress: {}, claimed: {}, bonusClaimed: false });
+  /* missions.js 는 game.js 다음에 불러오므로 호출할 때 찾는다 */
+  const track = (...args) => (YG.track ? YG.track(...args) : []);
+
   YG.newSave = () => ({
     v: 2,
     coins: 3300,
@@ -24,6 +35,9 @@
     lastPlayed: null,
     lastDaily: null,
     seenTip: false,
+    stats: newStats(),
+    daily: newDaily(),
+    ach: { claimed: {} },
   });
 
   function normalize(raw) {
@@ -34,7 +48,39 @@
       if (YG.unitById(id)) save.owned[id] = { lv: 1, plus: 0, shards: 0, evo: 0, ...o };
     }
     save.deck = (save.deck || []).filter((id) => save.owned[id]);
+    normalizeMissions(save, raw);
     return save;
+  }
+
+  const toCount = (v) => (Number.isFinite(v) && v > 0 ? Math.floor(v) : 0);
+  const plain = (v) => (v && typeof v === 'object' && !Array.isArray(v) ? v : {});
+
+  /* 임무/업적 필드가 없는 옛 세이브도 읽는다. 이미 쌓인 기록은 세이브에서 알 수 있는 만큼 채운다. */
+  function normalizeMissions(save, raw) {
+    const old = plain(raw.stats);
+    save.stats = newStats();
+    for (const k of YG.STAT_KEYS) save.stats[k] = toCount(old[k]);
+    const owned = Object.values(save.owned);
+    const sum = (f) => owned.reduce((a, o) => a + f(o), 0);
+    const floor = (k, n) => (save.stats[k] = Math.max(save.stats[k], toCount(n)));
+    floor('stagesCleared', Object.keys(save.cleared || {}).length);
+    floor('firstClears', Object.keys(save.cleared || {}).length);
+    floor('pulls', save.pulls);
+    floor('levelUps', sum((o) => toCount(o.lv - 1)));
+    floor('plusUps', sum((o) => toCount(o.plus)));
+    floor('evolves', sum((o) => toCount(o.evo)));
+
+    const d = plain(raw.daily);
+    const flags = (v) => Object.fromEntries(Object.entries(plain(v)).filter(([, n]) => n));
+    save.daily = {
+      day: typeof d.day === 'string' ? d.day : null,
+      picks: Array.isArray(d.picks) ? d.picks.filter((id) => typeof id === 'string') : [],
+      progress: Object.fromEntries(Object.entries(plain(d.progress)).map(([k, n]) => [k, toCount(n)])),
+      claimed: flags(d.claimed),
+      bonusClaimed: !!d.bonusClaimed,
+    };
+    const claimed = plain(plain(raw.ach).claimed);
+    save.ach = { claimed: Object.fromEntries(Object.entries(claimed).map(([k, n]) => [k, toCount(n)]).filter(([, n]) => n)) };
   }
 
   YG.loadSave = (storage = g.localStorage) => {
@@ -59,11 +105,13 @@
     const d = new Date(ts);
     return `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
   };
+  YG.dayKey = dayKey;
 
   YG.claimDaily = (save, now = Date.now()) => {
     if (save.lastDaily === dayKey(now)) return false;
     save.lastDaily = dayKey(now);
     save.coins += DAILY_COINS;
+    track(save, 'days', 1, now);
     return true;
   };
 
@@ -87,6 +135,7 @@
     if (save.xp < cost) return false;
     save.xp -= cost;
     o.lv++;
+    track(save, 'levelUps');
     return true;
   };
 
@@ -97,6 +146,7 @@
     if (o.shards < cost) return false;
     o.shards -= cost;
     o.plus++;
+    track(save, 'plusUps');
     return true;
   };
 
@@ -119,6 +169,7 @@
     save.pens -= chk.req.pens;
     save.xp -= chk.req.xp;
     save.owned[id].evo += 1;
+    track(save, 'evolves');
     return true;
   };
 
@@ -155,6 +206,11 @@
     if (first && stage.unlock && !save.owned[stage.unlock]) {
       save.owned[stage.unlock] = { lv: 1, plus: 0, shards: 0, evo: 0 };
       unit = stage.unlock;
+    }
+    track(save, 'stagesCleared');
+    if (first) {
+      track(save, 'firstClears');
+      if (YG.chapterStages(stage.chapter).every((s) => save.cleared[s.id])) track(save, 'chaptersCleared');
     }
     return { first, coins: r.coins, xp: r.xp, pens: r.pens, unit };
   };
@@ -253,6 +309,10 @@
         const guarantee = last && out.every((r) => r.grade > 2);
         out.push(gacha.pull(save, rng, { banner, guarantee }));
       }
+      track(save, 'pulls', count);
+      track(save, 'topPulls', out.filter((r) => r.grade <= 1).length);
+      track(save, 'legendPulls', out.filter((r) => r.grade === 0).length);
+      track(save, 'shardsGot', out.filter((r) => !r.isNew).length);
       return out;
     },
   };

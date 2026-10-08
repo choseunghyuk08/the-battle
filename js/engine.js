@@ -53,7 +53,7 @@
       this.fx = [];
       this.nextId = 1;
       this.result = null;
-      this.stats = { kills: 0, summoned: 0 };
+      this.stats = { kills: 0, summoned: 0, bossKills: 0, cannon: 0 };
       this.events = [];
     }
 
@@ -143,6 +143,7 @@
     fireCannon() {
       if (!this.cannonReady) return false;
       this.cannon.charge = 0;
+      this.stats.cannon++;
       this.emit({ t: 'cannon' });
       this.fx.push({ kind: 'cannon', life: 20, max: 20 });
       for (const e of this.units) {
@@ -246,6 +247,8 @@
       v.hp = 0;
       if (v.side === 'enemy') {
         this.stats.kills++;
+        /* 이긴 뒤 남은 적을 정리하는 건 처치로 치지 않는다 */
+        if (v.def.boss && !this.result) this.stats.bossKills++;
         this.money = Math.min(this.worker.max, this.money + v.drop);
       }
     }

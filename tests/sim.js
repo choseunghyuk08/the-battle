@@ -1,7 +1,7 @@
 const path = require('path');
 const assert = require('assert');
 const root = path.join(__dirname, '..', 'js');
-['data.js', 'bestiary.js', 'world.js', 'engine.js', 'game.js', 'scenery.js'].forEach((f) => require(path.join(root, f)));
+['data.js', 'bestiary.js', 'world.js', 'engine.js', 'game.js', 'missions.js', 'scenery.js'].forEach((f) => require(path.join(root, f)));
 const YG = globalThis.YG;
 
 function seeded(seed) {
@@ -333,6 +333,7 @@ if (require.main === module) {
   testWorld();
   testGacha();
   testProgression();
+  testMissions();
   if (process.argv.includes('--balance')) balance();
   console.log('\nall tests passed');
 }
@@ -387,3 +388,218 @@ function playBest(t, seeds, maxSec = 600) {
 }
 
 module.exports = { playBot, playBest, tiers, seeded, progressTier };
+
+/* 임무와 업적 (js/missions.js) */
+function testMissions() {
+  const at = (n, hour = 12) => new Date(2026, 9, 1 + n, hour).getTime();
+  const keyOf = (n) => YG.dayKey(at(n));
+  const sig = (n) => YG.pickDaily(keyOf(n)).map((m) => m.id).join(',');
+  const isCount = (n) => Number.isInteger(n) && n >= 0;
+  const t0 = at(0);
+
+  assert(YG.DAILY_POOL.length >= 14, '임무 풀 14개 이상');
+  assert.strictEqual(new Set(YG.DAILY_POOL.map((m) => m.id)).size, YG.DAILY_POOL.length, '임무 id 중복 없음');
+
+  /* 날짜로 고정되는 선택 */
+  assert.strictEqual(sig(3), sig(3), '같은 날이면 같은 임무');
+  const sigs = new Set();
+  for (let i = 0; i < 30; i++) {
+    const picks = YG.pickDaily(keyOf(i));
+    assert.strictEqual(picks.length, 4);
+    assert.strictEqual(new Set(picks.map((m) => m.id)).size, 4, '임무 4개는 서로 다르다');
+    assert.strictEqual(new Set(picks.map((m) => m.stat)).size, 4, '같은 기록을 세는 임무는 겹치지 않는다');
+    assert.strictEqual(picks[0].tier, 'easy', '첫 임무는 쉬움');
+    assert.strictEqual(picks[3].tier, 'hard', '마지막 임무는 어려움');
+    assert(new Set(picks.map((m) => m.cat)).size >= 3, '분류가 한쪽으로 쏠리지 않는다');
+    sigs.add(sig(i));
+  }
+  assert(sigs.size >= 20, `30일 중 서로 다른 조합 ${sigs.size}개`);
+
+  /* 진행도, 달성, 받기 */
+  const s = YG.newSave();
+  const st0 = YG.dailyStatus(s, t0);
+  assert.strictEqual(st0.missions.length, 4);
+  assert(st0.missions.every((m) => m.id !== 'boss1' && m.id !== 'grow1'), '못 깨는 임무는 안 나온다');
+  const reloaded = YG.loadSave({ getItem: () => JSON.stringify(s) });
+  assert.deepStrictEqual(YG.dailyStatus(reloaded, t0).missions.map((m) => m.id), st0.missions.map((m) => m.id), '다시 불러와도 같은 임무');
+
+  const first = st0.missions[0];
+  const idle = YG.STAT_KEYS.find((k) => !st0.missions.some((m) => m.stat === k));
+  assert.deepStrictEqual(YG.track(s, idle, 3, t0), []);
+  assert.strictEqual(s.stats[idle], 3, '임무와 상관없는 기록도 쌓인다');
+  assert(YG.dailyStatus(s, t0).missions.every((m) => m.value === 0), '다른 기록은 진행도에 안 섞인다');
+  assert.deepStrictEqual(YG.track(s, first.stat, first.goal - 1, t0), []);
+  assert.strictEqual(YG.dailyStatus(s, t0).missions[0].done, false);
+  assert.strictEqual(YG.claimMission(s, first.id, t0), null, '덜 채우면 못 받는다');
+  assert.deepStrictEqual(YG.track(s, first.stat, 1, t0), [first.id], '목표를 채우는 순간 달성 목록에 나온다');
+  assert.deepStrictEqual(YG.track(s, first.stat, 50, t0), [], '넘쳐도 다시 달성되지 않는다');
+  assert.strictEqual(YG.dailyStatus(s, t0).missions[0].value, first.goal, '표시 진행도는 목표에서 멈춘다');
+  assert.strictEqual(s.stats.missionsDone, 1);
+
+  const coins = s.coins;
+  const got = YG.claimMission(s, first.id, t0);
+  assert.deepStrictEqual(got, first.reward);
+  assert.strictEqual(s.coins, coins + first.reward.coins);
+  assert.strictEqual(YG.claimMission(s, first.id, t0), null, '두 번 받을 수 없다');
+  assert.strictEqual(YG.claimMission(s, 'nope', t0), null);
+  assert.strictEqual(YG.claimDailyBonus(s, t0), null, '4개를 다 받기 전에는 보너스 없음');
+
+  const rest = st0.missions.slice(1);
+  rest.forEach((m, i) => {
+    YG.track(s, m.stat, m.goal, t0);
+    assert.strictEqual(YG.claimDailyBonus(s, t0), null);
+    assert(YG.claimMission(s, m.id, t0), `${m.id} 받기`);
+    assert.strictEqual(YG.dailyStatus(s, t0).bonus.ready, i === rest.length - 1);
+  });
+  assert.strictEqual(s.stats.dailyDone, 1, '4개를 다 끝낸 날 1일');
+  assert.strictEqual(s.stats.missionsDone, 4);
+  const before = { c: s.coins, p: s.pens };
+  assert.deepStrictEqual(YG.claimDailyBonus(s, t0), YG.DAILY_BONUS);
+  assert.strictEqual(s.coins, before.c + YG.DAILY_BONUS.coins);
+  assert.strictEqual(s.pens, before.p + YG.DAILY_BONUS.pens);
+  assert.strictEqual(YG.claimDailyBonus(s, t0), null, '보너스도 한 번만');
+  assert.strictEqual(YG.dailyStatus(s, t0).claimable, 0);
+
+  /* 날이 바뀌면 처음부터 */
+  const next = YG.dailyStatus(s, at(1, 0));
+  assert(next.day !== st0.day);
+  assert(next.missions.every((m) => m.value === 0 && !m.claimed), '새 날은 진행도와 받은 표시가 비어 있다');
+  assert(!next.bonus.claimed && !next.bonus.ready);
+  assert.strictEqual(next.endsAt, new Date(2026, 9, 3).getTime(), '다음 날 0시까지');
+  assert.strictEqual(YG.claimMission(s, st0.missions[0].id, at(1, 0)), null, '지난 날 보상은 못 받는다');
+  const all = YG.claimAllDaily(s, at(1, 0));
+  assert.strictEqual(all, null, '받을 게 없으면 null');
+  for (const m of next.missions) YG.track(s, m.stat, m.goal, at(1, 0));
+  assert.strictEqual(YG.dailyStatus(s, at(1, 0)).claimable, 4);
+  const sum = YG.claimAllDaily(s, at(1, 0));
+  assert.strictEqual(sum.count, 5, '임무 4개 + 보너스');
+  assert.strictEqual(s.stats.dailyDone, 2);
+
+  /* 엔진 카운터와 전투 반영 */
+  const stage = YG.STAGES[2];
+  const bossId = (stage.bosses || [stage.boss])[0].id;
+  const b = new YG.Battle(stage, YG.buildDeck(YG.newSave()), seeded(5));
+  assert.strictEqual(b.fireCannon(), false);
+  b.cannon.charge = b.cannon.max;
+  assert(b.fireCannon());
+  b.kill(b.spawnUnit('enemy', YG.enemyById(bossId)));
+  b.spawnUnit('enemy', YG.enemyById(bossId));
+  b.finish('win');
+  assert.deepStrictEqual([b.stats.cannon, b.stats.bossKills], [1, 1], '이긴 뒤 정리된 보스는 처치로 세지 않는다');
+  assert.strictEqual(b.stats.kills, 2);
+  const bs = YG.newSave();
+  YG.trackBattle(bs, { stats: { kills: 10, summoned: 20, bossKills: 1, cannon: 2 } }, t0);
+  assert.deepStrictEqual(
+    ['battles', 'kills', 'summons', 'bossKills', 'cannonShots'].map((k) => bs.stats[k]),
+    [1, 10, 20, 1, 2]
+  );
+
+  /* 게임 함수에 걸린 기록 */
+  const gs = YG.newSave();
+  gs.xp = 1000;
+  gs.owned.basic.shards = 2;
+  YG.levelUp(gs, 'basic');
+  YG.enhance(gs, 'basic');
+  gs.owned.basic.lv = 5;
+  gs.pens = 10;
+  assert(YG.evolve(gs, 'basic'));
+  assert.deepStrictEqual([gs.stats.levelUps, gs.stats.plusUps, gs.stats.evolves], [1, 1, 1]);
+  for (const id of [1, 2, 3]) YG.applyReward(gs, YG.STAGES[id - 1]);
+  YG.applyReward(gs, YG.STAGES[0]);
+  assert.deepStrictEqual([gs.stats.stagesCleared, gs.stats.firstClears, gs.stats.chaptersCleared], [4, 3, 1], '재클리어는 첫 클리어로 세지 않는다');
+  const pulled = YG.gacha.draw(gs, 11, seeded(3));
+  assert.strictEqual(gs.stats.pulls, 11);
+  assert.strictEqual(gs.stats.pulls, gs.pulls, '뽑기 횟수는 세이브의 pulls 와 같다');
+  assert.strictEqual(gs.stats.topPulls, pulled.filter((r) => r.grade <= 1).length);
+  assert.strictEqual(gs.stats.shardsGot, pulled.filter((r) => !r.isNew).length);
+  assert(YG.claimDaily(gs, t0));
+  assert(!YG.claimDaily(gs, t0 + 1000));
+  assert.strictEqual(gs.stats.days, 1);
+
+  /* 업적 */
+  const ach = YG.achievementStatus(YG.newSave());
+  assert.strictEqual(new Set(ach.map((a) => a.id)).size, ach.length, '업적 id 중복 없음');
+  assert(ach.filter((a) => a.tiers >= 3 && a.tiers <= 5).length >= 24, '3~5단계 업적 24개 이상');
+  assert(ach.every((a) => a.tiers >= 1 && a.tiers <= 5 && !a.ready && !a.done && a.tier === 0));
+  for (const a of ach) {
+    const goals = YG.achievementTiers(a.id).map((t) => t.goal);
+    assert(goals.every((n, i) => n > 0 && (i === 0 || n > goals[i - 1])), `${a.id} 목표는 점점 커진다`);
+  }
+  const by = (save, id) => YG.achievementStatus(save).find((a) => a.id === id);
+  const as = YG.newSave();
+  assert.strictEqual(by(as, 'stages').goal, 5);
+  as.stats.stagesCleared = 4;
+  assert(!by(as, 'stages').ready);
+  assert.strictEqual(YG.claimAchievement(as, 'stages'), null);
+  as.stats.stagesCleared = 5;
+  assert(by(as, 'stages').ready);
+  const t1 = YG.achievementTiers('stages')[0].reward;
+  const c0 = as.coins;
+  const r1 = YG.claimAchievement(as, 'stages');
+  assert.deepStrictEqual([r1.coins, r1.xp, r1.pens, r1.tiers], [t1.coins, t1.xp, t1.pens, 1]);
+  assert.strictEqual(as.coins, c0 + t1.coins);
+  assert.strictEqual(YG.claimAchievement(as, 'stages'), null, '받은 단계는 다시 못 받는다');
+  assert.deepStrictEqual([by(as, 'stages').tier, by(as, 'stages').goal, by(as, 'stages').ready], [1, 20, false], '다음 단계로 넘어간다');
+  as.stats.stagesCleared = 70;
+  const multi = by(as, 'stages');
+  assert.deepStrictEqual([multi.ready, multi.readyCount], [true, 2], '20, 60 두 단계가 한꺼번에 열린다');
+  const tiers = YG.achievementTiers('stages');
+  assert.strictEqual(multi.reward.coins, tiers[1].reward.coins + tiers[2].reward.coins);
+  assert.strictEqual(YG.claimAchievement(as, 'stages').tiers, 2);
+  assert.strictEqual(by(as, 'stages').tier, 3);
+  as.stats.stagesCleared = 240;
+  YG.claimAchievement(as, 'stages');
+  assert(by(as, 'stages').done);
+  assert.strictEqual(YG.claimAchievement(as, 'stages'), null);
+  assert.strictEqual(YG.claimAchievement(as, 'nope'), null);
+
+  /* 유닛 수에 맞춰 목표가 정해지는 업적 */
+  const os = YG.newSave();
+  assert.strictEqual(by(os, 'owned').value, 4);
+  for (const u of YG.UNITS) os.owned[u.id] = os.owned[u.id] || { lv: 1, plus: 0, shards: 0, evo: 0 };
+  const owned = YG.achievementTiers('owned');
+  assert.strictEqual(owned[owned.length - 1].goal, YG.UNITS.length, '마지막 단계는 전 유닛');
+  for (const grade of [4, 3, 2, 1, 0]) {
+    const a = by(os, `grade${grade}`);
+    assert.strictEqual(a.goal, YG.UNITS.filter((u) => u.grade === grade).length);
+    assert(a.ready && a.tiers === 1, `${grade}등급 도감`);
+  }
+  os.owned.basic.lv = 50;
+  assert(by(os, 'maxLv').readyCount === 5, 'Lv 50 유닛이 있으면 레벨 업적이 전부 열린다');
+  const pend = YG.achievementStatus(os).filter((a) => a.ready).length;
+  assert(pend >= 7);
+  const bulk = YG.claimAllAchievements(os);
+  assert.strictEqual(bulk.count, pend);
+  assert.strictEqual(YG.achievementStatus(os).filter((a) => a.ready).length, 0);
+  assert.deepStrictEqual(YG.claimableCount(os, t0), { daily: 0, ach: 0 });
+
+  /* 옛 세이브 */
+  const old = { v: 2, coins: 500, owned: { basic: { lv: 5, plus: 2, shards: 0, evo: 1 } }, deck: ['basic'], cleared: { 1: true, 2: true }, pulls: 40 };
+  const loaded = YG.loadSave({ getItem: () => JSON.stringify(old) });
+  assert.deepStrictEqual(Object.keys(loaded.stats).sort(), [...YG.STAT_KEYS].sort());
+  assert.deepStrictEqual(
+    [loaded.stats.stagesCleared, loaded.stats.firstClears, loaded.stats.pulls, loaded.stats.levelUps, loaded.stats.plusUps, loaded.stats.evolves],
+    [2, 2, 40, 4, 2, 1],
+    '옛 세이브는 알 수 있는 만큼 기록을 채운다'
+  );
+  assert.deepStrictEqual(loaded.ach, { claimed: {} });
+  assert.strictEqual(YG.dailyStatus(loaded, t0).missions.length, 4);
+  assert.strictEqual(by(loaded, 'firsts').value, 2);
+  const junk = YG.loadSave({ getItem: () => JSON.stringify({ stats: { kills: 'x', bossKills: -3, days: 2.7 }, daily: 'zzz', ach: 5 }) });
+  assert.deepStrictEqual([junk.stats.kills, junk.stats.bossKills, junk.stats.days], [0, 0, 2]);
+  assert.strictEqual(YG.dailyStatus(junk, t0).missions.length, 4);
+  const stale = YG.newSave();
+  stale.daily = { day: YG.dayKey(t0), picks: ['gone', 'clear2', 'x', 'y'], progress: {}, claimed: {}, bonusClaimed: false };
+  assert(YG.dailyStatus(stale, t0).missions.every((m) => YG.DAILY_POOL.some((p) => p.id === m.id)), '없어진 임무가 저장돼 있으면 새로 뽑는다');
+
+  /* 보상 숫자 */
+  const rewards = [YG.DAILY_BONUS, ...Object.values(YG.DAILY_REWARD)];
+  const total = { coins: 0, xp: 0, pens: 0 };
+  for (const a of ach) for (const t of YG.achievementTiers(a.id)) rewards.push(t.reward);
+  for (const a of ach) for (const t of YG.achievementTiers(a.id)) for (const k of Object.keys(total)) total[k] += t.reward[k];
+  for (const r of rewards) for (const k of ['coins', 'xp', 'pens']) assert(isCount(r[k]), `보상 숫자 ${k}=${r[k]}`);
+  assert(total.coins >= 20000 && total.coins <= 50000, `업적 동전 합계 ${total.coins}`);
+  const daily = YG.DAILY_REWARD;
+  const dayCoins = daily.easy.coins + 2 * daily.normal.coins + daily.hard.coins + YG.DAILY_BONUS.coins;
+  console.log(`missions ok (일일 임무 ${YG.DAILY_POOL.length}종, 하루 최대 동전 ${dayCoins}, 업적 ${ach.length}개, 합계 동전 ${total.coins} 경험치 ${total.xp} 형광펜 ${total.pens})`);
+}
