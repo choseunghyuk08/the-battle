@@ -187,6 +187,7 @@
       for (const v of targets) {
         const dealt = calcDamage(e, v, e.atk);
         this.applyDamage(v, dealt, { from: e, big: dealt >= e.atk * 1.4 });
+        if (!e.def.ranged) this.fx.push({ kind: 'slash', x: v.x, z: v.z, h: 14, dir: e.dir, side: e.side, life: 7, max: 7 });
         if (e.def.freeze && v.def.trait !== 'metal' && this.rng() < e.def.freeze.chance) {
           v.freeze = e.def.freeze.frames;
           this.emit({ t: 'freeze' });

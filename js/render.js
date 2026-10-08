@@ -298,48 +298,36 @@
     ctx.fillRect(x - 2, y + 66, 34, 3);
   }
 
-  function phaseOf(u) {
-    if (u.state === 'atk') {
-      const { hit } = u.def.anim;
-      if (u.t < hit) return 'windup';
-      return u.t < hit + 5 ? 'hit' : 'idle';
-    }
-    if (u.state === 'kb') return 'idle';
-    if (u.moving) return Math.floor(u.walk / 3) % 2 ? 'walk1' : 'walk0';
-    return 'idle';
-  }
-
   function drawUnit(ctx, u) {
     const scale = u.def.scale || 1;
-    const phase = phaseOf(u);
     const mode = u.flash > 0 ? 'flash' : u.freeze > 0 ? 'frozen' : 'base';
-    const img = S().frame(u.def, phase, mode);
+    const key = u.dying ? 'hurt0' : YG.frameKey(u);
+    const img = S().frame(u.def, key, mode);
     const gy = VIEW.groundY + u.z;
     const x = Math.round(u.x);
-    let alpha = 1;
-    let lift = 0;
-    if (u.dying) {
-      alpha = Math.max(0, 1 - u.dying / YG.DIE_FRAMES);
-      lift = u.dying * 0.6;
-      if (u.dying % 2) alpha *= 0.5;
-    }
-    ctx.globalAlpha = alpha * 0.35;
-    ctx.fillStyle = '#05040a';
-    const sw = Math.round(14 * scale * (u.def.float ? 0.7 : 1));
-    ctx.fillRect(x - Math.floor(sw / 2), gy - 1, sw, 2);
-    ctx.globalAlpha = alpha;
     const w = S().CW * scale;
     const h = S().CH * scale;
-    const top = Math.round(gy - S().BY * scale - lift);
-    if (u.dir < 0) {
-      ctx.save();
-      ctx.translate(x, 0);
-      ctx.scale(-1, 1);
-      ctx.drawImage(img, -S().CX * scale, top, w, h);
-      ctx.restore();
-    } else {
-      ctx.drawImage(img, x - S().CX * scale, top, w, h);
+    const d = u.dying || 0;
+    const falling = d > 3;
+    const alpha = d ? Math.max(0, 1 - Math.max(0, d - 3) / (YG.DIE_FRAMES - 3)) * (d % 2 && d > 6 ? 0.55 : 1) : 1;
+
+    ctx.globalAlpha = alpha * 0.35;
+    ctx.fillStyle = '#05040a';
+    const sw = Math.round(14 * scale * (u.def.float && !d ? 0.7 : 1));
+    ctx.fillRect(x - Math.floor(sw / 2), gy - 1, sw, 2);
+    ctx.globalAlpha = alpha;
+
+    ctx.save();
+    ctx.translate(x, gy);
+    if (falling) {
+      ctx.rotate((-Math.PI / 2) * u.dir);
+      ctx.translate(0, -4 * scale);
+    } else if (d) {
+      ctx.scale(1, 0.92);
     }
+    if (u.dir < 0) ctx.scale(-1, 1);
+    ctx.drawImage(img, -S().CX * scale, -S().BY * scale, w, h);
+    ctx.restore();
     ctx.globalAlpha = 1;
   }
 
@@ -425,6 +413,18 @@
     if (f.kind === 'dmg') {
       const y = Math.round(gy + f.z - f.h - p * 12);
       drawNumber(ctx, f.v, Math.round(f.x), y, f.side === 'ally' ? '#e5654b' : '#f4eedc');
+    } else if (f.kind === 'slash') {
+      const x = Math.round(f.x);
+      const y = Math.round(gy + f.z - f.h);
+      const len = 3 + Math.round(p * 8);
+      ctx.globalAlpha = 1 - p * 0.7;
+      ctx.fillStyle = f.side === 'ally' ? '#fff6c8' : '#ff9a86';
+      for (let k = 0; k < len; k++) {
+        const sx = f.dir > 0 ? x - 6 + k : x + 5 - k;
+        ctx.fillRect(sx, y - 6 + k, 2, 1);
+        ctx.fillRect(sx + (f.dir > 0 ? 4 : -4), y - 6 + k, 1, 1);
+      }
+      ctx.globalAlpha = 1;
     } else if (f.kind === 'spark') {
       const x = Math.round(f.x);
       const y = Math.round(gy + f.z - f.h);
@@ -484,7 +484,7 @@
         const x = c.dir > 0 ? -40 + ((c.x + travel) % W) : VIEW.w + 40 - ((W - c.x + travel) % W);
         drawUnit(ctx, {
           def, x, z: c.side === 'ally' ? 2 : 6, dir: c.dir, state: 'move', moving: true,
-          walk: frame * c.speed, flash: 0, freeze: 0, dying: 0,
+          walk: frame * c.speed, flash: 0, freeze: 0, dying: 0, age: frame, id: c.x,
         });
       }
     },

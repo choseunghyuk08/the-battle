@@ -71,87 +71,117 @@
   const SKIN = '#f0c8a0';
   const SKIN_SHADE = '#d9a77c';
 
-  const ARM = {
-    idle: { f: [5, -6], b: [-5, -6] },
-    walk0: { f: [7, -7], b: [-6, -5] },
-    walk1: { f: [4, -5], b: [-3, -8] },
-    windup: { f: [1, -21], b: [-7, -9] },
-    hit: { f: [11, -9], b: [-7, -10] },
-  };
+  const REPLACES_HAIR = new Set(['cap', 'cap2', 'chef', 'hardhat']);
 
-  const LEG = {
-    idle: { l: [0, 0], r: [0, 0] },
-    walk0: { l: [2, 0], r: [-2, -1] },
-    walk1: { l: [-2, -1], r: [2, 0] },
-    windup: { l: [-1, 0], r: [1, 0] },
-    hit: { l: [3, 0], r: [-2, 0] },
-  };
-
-  const PROP_DIR = {
-    idle: [0.35, -1],
-    walk0: [0.5, -1],
-    walk1: [0.2, -1],
-    windup: [-0.95, -0.45],
-    hit: [1, 0.55],
-  };
-
-  const KEEPS_HAIR = new Set(['band', 'headphones', 'goggles', 'antenna']);
-
-  function drawHair(b, look) {
-    const hy = BY - 25;
-    if (look.hat && !KEEPS_HAIR.has(look.hat)) return;
-    b.r(CX - 6, hy, 12, 4, look.hair);
-    b.r(CX - 7, hy + 2, 2, 5, look.hair);
-    b.r(CX + 5, hy + 2, 2, 4, look.hair);
-    b.r(CX - 5, hy + 4, 6, 1, look.hair);
-    if (look.style === 'long') b.r(CX - 8, hy + 3, 3, 12, look.hair);
-    if (look.style === 'bun') b.disc(CX - 1, hy - 2, 2, look.hair);
+  function drawHair(b, look, ux, uy) {
+    const hy = uy - 25;
+    if (look.hat && REPLACES_HAIR.has(look.hat)) return;
+    if (look.style === 'bald') {
+      b.r(ux - 7, hy + 3, 2, 4, look.hair);
+      b.r(ux + 5, hy + 3, 2, 3, look.hair);
+      return;
+    }
+    b.r(ux - 6, hy, 12, 4, look.hair);
+    b.r(ux - 7, hy + 2, 2, 5, look.hair);
+    b.r(ux + 5, hy + 2, 2, 4, look.hair);
+    b.r(ux - 5, hy + 4, 6, 1, look.hair);
+    if (look.style === 'long') b.r(ux - 8, hy + 3, 3, 12, look.hair);
+    if (look.style === 'bun') b.disc(ux - 1, hy - 2, 2, look.hair);
   }
 
-  function drawHat(b, look) {
-    const hy = BY - 25;
-    if (look.hat === 'cap') {
-      b.r(CX - 6, hy - 1, 12, 5, look.trim);
-      b.r(CX + 3, hy + 3, 7, 2, look.trim);
-      b.r(CX - 7, hy + 3, 2, 4, look.hair);
-    } else if (look.hat === 'cap2') {
-      b.r(CX - 6, hy - 1, 12, 5, look.top);
-      b.r(CX + 3, hy + 3, 7, 2, look.top);
-      b.r(CX - 2, hy + 1, 4, 2, look.trim);
-      b.r(CX - 7, hy + 3, 2, 4, look.hair);
-    } else if (look.hat === 'chef') {
-      b.r(CX - 5, hy - 5, 10, 8, '#f6f3ea');
-      b.r(CX - 6, hy + 2, 12, 3, '#f6f3ea');
-      b.r(CX - 7, hy + 4, 2, 3, look.hair);
-    } else if (look.hat === 'hardhat') {
-      b.r(CX - 6, hy - 1, 12, 5, '#f0c32e');
-      b.r(CX - 8, hy + 3, 16, 2, '#f0c32e');
-      b.r(CX - 1, hy - 3, 2, 3, '#f0c32e');
-      b.r(CX - 7, hy + 5, 2, 2, look.hair);
-    } else if (look.hat === 'headphones') {
-      b.r(CX - 7, hy - 1, 14, 2, '#2d2a35');
-      b.r(CX - 8, hy + 3, 3, 6, '#2d2a35');
-      b.r(CX + 5, hy + 3, 3, 6, '#2d2a35');
-      b.r(CX - 7, hy + 5, 1, 2, '#a06cc8');
-      b.r(CX + 6, hy + 5, 1, 2, '#a06cc8');
-    } else if (look.hat === 'goggles') {
-      b.r(CX - 6, hy + 3, 12, 2, '#3a3a44');
-      b.r(CX - 4, hy + 2, 3, 3, '#9ed8e8');
-      b.r(CX + 1, hy + 2, 3, 3, '#9ed8e8');
-    } else if (look.hat === 'antenna') {
-      b.r(CX, hy - 4, 1, 4, '#9aa3ad');
-      b.r(CX - 1, hy - 6, 3, 2, '#e08a2e');
-    } else if (look.prop === 'band') {
-      b.r(CX - 6, hy + 4, 12, 2, '#d9483b');
-      b.px(CX - 8, hy + 5, '#d9483b');
-      b.px(CX - 9, hy + 6, '#d9483b');
+  function drawHat(b, look, ux, uy) {
+    const hy = uy - 25;
+    switch (look.hat) {
+      case 'cap':
+        b.r(ux - 6, hy - 1, 12, 5, look.trim);
+        b.r(ux + 3, hy + 3, 7, 2, look.trim);
+        b.r(ux - 7, hy + 3, 2, 4, look.hair);
+        break;
+      case 'cap2':
+        b.r(ux - 6, hy - 1, 12, 5, look.top);
+        b.r(ux + 3, hy + 3, 7, 2, look.top);
+        b.r(ux - 2, hy + 1, 4, 2, look.trim);
+        b.r(ux - 7, hy + 3, 2, 4, look.hair);
+        break;
+      case 'chef':
+        b.r(ux - 5, hy - 5, 10, 8, '#f6f3ea');
+        b.r(ux - 6, hy + 2, 12, 3, '#f6f3ea');
+        b.r(ux - 7, hy + 4, 2, 3, look.hair);
+        break;
+      case 'hardhat':
+        b.r(ux - 6, hy - 1, 12, 5, '#f0c32e');
+        b.r(ux - 8, hy + 3, 16, 2, '#f0c32e');
+        b.r(ux - 1, hy - 3, 2, 3, '#f0c32e');
+        b.r(ux - 7, hy + 5, 2, 2, look.hair);
+        break;
+      case 'headphones':
+        b.r(ux - 7, hy - 1, 14, 2, '#2d2a35');
+        b.r(ux - 8, hy + 3, 3, 6, '#2d2a35');
+        b.r(ux + 5, hy + 3, 3, 6, '#2d2a35');
+        b.r(ux - 7, hy + 5, 1, 2, '#a06cc8');
+        b.r(ux + 6, hy + 5, 1, 2, '#a06cc8');
+        break;
+      case 'goggles':
+        b.r(ux - 6, hy + 3, 12, 2, '#3a3a44');
+        b.r(ux - 4, hy + 2, 3, 3, '#9ed8e8');
+        b.r(ux + 1, hy + 2, 3, 3, '#9ed8e8');
+        break;
+      case 'antenna':
+        b.r(ux, hy - 4, 1, 4, '#9aa3ad');
+        b.r(ux - 1, hy - 6, 3, 2, '#e08a2e');
+        break;
+      case 'kerchief':
+        b.r(ux - 6, hy, 12, 5, look.trim);
+        b.r(ux - 8, hy + 3, 3, 3, look.trim);
+        b.r(ux - 6, hy + 4, 12, 1, look.top);
+        break;
+      case 'sweatband':
+        b.r(ux - 6, hy + 3, 12, 2, '#efe9dc');
+        break;
+      case 'tenugui':
+        b.r(ux - 6, hy + 2, 12, 3, '#2b3a5c');
+        b.r(ux - 8, hy + 3, 2, 5, '#2b3a5c');
+        break;
+      case 'beret':
+        b.r(ux - 7, hy - 1, 13, 4, '#c25a5a');
+        b.r(ux - 3, hy - 3, 3, 2, '#c25a5a');
+        break;
+      case 'sangmo':
+        b.r(ux - 5, hy - 1, 10, 4, '#efe9dc');
+        b.r(ux + 5, hy + 2, 2, 9, '#d9483b');
+        b.r(ux + 6, hy + 8, 2, 3, '#d9483b');
+        break;
+      case 'nurse':
+        b.r(ux - 5, hy - 1, 10, 5, '#f6f3ea');
+        b.r(ux - 1, hy, 2, 3, '#d9483b');
+        b.r(ux - 2, hy + 1, 4, 1, '#d9483b');
+        break;
+      case 'firehat':
+        b.r(ux - 6, hy - 1, 12, 5, '#d9483b');
+        b.r(ux - 8, hy + 3, 16, 2, '#d9483b');
+        b.r(ux - 1, hy, 3, 2, '#f2d450');
+        break;
+      case 'gradcap':
+        b.r(ux - 8, hy - 1, 16, 2, '#14121a');
+        b.r(ux - 5, hy + 1, 10, 3, '#14121a');
+        b.r(ux + 6, hy + 1, 1, 7, '#f2d450');
+        break;
+      case 'visor':
+        b.r(ux - 6, hy, 12, 2, look.trim);
+        b.r(ux + 3, hy + 2, 8, 2, look.trim);
+        break;
+      default:
+        if (look.prop === 'band') {
+          b.r(ux - 6, hy + 4, 12, 2, '#d9483b');
+          b.px(ux - 8, hy + 5, '#d9483b');
+          b.px(ux - 9, hy + 6, '#d9483b');
+        }
     }
   }
 
-  function drawProp(b, look, phase, hand) {
-    const dir = PROP_DIR[phase];
-    const [hx, hy] = hand;
-    const along = (len) => [Math.round(hx + dir[0] * len), Math.round(hy + dir[1] * len)];
+  function drawProp(b, look, q, hx, hy) {
+    const [dx, dy] = q.dir;
+    const along = (len) => [Math.round(hx + dx * len), Math.round(hy + dy * len)];
     switch (look.prop) {
       case 'bat': {
         const [ex, ey] = along(13);
@@ -166,35 +196,32 @@
         b.r(ex - 1, ey - 1, 2, 2, null);
         break;
       }
-      case 'salt': {
+      case 'salt':
         b.r(hx - 1, hy - 5, 4, 6, '#f3f1ea');
         b.r(hx - 1, hy - 7, 4, 2, '#8f9aa6');
         break;
-      }
       case 'light': {
         const [ex, ey] = along(7);
         b.line(hx, hy, ex, ey, '#3a3f4b', 3);
         b.r(ex, ey - 1, 2, 3, '#f4e48a');
         break;
       }
-      case 'book': {
+      case 'book':
         b.r(hx - 2, hy - 4, 6, 5, '#b5483c');
         b.r(hx - 2, hy - 4, 1, 5, '#7a2e26');
         b.r(hx - 1, hy, 5, 1, '#efe9dc');
         break;
-      }
       case 'mic': {
         const [ex, ey] = along(7);
         b.line(hx, hy, ex, ey, '#3a3f4b', 2);
         b.r(ex - 1, ey - 2, 4, 4, '#9aa3ad');
         break;
       }
-      case 'beaker': {
+      case 'beaker':
         b.r(hx - 2, hy - 6, 5, 6, '#bfe8f0');
         b.r(hx - 2, hy - 3, 5, 3, '#6fd08c');
         b.r(hx - 1, hy - 8, 3, 2, '#bfe8f0');
         break;
-      }
       case 'magnet': {
         const [ex, ey] = along(5);
         b.line(hx, hy, ex, ey, '#9aa3ad', 2);
@@ -203,101 +230,220 @@
         b.r(ex + 2, ey, 2, 3, '#4a7bd0');
         break;
       }
-      case 'paper': {
+      case 'paper':
         b.r(hx - 2, hy - 7, 6, 8, '#f6f3ea');
         b.r(hx - 1, hy - 5, 4, 1, '#9aa3ad');
         b.r(hx - 1, hy - 3, 3, 1, '#d9483b');
         break;
-      }
       case 'stick': {
         const [ex, ey] = along(15);
         b.line(hx, hy, ex, ey, '#c8a15a', 1);
         break;
       }
+      case 'mop': {
+        const [ex, ey] = along(13);
+        b.line(hx, hy, ex, ey, '#c8a15a', 1);
+        b.r(ex - 2, ey - 1, 5, 4, '#cfcab8');
+        b.r(ex - 2, ey + 2, 5, 1, '#9a9484');
+        break;
+      }
+      case 'basketball':
+        b.disc(hx + 1, hy - 4, 3, '#d9663b');
+        b.r(hx - 2, hy - 4, 7, 1, '#7a3a1f');
+        b.r(hx + 1, hy - 7, 1, 7, '#7a3a1f');
+        break;
+      case 'volleyball':
+        b.disc(hx + 1, hy - 4, 3, '#f0e8c8');
+        b.r(hx - 2, hy - 4, 7, 1, '#4a7bd0');
+        b.r(hx + 1, hy - 7, 1, 3, '#e0b62c');
+        break;
+      case 'paddle': {
+        const [ex, ey] = along(5);
+        b.line(hx, hy, ex, ey, '#8a5a34', 2);
+        b.disc(ex, ey, 3, '#d9483b');
+        break;
+      }
+      case 'brush': {
+        const [ex, ey] = along(14);
+        b.line(hx, hy, ex, ey, '#8a5a34', 1);
+        b.r(ex - 1, ey - 2, 3, 4, '#14121a');
+        break;
+      }
+      case 'shinai': {
+        const [ex, ey] = along(17);
+        b.line(hx, hy, ex, ey, '#d8c38a', 1);
+        b.r(hx - 1, hy - 1, 3, 3, '#4a3a28');
+        break;
+      }
+      case 'palette':
+        b.r(hx - 3, hy - 6, 8, 6, '#c9a24a');
+        b.px(hx - 1, hy - 4, '#d9483b');
+        b.px(hx + 1, hy - 3, '#4a7bd0');
+        b.px(hx + 3, hy - 5, '#6fcf8f');
+        break;
+      case 'drum':
+        b.r(hx - 3, hy - 7, 8, 7, '#b5483c');
+        b.r(hx - 3, hy - 7, 8, 1, '#efe9dc');
+        b.r(hx - 3, hy - 1, 8, 1, '#efe9dc');
+        b.r(hx + 1, hy - 5, 1, 3, '#7a2e26');
+        break;
+      case 'laptop':
+        b.r(hx - 3, hy - 8, 8, 6, '#3a3f4b');
+        b.r(hx - 2, hy - 7, 6, 4, '#6fd0e8');
+        b.r(hx - 4, hy - 2, 10, 2, '#5a6070');
+        break;
+      case 'thermo': {
+        const [ex, ey] = along(7);
+        b.line(hx, hy, ex, ey, '#e8eef2', 1);
+        b.px(ex, ey, '#d9483b');
+        break;
+      }
+      case 'extinguisher':
+        b.r(hx - 2, hy - 9, 5, 9, '#d9483b');
+        b.r(hx - 1, hy - 11, 3, 2, '#3a3f4b');
+        b.line(hx + 2, hy - 10, hx + 6, hy - 8, '#3a3f4b', 1);
+        break;
+      case 'bow':
+        b.line(hx - 1, hy - 10, hx + 2, hy - 5, '#8a5a34', 1);
+        b.line(hx + 2, hy - 5, hx - 1, hy, '#8a5a34', 1);
+        b.line(hx - 1, hy - 10, hx - 1, hy, '#efe9dc', 1);
+        break;
+      case 'sheet':
+        b.r(hx - 3, hy - 8, 7, 9, '#f6f3ea');
+        b.r(hx - 2, hy - 6, 5, 1, '#9aa3ad');
+        b.r(hx - 2, hy - 4, 5, 1, '#9aa3ad');
+        b.px(hx, hy - 2, '#14121a');
+        break;
+      case 'zapper': {
+        const [ex, ey] = along(8);
+        b.line(hx, hy, ex, ey, '#9aa3ad', 2);
+        b.disc(ex, ey, 2, '#6fd0e8');
+        b.spark(ex + 3, ey - 2, '#f4efb4');
+        break;
+      }
+      case 'flask':
+        b.r(hx - 3, hy - 9, 7, 9, '#bfe8f0');
+        b.r(hx - 3, hy - 5, 7, 5, '#c98bd9');
+        b.r(hx - 1, hy - 11, 3, 2, '#bfe8f0');
+        break;
+      case 'syringe': {
+        const [ex, ey] = along(10);
+        b.line(hx, hy, ex, ey, '#e8eef2', 2);
+        b.r(ex - 1, ey - 1, 2, 2, '#9aa3ad');
+        b.r(hx - 1, hy - 1, 3, 3, '#d9483b');
+        break;
+      }
+      case 'ruler': {
+        const [ex, ey] = along(17);
+        b.line(hx, hy, ex, ey, '#e0b62c', 1);
+        break;
+      }
+      case 'scroll':
+        b.r(hx - 4, hy - 6, 9, 4, '#efe9dc');
+        b.r(hx - 5, hy - 6, 2, 4, '#c9a24a');
+        b.r(hx + 4, hy - 6, 2, 4, '#c9a24a');
+        break;
+      case 'trophy':
+        b.r(hx - 2, hy - 8, 5, 4, '#f2d450');
+        b.r(hx, hy - 4, 1, 3, '#f2d450');
+        b.r(hx - 2, hy - 1, 5, 2, '#c9a24a');
+        break;
       default:
         break;
     }
   }
 
-  function drawStudent(look, phase) {
+  function drawStudent(look, q) {
     const b = builder();
-    const arm = ARM[phase];
-    const leg = LEG[phase];
-    const bagShift = phase === 'hit' ? 3 : 0;
-    const fx = CX + arm.f[0] + (look.prop === 'bag' ? bagShift : 0);
-    const fy = BY + arm.f[1];
-    const raised = phase === 'windup' && look.prop !== 'bag';
-    if (raised) b.line(CX + 4, BY - 12, fx, fy, look.top, 2);
+    const skin = look.skin || SKIN;
+    const ox = Math.round(q.lunge * 0.6);
+    const ux = CX + ox;
+    const uy = BY + q.rise - q.bob;
+    const hasBag = look.prop === 'bag';
+    const bagShift = hasBag ? Math.round(q.atk * 3) : 0;
+    const handF = [ux + q.armF[0] + bagShift, uy + q.armF[1]];
+    const handB = [ux + q.armB[0], uy + q.armB[1]];
+    const evo = look.evo || 0;
 
-    const [bx, by] = arm.b;
-    b.line(CX - 4, BY - 12, CX + bx, BY + by, look.top, 2);
-    b.r(CX + bx - 1, BY + by - 1, 3, 3, look.skin || SKIN);
+    b.line(ux - 4, uy - 12, handB[0], handB[1], look.top, 2);
+    b.r(handB[0] - 1, handB[1] - 1, 3, 3, skin);
 
-    const legs = [
-      [CX - 4, leg.l],
-      [CX + 1, leg.r],
-    ];
-    for (const [lx, [dx, dy]] of legs) {
-      b.r(lx + dx, BY - 6 + dy, 3, 4, look.pants);
-      b.r(lx + dx, BY - 2 + dy, 4, 2, '#26232b');
-    }
-
-    if (look.evo) {
+    if (evo) {
       const sc = look.legend ? '#f2d450' : '#d9483b';
-      b.r(CX - 9, BY - 14, 6, 3, sc);
-      b.r(CX - 12 + (phase === 'walk1' ? 1 : 0), BY - 12 + (phase === 'walk0' ? 1 : 0), 4, 2, sc);
+      const flutter = Math.round(q.step);
+      b.r(ux - 9, uy - 14, 6, 3, sc);
+      b.r(ux - 12 - Math.round(q.atk * 2) + (q.step < 0 ? 1 : 0), uy - 12 + flutter, 4, 2, sc);
     }
-    b.r(CX - 4, BY - 14, 8, 8, look.top);
-    b.r(CX - 3, BY - 14, 6, 2, look.trim);
-    if (look.evo) {
-      b.r(CX - 5, BY - 14, 2, 2, '#e6c24a');
-      b.r(CX + 3, BY - 14, 2, 2, '#e6c24a');
-      b.r(CX - 3, BY - 13, 6, 1, '#e6c24a');
-    }
-    if (look.hat === 'chef') b.r(CX - 4, BY - 10, 8, 4, '#f6f3ea');
-    if (look.top === '#b23b32') b.r(CX - 4, BY - 10, 8, 1, look.trim);
-    b.r(CX - 4, BY - 7, 8, 1, '#1f1d24');
 
-    b.r(CX - 6, BY - 25, 12, 11, look.skin || SKIN);
-    b.r(CX - 6, BY - 17, 12, 2, look.skinShade || SKIN_SHADE);
-    drawHair(b, look);
+    for (const [lx, [ldx, ldy]] of [[CX - 4, q.l], [CX + 1, q.r]]) {
+      b.r(lx + ldx, BY - 6 + ldy, 3, 4, look.pants);
+      b.r(lx + ldx, BY - 2 + ldy, 4, 2, '#26232b');
+    }
+    b.r(CX - 4, BY - 8, 8, 3, look.pants);
+
+    b.r(ux - 4, uy - 14, 8, 8, look.top);
+    b.r(ux - 3, uy - 14, 6, 2, look.trim);
+    if (evo) {
+      b.r(ux - 5, uy - 14, 2, 2, '#e6c24a');
+      b.r(ux + 3, uy - 14, 2, 2, '#e6c24a');
+      b.r(ux - 3, uy - 13, 6, 1, '#e6c24a');
+    }
+    if (evo >= 2) {
+      b.r(ux - 6, uy - 15, 3, 3, '#f2d450');
+      b.r(ux + 3, uy - 15, 3, 3, '#f2d450');
+      b.r(ux - 1, uy - 11, 2, 2, '#f2d450');
+    }
+    if (look.hat === 'chef') b.r(ux - 4, uy - 10, 8, 4, '#f6f3ea');
+    if (look.top === '#b23b32') b.r(ux - 4, uy - 10, 8, 1, look.trim);
+    b.r(ux - 4, uy - 7, 8, 1, '#1f1d24');
+
+    b.r(ux - 6, uy - 25, 12, 11, skin);
+    b.r(ux - 6, uy - 17, 12, 2, look.skinShade || SKIN_SHADE);
+    drawHair(b, look, ux, uy);
+    const eye = look.eyes || '#1b1820';
     if (look.face === 'glasses') {
-      b.r(CX - 2, BY - 20, 3, 4, '#bfe3f2');
-      b.r(CX + 2, BY - 20, 3, 4, '#bfe3f2');
-      b.px(CX + 1, BY - 19, '#2a2630');
+      b.r(ux - 2, uy - 20, 3, 4, '#bfe3f2');
+      b.r(ux + 2, uy - 20, 3, 4, '#bfe3f2');
+      b.px(ux + 1, uy - 19, '#2a2630');
     }
     if (look.face === 'sunglasses') {
-      b.r(CX - 2, BY - 20, 3, 3, '#14121a');
-      b.r(CX + 2, BY - 20, 3, 3, '#14121a');
-      b.px(CX + 1, BY - 19, '#14121a');
+      b.r(ux - 2, uy - 20, 3, 3, '#14121a');
+      b.r(ux + 2, uy - 20, 3, 3, '#14121a');
+      b.px(ux + 1, uy - 19, '#14121a');
+    } else if (q.hurt) {
+      b.r(ux - 1, uy - 19, 2, 1, eye);
+      b.r(ux + 3, uy - 19, 2, 1, eye);
     } else {
-      b.r(CX - 1, BY - 19, 2, 2, look.eyes || '#1b1820');
-      b.r(CX + 3, BY - 19, 2, 2, look.eyes || '#1b1820');
+      b.r(ux - 1, uy - 19, 2, q.wind > 0.7 ? 1 : 2, eye);
+      b.r(ux + 3, uy - 19, 2, q.wind > 0.7 ? 1 : 2, eye);
     }
-    b.px(CX + 2, BY - 16, '#a9604f');
-    drawHat(b, look);
+    if (q.atk > 0.5 || q.hurt) b.r(ux + 1, uy - 16, 3, 2, '#7a2e26');
+    else b.px(ux + 2, uy - 16, '#a9604f');
+    if (look.face === 'mask') b.r(ux - 2, uy - 17, 8, 3, '#efe9dc');
+    drawHat(b, look, ux, uy);
     if (look.prop === 'whistle') {
-      b.r(CX + 4, BY - 17, 3, 2, '#d6dade');
-      b.px(CX + 3, BY - 15, '#d6dade');
+      b.r(ux + 4, uy - 17, 3, 2, '#d6dade');
+      b.px(ux + 3, uy - 15, '#d6dade');
     }
 
-    if (look.prop === 'bag') {
-      const gx = CX + 4 + bagShift;
-      b.r(gx, BY - 19, 8, 14, '#8a5a34');
-      b.r(gx + 1, BY - 17, 6, 4, '#a8703f');
-      b.r(gx + 1, BY - 10, 6, 3, '#6d4526');
-      b.r(gx + 3, BY - 12, 2, 2, '#e0b55a');
-      b.line(CX - 4, BY - 14, gx, BY - 17, look.top, 1);
+    if (hasBag) {
+      const gx = ux + 4 + bagShift;
+      b.r(gx, uy - 19, 8, 14, '#8a5a34');
+      b.r(gx + 1, uy - 17, 6, 4, '#a8703f');
+      b.r(gx + 1, uy - 10, 6, 3, '#6d4526');
+      b.r(gx + 3, uy - 12, 2, 2, '#e0b55a');
+      b.line(ux - 4, uy - 14, gx, uy - 17, look.top, 1);
     }
-    if (!raised) b.line(CX + 4, BY - 12, fx, fy, look.top, 2);
-    b.r(fx - 1, fy - 1, 3, 3, look.skin || SKIN);
-    drawProp(b, look, phase, [fx, fy]);
-    if (look.legend) {
-      const t = { idle: 0, walk0: 1, walk1: 2, windup: 3, hit: 4 }[phase];
-      const spots = [[-10, -28], [10, -25], [9, -12], [-10, -14], [0, -31]];
-      for (let k = 0; k < 3; k++) {
-        const [dx, dy] = spots[(t + k) % spots.length];
-        b.spark(CX + dx, BY + dy, '#f2d450');
+    b.line(ux + 4, uy - 12, handF[0], handF[1], look.top, 2);
+    b.r(handF[0] - 1, handF[1] - 1, 3, 3, skin);
+    drawProp(b, look, q, handF[0], handF[1]);
+
+    if (look.legend || evo >= 2) {
+      const spots = [[-10, -28], [10, -25], [9, -12], [-10, -14], [0, -31], [12, -18]];
+      const n = look.legend ? 3 : 2;
+      for (let k = 0; k < n; k++) {
+        const [sx, sy] = spots[(q.i + k * 2) % spots.length];
+        b.spark(ux + sx, uy + sy + 2, '#f2d450');
       }
     }
     return b.flush();
@@ -321,229 +467,312 @@
     steelLight: '#a8b6c8',
   };
 
-  function bobOf(phase) {
-    return phase === 'walk1' ? 1 : 0;
-  }
-
   const ENEMY_DRAW = {
-    dust(b, phase) {
-      const lunge = phase === 'hit' ? 4 : phase === 'windup' ? -3 : 0;
-      const lift = phase === 'windup' ? -2 : 0;
-      const cx = CX + lunge;
-      const cy = BY - 9 + lift - bobOf(phase);
-      b.disc(cx, cy, 7, PALETTE.dustBody);
+    dust(b, q) {
+      const cx = CX + q.lunge;
+      const squash = Math.round(q.wind * 2);
+      const cy = BY - 9 + q.rise - q.bob + squash + (q.hurt ? 1 : 0);
+      const R = 7 + (q.atk > 0.6 ? 1 : 0);
+      b.disc(cx, cy, R, PALETTE.dustBody);
       const lumps = [[-7, -3, 3], [7, -4, 3], [-5, -8, 3], [4, -9, 3], [-8, 3, 2], [8, 3, 3], [0, -10, 2], [-3, 7, 2], [5, 7, 2]];
-      for (const [dx, dy, r] of lumps) b.disc(cx + dx, cy + dy, r, PALETTE.dustBody);
+      for (const [dx, dy, r] of lumps) b.disc(cx + dx - (q.wind > 0.5 ? 1 : 0), cy + dy, r, PALETTE.dustBody);
+      if (q.atk > 0.5) b.disc(cx + 9, cy + 1, 3, PALETTE.dustBody);
       for (const [dx, dy] of [[-6, -6], [3, -7], [7, 0], [-8, 1], [1, 6]]) b.r(cx + dx, cy + dy, 2, 2, PALETTE.dustFuzz);
       b.px(cx - 11, cy - 1, PALETTE.dustFuzz);
       b.px(cx + 11, cy - 5, PALETTE.dustFuzz);
       b.px(cx + 2, cy - 14, PALETTE.dustFuzz);
-      b.r(cx - 6, cy - 4, 4, 5, '#f4f4f1');
-      b.r(cx + 1, cy - 4, 4, 5, '#f4f4f1');
-      b.r(cx - 5, cy - 2, 2, 3, '#1b1820');
-      b.r(cx + 2, cy - 2, 2, 3, '#1b1820');
-      if (phase === 'hit') b.r(cx - 3, cy + 3, 7, 3, '#3a2430');
-      else b.r(cx - 2, cy + 4, 5, 1, '#3a2430');
-      b.r(cx - 6, BY - 3 + (phase === 'walk0' ? -1 : 0), 4, 3, PALETTE.dustBody);
-      b.r(cx + 2, BY - 3 + (phase === 'walk1' ? -1 : 0), 4, 3, PALETTE.dustBody);
+      const eh = q.wind > 0.7 ? 3 : 5;
+      b.r(cx - 6, cy - 4, 4, eh, '#f4f4f1');
+      b.r(cx + 1, cy - 4, 4, eh, '#f4f4f1');
+      if (q.hurt) {
+        b.r(cx - 5, cy - 3, 3, 1, '#1b1820');
+        b.r(cx + 2, cy - 3, 3, 1, '#1b1820');
+      } else {
+        b.r(cx - 5, cy - 2, 2, eh - 2, '#1b1820');
+        b.r(cx + 2, cy - 2, 2, eh - 2, '#1b1820');
+      }
+      if (q.atk > 0.5) {
+        b.r(cx - 4, cy + 3, 10, 4, '#3a2430');
+        for (let k = 0; k < 4; k++) b.px(cx - 3 + k * 3, cy + 3, '#f6f3ea');
+      } else if (q.wind > 0.5) {
+        for (let k = 0; k < 5; k++) b.px(cx - 3 + k * 2, cy + 4 + (k % 2), '#3a2430');
+      } else {
+        b.r(cx - 2, cy + 4, 5, 1, '#3a2430');
+      }
+      b.r(cx - 6, BY - 3 + (q.step > 0.3 ? -1 : 0), 4, 3, PALETTE.dustBody);
+      b.r(cx + 2, BY - 3 + (q.step < -0.3 ? -1 : 0), 4, 3, PALETTE.dustBody);
     },
 
-    ghost(b, phase) {
-      const lunge = phase === 'hit' ? 5 : phase === 'windup' ? -3 : 0;
-      const cx = CX + lunge;
-      const top = BY - 30 - bobOf(phase) * 2;
+    ghost(b, q) {
+      const cx = CX + q.lunge;
+      const top = BY - 30 - q.bob * 2 + q.rise;
+      const wave = Math.round(q.step * 1.3);
       b.disc(cx, top + 8, 7, PALETTE.ghostWhite);
       for (let i = 0; i < 4; i++) {
         const w = 14 + i;
-        b.r(cx - Math.floor(w / 2), top + 13 + i * 3, w, 3, i % 2 ? PALETTE.ghostShade : PALETTE.ghostWhite);
+        b.r(cx - Math.floor(w / 2) + (i > 1 ? wave : 0), top + 13 + i * 3, w, 3, i % 2 ? PALETTE.ghostShade : PALETTE.ghostWhite);
       }
-      const wave = phase === 'walk1' ? 1 : 0;
       for (let k = 0; k < 4; k++) b.r(cx - 8 + k * 4 + wave * (k % 2 ? 1 : -1), top + 25, 3, 3, PALETTE.ghostWhite);
       b.r(cx - 8, top + 2, 17, 7, PALETTE.hairBlack);
-      b.r(cx - 9, top + 5, 4, 17, PALETTE.hairBlack);
-      b.r(cx + 6, top + 5, 4, 17, PALETTE.hairBlack);
-      b.r(cx - 4, top + 9, 3, 3, '#0b0a0e');
-      b.r(cx + 2, top + 9, 3, 3, '#0b0a0e');
-      b.r(cx - 1, top + 14, 3, phase === 'hit' ? 4 : 2, '#0b0a0e');
-      const ay = phase === 'windup' ? -9 : phase === 'hit' ? 3 : 7;
-      b.line(cx + 6, top + 14, cx + 10 + (phase === 'hit' ? 6 : 0), top + 14 + ay, PALETTE.ghostWhite, 2);
+      b.r(cx - 9 + wave, top + 5, 4, 17, PALETTE.hairBlack);
+      b.r(cx + 6 + wave, top + 5, 4, 17, PALETTE.hairBlack);
+      const eyeC = q.atk > 0.5 ? '#e5654b' : '#0b0a0e';
+      b.r(cx - 4, top + 9, 3, q.wind > 0.7 ? 2 : 3, eyeC);
+      b.r(cx + 2, top + 9, 3, q.wind > 0.7 ? 2 : 3, eyeC);
+      b.r(cx - 1, top + 14, 3, q.atk > 0.5 ? 5 : q.hurt ? 3 : 2, '#0b0a0e');
+      let ax = cx + 10;
+      let ay = top + 21;
+      if (q.wind > 0.3) {
+        ax = cx + 7 + Math.round(q.atk * 4);
+        ay = top + 14 - Math.round(q.wind * 10);
+      }
+      if (q.atk > 0.3) {
+        ax = cx + 11 + Math.round(q.atk * 7);
+        ay = top + 14 + Math.round(q.atk * 3);
+      }
+      if (q.hurt) {
+        ax = cx + 3;
+        ay = top + 11;
+      }
+      b.line(cx + 6, top + 14, ax, ay, PALETTE.ghostWhite, 2);
+      if (q.atk > 0.5) for (let k = -1; k <= 1; k++) b.line(ax, ay, ax + 4, ay + k * 2, PALETTE.ghostWhite, 1);
     },
 
-    mannequin(b, phase) {
-      const step = phase === 'walk0' ? 1 : phase === 'walk1' ? -1 : 0;
+    mannequin(b, q) {
+      const step = Math.round(q.step);
+      const sx = Math.round(q.lunge * 0.5);
       b.r(CX - 4 + step, BY - 10, 3, 10, PALETTE.plastic);
       b.r(CX + 1 - step, BY - 10, 3, 10, PALETTE.plasticShade);
       b.r(CX - 5 + step, BY - 2, 4, 2, '#3a3a44');
       b.r(CX + 1 - step, BY - 2, 4, 2, '#3a3a44');
-      b.r(CX - 6, BY - 22, 12, 13, PALETTE.plastic);
-      b.r(CX - 6, BY - 22, 6, 13, PALETTE.muscle);
-      for (const y of [-19, -16, -13]) b.r(CX - 6, BY + y, 6, 1, PALETTE.muscleDark);
-      b.r(CX + 2, BY - 18, 3, 3, '#9a2f2a');
-      b.r(CX - 5, BY - 32, 10, 9, PALETTE.plastic);
-      b.r(CX - 5, BY - 32, 5, 9, PALETTE.muscle);
-      b.r(CX - 3, BY - 29, 2, 2, '#1b1820');
-      b.r(CX + 1, BY - 29, 2, 2, '#1b1820');
-      const reach = phase === 'hit' ? 12 : phase === 'windup' ? -2 : 6;
-      const up = phase === 'windup' ? -24 : -12;
-      b.line(CX + 5, BY - 20, CX + 5 + reach, BY + up, PALETTE.plastic, 3);
+      const ty = q.rise - q.bob;
+      b.r(CX - 6 + sx, BY - 22 + ty, 12, 13, PALETTE.plastic);
+      b.r(CX - 6 + sx, BY - 22 + ty, 6, 13, PALETTE.muscle);
+      for (const y of [-19, -16, -13]) b.r(CX - 6 + sx, BY + y + ty, 6, 1, PALETTE.muscleDark);
+      b.r(CX + 2 + sx, BY - 18 + ty, 3, 3, '#9a2f2a');
+      const tilt = q.hurt ? -2 : Math.round(q.atk * 2) - Math.round(q.wind * 2);
+      b.r(CX - 5 + sx + tilt, BY - 32 + ty, 10, 9, PALETTE.plastic);
+      b.r(CX - 5 + sx + tilt, BY - 32 + ty, 5, 9, PALETTE.muscle);
+      b.r(CX - 3 + sx + tilt, BY - 29 + ty, 2, 2, q.atk > 0.5 ? '#e5654b' : '#1b1820');
+      b.r(CX + 1 + sx + tilt, BY - 29 + ty, 2, 2, q.atk > 0.5 ? '#e5654b' : '#1b1820');
+      if (q.atk > 0.5) b.r(CX - 2 + sx + tilt, BY - 25 + ty, 5, 2, '#1b1820');
+      let tx = CX + 11 + sx;
+      let tyy = BY - 12 + ty;
+      if (q.wind > 0.3) {
+        tx = CX + 3 + sx;
+        tyy = BY - 22 - Math.round(q.wind * 8) + ty;
+      }
+      if (q.atk > 0.3) {
+        tx = CX + 8 + Math.round(q.atk * 8) + sx;
+        tyy = BY - 18 + Math.round(q.atk * 9) + ty;
+      }
+      b.line(CX + 5 + sx, BY - 20 + ty, tx, tyy, PALETTE.plastic, 3);
+      if (q.wind > 0.3 && q.atk < 0.3) b.line(CX - 5 + sx, BY - 20 + ty, CX - 3 + sx, BY - 26 - Math.round(q.wind * 6) + ty, PALETTE.plastic, 3);
     },
 
-    shadow(b, phase) {
-      const lunge = phase === 'hit' ? 4 : phase === 'windup' ? -3 : 0;
-      const cx = CX + lunge;
-      const sway = bobOf(phase);
-      b.r(cx - 6, BY - 26, 12, 22, PALETTE.shadow);
-      b.r(cx - 7, BY - 22, 14, 14, PALETTE.shadow);
-      for (let k = 0; k < 4; k++) b.r(cx - 7 + k * 4, BY - 4 + (k % 2) * (sway ? 1 : 0), 3, 4, PALETTE.shadow);
-      b.r(cx - 4, BY - 30, 3, 4, PALETTE.shadow);
-      b.r(cx + 1, BY - 29, 3, 3, PALETTE.shadow);
-      b.r(cx - 5, BY - 22, 3, 4, PALETTE.eyeGlow);
-      b.r(cx + 2, BY - 22, 3, 4, PALETTE.eyeGlow);
-      b.r(cx - 8, BY - 24, 2, 2, PALETTE.shadowEdge);
-      b.r(cx + 6, BY - 25, 2, 2, PALETTE.shadowEdge);
-      const ex = phase === 'hit' ? 12 : phase === 'windup' ? 1 : 8;
-      const ey = phase === 'windup' ? -26 : phase === 'hit' ? -9 : -7;
+    shadow(b, q) {
+      const cx = CX + q.lunge;
+      const crouch = Math.round(q.wind * 2);
+      const stretch = Math.round(q.atk * 2);
+      const top = BY - 26 + crouch - stretch + q.rise - q.bob;
+      b.r(cx - 6, top, 12, 22 - crouch + stretch, PALETTE.shadow);
+      b.r(cx - 7, top + 4, 14, 14, PALETTE.shadow);
+      for (let k = 0; k < 4; k++) b.r(cx - 7 + k * 4, BY - 4 + (k % 2) * (q.step > 0 ? 1 : 0), 3, 4, PALETTE.shadow);
+      b.r(cx - 4, top - 4, 3, 4, PALETTE.shadow);
+      b.r(cx + 1, top - 3, 3, 3, PALETTE.shadow);
+      const eh = q.atk > 0.5 ? 5 : q.wind > 0.7 ? 2 : 4;
+      b.r(cx - 5, top + 4, 3, eh, PALETTE.eyeGlow);
+      b.r(cx + 2, top + 4, 3, eh, PALETTE.eyeGlow);
+      if (q.atk > 0.5) b.r(cx - 4, top + 11, 8, 2, PALETTE.eyeGlow);
+      b.r(cx - 8, top + 2, 2, 2, PALETTE.shadowEdge);
+      b.r(cx + 6, top + 1, 2, 2, PALETTE.shadowEdge);
+      let ex = 8;
+      let ey = -7;
+      if (q.wind > 0.3) {
+        ex = 1 - Math.round(q.wind * 2);
+        ey = -26 + Math.round((1 - q.wind) * 8);
+      }
+      if (q.atk > 0.3) {
+        ex = 9 + Math.round(q.atk * 7);
+        ey = -9 + Math.round(q.atk * 1);
+      }
+      if (q.hurt) {
+        ex = 3;
+        ey = -16;
+      }
       b.line(cx + 5, BY - 16, cx + 5 + ex, BY + ey, PALETTE.shadow, 3);
       b.r(cx + 4 + ex, BY + ey - 2, 4, 5, PALETTE.shadowEdge);
+      if (q.atk > 0.5) for (const k of [-3, 0, 3]) b.px(cx + 9 + ex, BY + ey + k, PALETTE.shadowEdge);
     },
 
-    locker(b, phase) {
-      const lean = phase === 'windup' ? -2 : phase === 'hit' ? 3 : 0;
-      const hop = phase === 'walk1' ? -1 : 0;
+    locker(b, q) {
+      const lean = Math.round(q.lunge * 0.8);
+      const hop = -q.bob + q.rise;
       const x = CX - 7 + lean;
       const y = BY - 28 + hop;
       b.r(x + 1, BY - 4, 4, 4, PALETTE.steelDark);
-      b.r(x + 9, BY - 4 + (phase === 'walk0' ? -1 : 0), 4, 4, PALETTE.steelDark);
+      b.r(x + 9, BY - 4 + (q.step > 0.3 ? -1 : 0), 4, 4, PALETTE.steelDark);
       b.r(x, y, 15, 25, PALETTE.steel);
       b.r(x + 1, y + 1, 13, 23, PALETTE.steelLight);
       b.r(x + 2, y + 2, 11, 21, PALETTE.steel);
       for (let k = 0; k < 3; k++) b.r(x + 4, y + 4 + k * 2, 7, 1, PALETTE.steelDark);
-      b.r(x + 4, y + 11, 2, 2, '#e6564a');
-      b.r(x + 9, y + 11, 2, 2, '#e6564a');
+      const eye = q.atk > 0.5 ? '#ff8a6a' : '#e6564a';
+      b.r(x + 4, y + 11, 2, q.wind > 0.7 ? 1 : 2, eye);
+      b.r(x + 9, y + 11, 2, q.wind > 0.7 ? 1 : 2, eye);
       b.r(x + 11, y + 16, 2, 4, '#d9d3c0');
       b.r(x + 3, y + 19, 5, 3, '#d9d3c0');
-      if (phase === 'hit') {
-        b.r(x + 15, y + 2, 7, 21, PALETTE.steelDark);
-        b.r(x + 16, y + 3, 5, 19, PALETTE.steel);
-      } else if (phase === 'windup') {
-        b.r(x + 14, y + 2, 3, 21, PALETTE.steelDark);
+      if (q.hurt) b.r(x + 4, y + 6, 3, 2, PALETTE.steelDark);
+      const door = Math.round(Math.max(q.wind * 3, q.atk * 7));
+      if (door > 0) {
+        b.r(x + 14, y + 2, door, 21, PALETTE.steelDark);
+        if (door > 4) b.r(x + 15, y + 3, door - 2, 19, PALETTE.steel);
       }
+      if (q.atk > 0.6) for (const k of [5, 10, 15]) b.px(x + 22, y + k, '#fff6c8');
     },
 
-    portrait(b, phase) {
-      const lunge = phase === 'hit' ? 4 : phase === 'windup' ? -3 : 0;
-      const cx = CX + lunge;
-      const top = BY - 31 - bobOf(phase) * 2;
-      b.r(cx - 8, top, 17, 22, '#c9a24a');
-      b.r(cx - 6, top + 2, 13, 18, '#2a2033');
-      b.disc(cx - 3, top + 6, 3, '#d8d3c6');
-      b.disc(cx + 3, top + 6, 3, '#d8d3c6');
-      b.r(cx - 5, top + 5, 11, 4, '#d8d3c6');
-      b.r(cx - 4, top + 8, 9, 8, '#e8c8a2');
-      b.r(cx - 3, top + 10, 3, 1, '#2a2033');
-      b.r(cx + 1, top + 10, 3, 1, '#2a2033');
-      b.r(cx - 3, top + 11, 2, 2, '#1b1820');
-      b.r(cx + 2, top + 11, 2, 2, '#1b1820');
-      b.r(cx - 1, top + 14, 3, phase === 'hit' ? 3 : 1, '#6b2430');
-      b.r(cx - 5, top + 16, 11, 4, '#4a3a5a');
+    portrait(b, q) {
+      const cx = CX + q.lunge;
+      const top = BY - 31 - q.bob * 2 + q.rise;
+      const tilt = q.hurt ? 1 : 0;
+      b.r(cx - 8 + tilt, top, 17, 22, '#c9a24a');
+      b.r(cx - 6 + tilt, top + 2, 13, 18, '#2a2033');
+      b.disc(cx - 3 + tilt, top + 6, 3, '#d8d3c6');
+      b.disc(cx + 3 + tilt, top + 6, 3, '#d8d3c6');
+      b.r(cx - 5 + tilt, top + 5, 11, 4, '#d8d3c6');
+      b.r(cx - 4 + tilt, top + 8, 9, 8, '#e8c8a2');
+      const brow = q.wind > 0.5 || q.atk > 0.5 ? 2 : 1;
+      b.r(cx - 3 + tilt, top + 10 - (brow - 1), 3, brow, '#2a2033');
+      b.r(cx + 1 + tilt, top + 10 - (brow - 1), 3, brow, '#2a2033');
+      b.r(cx - 3 + tilt, top + 11, 2, 2, q.atk > 0.5 ? '#e5654b' : '#1b1820');
+      b.r(cx + 2 + tilt, top + 11, 2, 2, q.atk > 0.5 ? '#e5654b' : '#1b1820');
+      b.r(cx - 1 + tilt, top + 14, 3, q.atk > 0.5 ? 4 : q.wind > 0.5 ? 2 : 1, '#6b2430');
+      b.r(cx - 5 + tilt, top + 16, 11, 4, '#4a3a5a');
       b.r(cx - 4, top + 23, 3, 2, '#7a6fa0');
-      b.r(cx + 2, top + 23 + (phase === 'walk1' ? 1 : 0), 3, 2, '#7a6fa0');
+      b.r(cx + 2, top + 23 + (q.step < 0 ? 1 : 0), 3, 2, '#7a6fa0');
+      if (q.atk > 0.5) for (const k of [0, 1, 2]) b.px(cx + 9 + k * 2, top + 14 + (k % 2) * 2 - k, '#b79bf0');
     },
 
-    tray(b, phase) {
-      const lunge = phase === 'hit' ? 4 : phase === 'windup' ? -3 : 0;
-      const cx = CX + lunge;
-      const hop = phase === 'walk1' ? -1 : 0;
+    tray(b, q) {
+      const cx = CX + q.lunge;
+      const hop = -q.bob + q.rise;
       b.disc(cx - 5, BY - 3, 3, '#4a5260');
       b.disc(cx + 5, BY - 3, 3, '#4a5260');
       b.r(cx - 9, BY - 14 + hop, 19, 9, '#aab4c2');
       b.r(cx - 7, BY - 16 + hop, 15, 2, '#c8d2de');
       b.r(cx - 10, BY - 12 + hop, 21, 2, '#8e99a8');
       b.r(cx - 6, BY - 13 + hop, 13, 5, '#1b2230');
-      b.r(cx - 4, BY - 12 + hop, 2, 3, '#e6564a');
-      b.r(cx + 2, BY - 12 + hop, 2, 3, '#e6564a');
-      const up = phase === 'windup' ? -9 : phase === 'hit' ? 2 : -2;
-      const reach = phase === 'hit' ? 4 : 0;
+      const eye = q.atk > 0.5 ? '#ff8a6a' : '#e6564a';
+      b.r(cx - 4, BY - 12 + hop, 2, q.wind > 0.7 ? 2 : 3, eye);
+      b.r(cx + 2, BY - 12 + hop, 2, q.wind > 0.7 ? 2 : 3, eye);
+      let up = -2;
+      let reach = 0;
+      if (q.wind > 0.3) up = -2 - Math.round(q.wind * 8);
+      if (q.atk > 0.3) {
+        up = -4 + Math.round(q.atk * 7);
+        reach = Math.round(q.atk * 5);
+      }
+      if (q.hurt) up = -6;
       b.line(cx + 9, BY - 10 + hop, cx + 14 + reach, BY - 10 + up + hop, '#c8d2de', 2);
       b.r(cx + 13 + reach, BY - 12 + up + hop, 4, 4, '#c8d2de');
+      if (q.atk > 0.6) b.r(cx + 17 + reach, BY - 11 + up + hop, 2, 2, '#fff6c8');
     },
 
-    skeleton(b, phase) {
+    skeleton(b, q) {
       const bone = '#e8e2d0';
       const shade = '#c9c2ac';
-      const step = phase === 'walk0' ? 1 : phase === 'walk1' ? -1 : 0;
+      const step = Math.round(q.step);
+      const sx = Math.round(q.lunge * 0.5);
+      const ty = q.rise - q.bob;
       b.r(CX - 4 + step, BY - 10, 2, 10, bone);
       b.r(CX + 2 - step, BY - 10, 2, 10, bone);
       b.r(CX - 5 + step, BY - 2, 4, 2, shade);
       b.r(CX + 1 - step, BY - 2, 4, 2, shade);
-      b.r(CX - 5, BY - 13, 10, 3, bone);
-      b.r(CX - 1, BY - 23, 2, 10, shade);
+      b.r(CX - 5 + sx, BY - 13 + ty, 10, 3, bone);
+      b.r(CX - 1 + sx, BY - 23 + ty, 2, 10, shade);
       for (const y of [-23, -20, -17]) {
-        b.r(CX - 6, BY + y, 12, 2, bone);
-        b.r(CX - 1, BY + y, 2, 2, shade);
+        b.r(CX - 6 + sx, BY + y + ty, 12, 2, bone);
+        b.r(CX - 1 + sx, BY + y + ty, 2, 2, shade);
       }
-      b.r(CX - 5, BY - 33, 11, 9, bone);
-      b.r(CX - 4, BY - 25, 9, 3, bone);
-      b.r(CX - 3, BY - 30, 3, 3, '#1b1820');
-      b.r(CX + 1, BY - 30, 3, 3, '#1b1820');
-      b.r(CX - 3, BY - 24, 7, 1, '#1b1820');
-      const reach = phase === 'hit' ? 10 : phase === 'windup' ? -3 : 5;
-      const up = phase === 'windup' ? -26 : -14;
-      b.line(CX + 6, BY - 22, CX + 6 + reach, BY + up, bone, 2);
-      b.r(CX + 5 + reach, BY + up - 2, 4, 4, shade);
+      const jaw = Math.round(q.atk * 2) + Math.round(q.wind);
+      const hx = sx + (q.hurt ? -2 : 0) + (q.wind > 0.5 ? -1 : 0);
+      b.r(CX - 5 + hx, BY - 33 + ty, 11, 9, bone);
+      b.r(CX - 4 + hx, BY - 25 + ty + jaw, 9, 3, bone);
+      const eyeC = q.atk > 0.5 ? '#e5654b' : '#1b1820';
+      b.r(CX - 3 + hx, BY - 30 + ty, 3, 3, eyeC);
+      b.r(CX + 1 + hx, BY - 30 + ty, 3, 3, eyeC);
+      b.r(CX - 3 + hx, BY - 24 + ty + jaw, 7, 1, '#1b1820');
+      let reach = 5;
+      let up = -14;
+      if (q.wind > 0.3) {
+        reach = -3 - Math.round(q.wind * 2);
+        up = -26 + Math.round((1 - q.wind) * 6);
+      }
+      if (q.atk > 0.3) {
+        reach = 4 + Math.round(q.atk * 7);
+        up = -22 + Math.round(q.atk * 9);
+      }
+      b.line(CX + 6 + sx, BY - 22 + ty, CX + 6 + reach + sx, BY + up + ty, bone, 2);
+      b.r(CX + 5 + reach + sx, BY + up - 2 + ty, 4, 4, shade);
     },
 
-    mirror(b, phase) {
-      const lean = phase === 'windup' ? -2 : phase === 'hit' ? 3 : 0;
-      const hop = phase === 'walk1' ? -1 : 0;
+    mirror(b, q) {
+      const lean = Math.round(q.lunge * 0.8);
+      const hop = -q.bob + q.rise;
       const x = CX - 7 + lean;
       const y = BY - 29 + hop;
       b.r(x + 2, BY - 3, 3, 3, '#3a2a20');
-      b.r(x + 10, BY - 3 + (phase === 'walk0' ? -1 : 0), 3, 3, '#3a2a20');
+      b.r(x + 10, BY - 3 + (q.step > 0.3 ? -1 : 0), 3, 3, '#3a2a20');
       b.r(x, y, 15, 27, '#5a3b28');
       b.r(x + 1, y + 1, 13, 25, '#7a5238');
-      b.r(x + 2, y + 2, 11, 23, '#8fb4c8');
+      b.r(x + 2, y + 2, 11, 23, q.atk > 0.5 ? '#d6ecf5' : '#8fb4c8');
       b.line(x + 3, y + 8, x + 8, y + 3, '#d6ecf5', 1);
       b.line(x + 3, y + 14, x + 11, y + 6, '#cfe6f0', 1);
       b.disc(x + 7, y + 15, 4, '#e8eef2');
-      b.r(x + 5, y + 14, 2, 2, '#1b1820');
-      b.r(x + 8, y + 14, 2, 2, '#1b1820');
-      b.r(x + 6, y + 18, 3, phase === 'hit' ? 3 : 1, '#1b1820');
+      const eyeC = q.atk > 0.5 ? '#e5654b' : '#1b1820';
+      b.r(x + 5, y + 14, 2, 2, eyeC);
+      b.r(x + 8, y + 14, 2, 2, eyeC);
+      b.r(x + 6, y + 18, 3, q.atk > 0.5 ? 3 : 1, '#1b1820');
       b.r(x + 3, y - 4, 9, 4, '#2a1d17');
       for (const dx of [4, 7, 10]) b.r(x + dx, y - 3, 1, 2, '#e5654b');
-      if (phase === 'hit') b.line(x + 12, y + 16, x + 22, y + 18, '#e8eef2', 3);
-      if (phase === 'windup') b.line(x + 3, y + 3, x + 11, y + 22, '#2a2a33', 1);
+      if (q.wind > 0.3 || q.hurt) b.line(x + 3, y + 3, x + 11, y + 22, '#2a2a33', 1);
+      if (q.hurt) b.line(x + 11, y + 3, x + 4, y + 20, '#2a2a33', 1);
+      if (q.atk > 0.3) {
+        const len = 6 + Math.round(q.atk * 10);
+        b.line(x + 12, y + 16, x + 12 + len, y + 18 + Math.round(q.atk * 2), '#e8eef2', 3);
+        if (q.atk > 0.6) for (const k of [-2, 0, 2]) b.line(x + 12 + len, y + 18, x + 15 + len, y + 18 + k, '#e8eef2', 1);
+      }
     },
 
-    megamirror(b, phase) {
-      ENEMY_DRAW.mirror(b, phase);
-      const x = CX - 7 + (phase === 'windup' ? -2 : phase === 'hit' ? 3 : 0);
-      const y = BY - 29 + (phase === 'walk1' ? -1 : 0);
+    megamirror(b, q) {
+      ENEMY_DRAW.mirror(b, q);
+      const x = CX - 7 + Math.round(q.lunge * 0.8);
+      const y = BY - 29 - q.bob + q.rise;
       b.line(x + 7, y + 15, x + 3, y + 5, '#2a2a33', 1);
       b.line(x + 7, y + 15, x + 12, y + 22, '#2a2a33', 1);
       b.r(x - 3, y + 6, 4, 5, '#e8eef2');
       b.r(x + 14, y + 13, 4, 5, '#e8eef2');
     },
 
-    principal(b, phase) {
-      ENEMY_DRAW.shadow(b, phase);
-      b.r(CX - 9, BY - 33, 18, 3, '#171321');
-      b.r(CX - 5, BY - 36, 10, 4, '#171321');
-      b.r(CX + 7, BY - 33, 2, 6, '#e8c14e');
-      b.r(CX + 6, BY - 28, 4, 2, '#e8c14e');
-      b.r(CX - 7, BY - 24, 6, 6, '#f4efb4');
-      b.r(CX + 1, BY - 24, 6, 6, '#f4efb4');
-      b.r(CX - 6, BY - 22, 3, 3, '#171321');
-      b.r(CX + 2, BY - 22, 3, 3, '#171321');
-      b.r(CX - 8, BY - 15, 16, 2, '#6b2430');
+    principal(b, q) {
+      ENEMY_DRAW.shadow(b, q);
+      const cx = CX + q.lunge;
+      const dy = Math.round(q.wind * 2) - Math.round(q.atk * 2) + q.rise - q.bob;
+      b.r(CX - 9 + q.lunge, BY - 33 + dy, 18, 3, '#171321');
+      b.r(CX - 5 + q.lunge, BY - 36 + dy, 10, 4, '#171321');
+      b.r(CX + 7 + q.lunge, BY - 33 + dy, 2, 6, '#e8c14e');
+      b.r(CX + 6 + q.lunge, BY - 28 + dy, 4, 2, '#e8c14e');
+      const gl = q.atk > 0.5 ? '#ffffff' : '#f4efb4';
+      b.r(cx - 7, BY - 24 + dy, 6, 6, gl);
+      b.r(cx + 1, BY - 24 + dy, 6, 6, gl);
+      b.r(cx - 6, BY - 22 + dy, 3, 3, '#171321');
+      b.r(cx + 2, BY - 22 + dy, 3, 3, '#171321');
+      b.r(cx - 8, BY - 15 + dy, 16, q.atk > 0.5 ? 3 : 2, '#6b2430');
     },
   };
 
-  const PHASES = ['idle', 'walk0', 'walk1', 'windup', 'hit'];
-
-  function renderEnemy(look, phase) {
+  function renderEnemy(look, q) {
     const b = builder();
-    ENEMY_DRAW[look](b, phase);
+    ENEMY_DRAW[look](b, q);
     return b.flush(look === 'shadow' || look === 'principal' ? '#08060c' : OUTLINE);
   }
 
@@ -586,36 +815,34 @@
     return { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
   }
 
+  function renderFrame(def, key) {
+    const q = YG.POSES[key];
+    let img;
+    if (typeof def.look === 'string') img = renderEnemy(def.look, q);
+    else if (def.look.arch && def.look.arch !== 'human') img = YG.archRender(def.look, q);
+    else img = drawStudent(def.look, q);
+    return def.tint ? tint(img, def.tint.color, def.tint.alpha) : img;
+  }
+
   const cache = {};
   function setFor(def) {
     const key = def.spriteKey || def.id;
-    if (cache[key]) return cache[key];
-    const frames = {};
-    for (const p of PHASES) {
-      let img;
-      if (typeof def.look === 'string') img = renderEnemy(def.look, p);
-      else if (def.look.arch && def.look.arch !== 'human') img = YG.archRender(def.look, p);
-      else img = drawStudent(def.look, p);
-      frames[p] = def.tint ? tint(img, def.tint.color, def.tint.alpha) : img;
-    }
-    const set = { frames, flash: {}, frozen: {} };
-    cache[key] = set;
-    return set;
+    return cache[key] || (cache[key] = { frames: {}, flash: {}, frozen: {} });
   }
 
   YG.spriteKit = { builder, canvas, CX, BY, CW, CH, OUTLINE };
 
   YG.sprites = {
     CW, CH, CX, BY,
-    frame(def, phase, mode) {
+    frame(def, key = 'idle0', mode = 'base') {
       const set = setFor(def);
-      const base = set.frames[phase];
-      if (mode === 'flash') return set.flash[phase] || (set.flash[phase] = whiten(base));
-      if (mode === 'frozen') return set.frozen[phase] || (set.frozen[phase] = tint(base, '#9fd3ee', 0.55));
+      const base = set.frames[key] || (set.frames[key] = renderFrame(def, key));
+      if (mode === 'flash') return set.flash[key] || (set.flash[key] = whiten(base));
+      if (mode === 'frozen') return set.frozen[key] || (set.frozen[key] = tint(base, '#9fd3ee', 0.55));
       return base;
     },
-    portrait(def, scale = 3, phase = 'idle') {
-      const src = YG.sprites.frame(def, phase);
+    portrait(def, scale = 3, key = 'idle0') {
+      const src = YG.sprites.frame(def, key);
       const box = bounds(src);
       const c = canvas(box.w, box.h);
       c.getContext('2d').drawImage(src, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
