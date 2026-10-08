@@ -1297,15 +1297,18 @@
   }
 
   const cache = {};
+  /* 아군과 적은 id가 같을 수 있다 (bat, chair, cleaner, librarian, hazmat). 그림 캐시는 편을 나눠서 쓴다. */
+  const keyOf = (def) => `${def.grade !== undefined ? 'u' : 'e'}:${def.spriteKey || def.id}`;
+
   function setFor(def) {
-    const key = def.spriteKey || def.id;
+    const key = keyOf(def);
     return cache[key] || (cache[key] = { frames: {}, flash: {}, frozen: {}, rage: {} });
   }
 
   YG.spriteKit = { builder, canvas, CX, BY, CW, CH, OUTLINE };
 
   YG.sprites = {
-    CW, CH, CX, BY,
+    CW, CH, CX, BY, keyOf,
     frame(def, key = 'idle0', mode = 'base') {
       const set = setFor(def);
       const base = set.frames[key] || (set.frames[key] = renderFrame(def, key));

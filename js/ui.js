@@ -812,7 +812,7 @@
   /* 같은 적의 초상화는 한 번만 만들고 복사해 쓴다 (목록을 다시 그릴 때마다 픽셀을 읽지 않게) */
   const portraits = new Map();
   function dexPortrait(def, scale = 2) {
-    const key = `${def.spriteKey || def.id}:${scale}`;
+    const key = `${YG.sprites.keyOf(def)}:${scale}`;
     if (!portraits.has(key)) portraits.set(key, YG.sprites.portrait(def, scale));
     const src = portraits.get(key);
     const c = document.createElement('canvas');

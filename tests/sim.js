@@ -316,6 +316,25 @@ function testUnitDex() {
   console.log('unit dex ok');
 }
 
+function testSpriteKeys() {
+  /* 아군과 적이 id를 같이 써도 그림 캐시가 섞이지 않는다 */
+  const seen = new Map();
+  const add = (def, tag) => {
+    const key = YG.sprites.keyOf(def);
+    assert(!seen.has(key), `그림 캐시 키 겹침: ${key} (${seen.get(key)} / ${tag})`);
+    seen.set(key, tag);
+  };
+  for (const u of YG.UNITS) for (const lvl of [0, 1, 2]) add(YG.resolveDef(u, lvl), `아군 ${u.id}:${lvl}`);
+  for (const e of YG.ENEMIES) {
+    add(e, `적 ${e.id}`);
+    if (!e.boss) add(YG.enemyById(`${e.id}:red`), `적 ${e.id}:red`);
+  }
+  const unitIds = new Set(YG.UNITS.map((u) => u.id));
+  const shared = YG.ENEMIES.filter((e) => unitIds.has(e.id)).map((e) => e.id);
+  assert(shared.length >= 1 && YG.sprites.keyOf(YG.unitById(shared[0])) !== YG.sprites.keyOf(YG.enemyById(shared[0])), '같은 id라도 키가 다르다');
+  console.log(`sprite keys ok (아군·적 id 겹침 ${shared.length}종: ${shared.join(', ')})`);
+}
+
 function testBalance() {
   const { power } = require('./power.js');
   const med = (a) => [...a].sort((x, y) => x - y)[a.length >> 1];
@@ -913,6 +932,7 @@ if (require.main === module) {
   testRoster();
   testBalance();
   testSpecials();
+  testSpriteKeys();
   testAwakenFx();
   testUnitDex();
   testWorld();
