@@ -298,22 +298,34 @@
     ctx.fillRect(x - 2, y + 66, 34, 3);
   }
 
+  /* 그림 한 장을 발밑 기준점에 맞춰 그린다. 그림은 k배 해상도라서 화면 좌표로는 k로 나눈 크기다 */
+  function putSprite(ctx, img) {
+    const k = S().K;
+    ctx.drawImage(img, -img.ax / k, -img.ay / k, img.width / k, img.height / k);
+  }
+
+  /* 그림자 폭: 그림에서 몸통 쪽 크기를 따라간다 */
+  function shadowWidth(def, img, k) {
+    const size = (def.fit || 1) * (def.scale || 1);
+    const body = img.nat ? Math.min(img.nat.w, img.nat.h * 1.2) * size : img.width / k;
+    return Math.max(6, Math.round(body * 0.9));
+  }
+
   function drawUnit(ctx, u) {
     const scale = u.def.scale || 1;
+    const k = S().K;
     const mode = u.flash > 0 ? 'flash' : u.freeze > 0 ? 'frozen' : u.raged ? 'rage' : 'base';
-    const key = u.dying ? 'hurt0' : YG.frameKey(u);
+    const key = u.dying ? 'hurt1' : YG.frameKey(u);
     const img = S().frame(u.def, key, mode);
     const gy = VIEW.groundY + u.z;
     const x = Math.round(u.x);
-    const w = S().CW * scale;
-    const h = S().CH * scale;
     const d = u.dying || 0;
     const falling = d > 3;
     const alpha = d ? Math.max(0, 1 - Math.max(0, d - 3) / (YG.DIE_FRAMES - 3)) * (d % 2 && d > 6 ? 0.55 : 1) : 1;
 
     ctx.globalAlpha = alpha * 0.35;
     ctx.fillStyle = '#05040a';
-    const sw = Math.round(14 * scale * Math.min(1.1, Math.max(0.5, u.def.fit || 1)) * (u.def.float && !d ? 0.7 : 1));
+    const sw = Math.round(shadowWidth(u.def, img, k) * (u.def.float && !d ? 0.7 : 1));
     ctx.fillRect(x - Math.floor(sw / 2), gy - 1, sw, 2);
     if (!d && u.side === 'ally' && u.def.evolved >= 2) {
       /* 각성한 유닛은 발밑에서 금빛 고리가 깜빡인다 */
@@ -324,12 +336,12 @@
       if (u.moving) {
         /* 달릴 때 흰 잔상 */
         const ghost = S().frame(u.def, key, 'flash');
-        for (let k = 1; k <= 2; k++) {
-          ctx.globalAlpha = 0.2 / k;
+        for (let n = 1; n <= 2; n++) {
+          ctx.globalAlpha = 0.2 / n;
           ctx.save();
-          ctx.translate(x - u.dir * k * 5, gy);
+          ctx.translate(x - u.dir * n * 5, gy);
           if (u.dir < 0) ctx.scale(-1, 1);
-          ctx.drawImage(ghost, -S().CX * scale, -S().BY * scale, w, h);
+          putSprite(ctx, ghost);
           ctx.restore();
         }
       }
@@ -345,7 +357,7 @@
       ctx.scale(1, 0.92);
     }
     if (u.dir < 0) ctx.scale(-1, 1);
-    ctx.drawImage(img, -S().CX * scale, -S().BY * scale, w, h);
+    putSprite(ctx, img);
     ctx.restore();
     ctx.globalAlpha = 1;
   }
@@ -584,7 +596,7 @@
       ctx.fillRect(x, y - r, 1, r * 2 + 1);
     } else if (f.kind === 'proj') {
       const x = f.x0 + (f.x1 - f.x0) * p;
-      const y = gy + f.z - 16;
+      const y = gy + f.z - (f.h != null ? f.h : 16);
       (PROJ[f.sub] || (YG.PROJ_EXTRA || {})[f.sub] || PROJ.flash)(ctx, f, x, y, p);
     } else if (f.kind === 'cannon') {
       const reach = 40 + p * (VIEW.enemyBaseX - 40);
@@ -663,8 +675,17 @@
 
   YG.render = {
     PROJ,
-    battle(ctx, b, theme) {
+    shadowWidth,
+    /* 캔버스가 k배 해상도여도 그리는 쪽은 320x180 좌표를 그대로 쓰도록 좌표계를 맞춘다 */
+    prep(ctx) {
+      const k = ctx.canvas.width / VIEW.w;
+      ctx.setTransform(k, 0, 0, k, 0, 0);
       ctx.imageSmoothingEnabled = false;
+      return k;
+    },
+
+    battle(ctx, b, theme) {
+      YG.render.prep(ctx);
       ctx.save();
       if (b.shake > 0) ctx.translate((b.frame % 2 ? 1 : -1) * Math.min(2, b.shake), (b.frame % 3 === 0 ? 1 : 0));
       drawBackground(ctx, theme, b.frame);
@@ -677,7 +698,7 @@
     },
 
     backdrop(ctx, frame) {
-      ctx.imageSmoothingEnabled = false;
+      YG.render.prep(ctx);
       drawBackground(ctx, 'corridor', frame);
       const cast = [
         { id: 'basic', x: 30, dir: 1, speed: 0.5, side: 'ally' },

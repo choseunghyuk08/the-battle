@@ -35,8 +35,8 @@
 | `js/engine.js` | 전투 엔진 (DOM 없음) |
 | `js/game.js` | 저장, 레벨업, 뽑기 (DOM 없음) |
 | `js/missions.js` | 일일 임무, 업적, 누적 기록(`stats`) 집계. 임무/업적 보상 수치는 여기서 조정 (DOM 없음) |
-| `js/poses.js` | 대기/걷기/공격/피격 17프레임의 자세표와 프레임 고르는 규칙 |
-| `js/sprites.js`, `js/sprites2.js` | 도트 스프라이트를 코드로 그리는 곳 (학생/기존 적, 새 적 아키타입) |
+| `js/poses.js` | 대기 12 / 걷기 16 / 공격 24 / 피격 4 = 56프레임의 자세표와 프레임 고르는 규칙 (`YG.frameKey`) |
+| `js/sprites.js`, `js/sprites2.js` | 도트 스프라이트를 코드로 그리는 곳 (학생/기존 적, 새 적 아키타입). 그림은 2배 해상도에 발밑 기준점이 붙는다 |
 | `js/sprites3.js` | 해외 적 아키타입 9종(사람꼴, 기어 다니는 상반신, 우산, 불꽃, 머리, 네발짐승, 물건, 뱀, 기수)과 새 투사체 |
 | `js/sprites4.js` | 재단 적 아키타입(조각상, 수줍은 자, 포식자, 파충류, 기계 7종, 말랑한 덩어리, 삭제된 문서) 과 사람꼴용 얼굴, 소품, 새 투사체 |
 | `js/scenery.js` | 배경 아키타입과 팔레트 |
@@ -52,7 +52,7 @@
 | `tests/sim.js` | 데미지, 뽑기, 밸런스 시뮬레이션 |
 | `tests/preview.html` | 스프라이트 시트 미리보기 (`?set=units`, `?set=evo`, `?set=enemies`, `?set=abroad&region=일본`, `?set=abroadboss`, `?set=scp`, `?set=scpboss`) |
 | `tests/backgrounds.html` | 배경 미리보기 (`?set=abroad`: 해외 20장, `?set=foundation`: 재단 8장, `?only=diner:desert`) |
-| `tests/spritecheck.js` | 해외와 재단 적 17프레임을 전부 그려서 칸 밖으로 잘리는 그림을 찾는다 |
+| `tests/spritecheck.js` | 해외와 재단 적 56프레임을 전부 그려서 예외가 나거나 거의 빈 그림을 찾는다 |
 | `tests/sizecheck.js` | 실제로 그려서 키를 재고, 현실 크기와 화면 크기 순서가 맞는지 검사한다 (`--write`로 `fit` 표를 다시 계산) |
 
 ## 테스트

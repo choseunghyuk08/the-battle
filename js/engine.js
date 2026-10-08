@@ -3,6 +3,8 @@
   const { FPS, VIEW } = YG;
 
   const KB_SPEED = 3.4;
+  /* 맞는 곳/쏘는 곳의 높이: 몸 높이(def.ht)의 절반쯤. 큰 보스는 가슴께, 작은 벌레는 바닥 가까이에서 이펙트가 난다 */
+  const chest = (u, k = 0.5) => Math.round((u.def.ht || 30) * k);
   const KB_DRAG = 0.86;
   const KB_MIN = 0.25;
   const DIE_FRAMES = 12;
@@ -191,7 +193,7 @@
       const targets = e.def.area ? victims : victims.slice(0, 1);
       const aimX = targets.length ? targets[targets.length - 1].x : e.dir > 0 ? VIEW.enemyBaseX : VIEW.allyBaseX;
       if (e.def.ranged) {
-        this.fx.push({ kind: 'proj', sub: e.def.ranged, x0: e.x, x1: aimX, z: e.z, life: 9, max: 9, dir: e.dir });
+        this.fx.push({ kind: 'proj', sub: e.def.ranged, x0: e.x, x1: aimX, z: e.z, h: chest(e, 0.5), life: 9, max: 9, dir: e.dir });
       }
       for (const v of targets) {
         let dealt = calcDamage(e, v, e.atk);
@@ -200,10 +202,10 @@
         const big = crit || dealt >= e.atk * 1.4;
         this.applyDamage(v, dealt, { from: e, big });
         if (e.side === 'ally' && e.def.evolved >= 2) {
-          this.fx.push({ kind: 'awakenHit', x: v.x, z: v.z, h: 14, dir: e.dir, life: 10, max: 10 });
+          this.fx.push({ kind: 'awakenHit', x: v.x, z: v.z, h: chest(v, 0.5), dir: e.dir, life: 10, max: 10 });
           if (big && this.shake <= 0) this.shake = 4;
         }
-        if (!e.def.ranged) this.fx.push({ kind: 'slash', x: v.x, z: v.z, h: 14, dir: e.dir, side: e.side, life: 7, max: 7 });
+        if (!e.def.ranged) this.fx.push({ kind: 'slash', x: v.x, z: v.z, h: chest(v, 0.5), dir: e.dir, side: e.side, life: 7, max: 7 });
         if (e.def.freeze && v.def.trait !== 'metal' && this.rng() < e.def.freeze.chance) {
           v.freeze = e.def.freeze.frames;
           this.emit({ t: 'freeze' });
@@ -234,12 +236,12 @@
       v.hp -= dmg;
       this.emit({ t: 'hit', side: v.side, big: !!opts.big || !!opts.forceKb });
       v.flash = 4;
-      this.fx.push({ kind: 'dmg', side: v.side, x: v.x, z: v.z, h: 26, v: dmg, life: 22, max: 22 });
-      this.fx.push({ kind: 'spark', x: v.x, z: v.z, h: 12, life: 6, max: 6 });
+      this.fx.push({ kind: 'dmg', side: v.side, x: v.x, z: v.z, h: chest(v, 0.9), v: dmg, life: 22, max: 22 });
+      this.fx.push({ kind: 'spark', x: v.x, z: v.z, h: chest(v, 0.45), life: 6, max: 6 });
       if (v.hp <= 0 && v.def.survive && !v.survived && this.rng() < v.def.survive) {
         v.survived = true;
         v.hp = 1;
-        this.fx.push({ kind: 'spark', x: v.x, z: v.z, h: 16, life: 8, max: 8 });
+        this.fx.push({ kind: 'spark', x: v.x, z: v.z, h: chest(v, 0.55), life: 8, max: 8 });
       }
       if (v.hp <= 0) {
         this.kill(v, opts.from);
@@ -323,6 +325,7 @@
       if (e.def.regen && e.hp < e.maxHp) this.regen(e);
 
       if (e.state === 'kb') {
+        e.t++;
         e.x -= e.dir * e.kbVel;
         e.kbVel *= KB_DRAG;
         e.x = Math.min(VIEW.enemyBaseX - 2, Math.max(VIEW.allyBaseX + 2, e.x));

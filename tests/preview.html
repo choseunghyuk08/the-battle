@@ -1,14 +1,18 @@
 <!doctype html>
 <html lang="ko"><head><meta charset="utf-8"><title>sprite preview</title>
 <style>body{margin:0;background:#0e1319;color:#efe9dc;font:12px sans-serif}canvas{image-rendering:pixelated;display:block}</style></head>
-<body><canvas id="sheet"></canvas><canvas id="scene" width="320" height="180" style="width:960px;height:540px"></canvas>
+<body><canvas id="sheet"></canvas><canvas id="scene" width="640" height="360" style="width:960px;height:540px"></canvas>
 <script src="../js/data.js"></script><script src="../js/units2.js"></script><script src="../js/units3.js"></script><script src="../js/evolutions.js"></script><script src="../js/bestiary.js"></script><script src="../js/bestiary2.js"></script><script src="../js/bestiary3.js"></script><script src="../js/sizes.js"></script><script src="../js/engine.js"></script><script src="../js/game.js"></script>
 <script src="../js/poses.js"></script><script src="../js/sprites.js"></script><script src="../js/sprites2.js"></script><script src="../js/sprites3.js"></script><script src="../js/sprites4.js"></script><script src="../js/render.js"></script>
 <script>
 const YG = globalThis.YG;
 const q = new URLSearchParams(location.search);
 const anim = q.get('anim') || 'atk';
-const phases = q.get('frames') ? q.get('frames').split(',') : anim === 'atk' ? ['atk0','atk1','atk2','atk3','atk4','atk5','hurt0'] : anim === 'walk' ? ['walk0','walk1','walk2','walk3','walk4','walk5','idle0'] : ['idle0','idle1','idle2','idle3','hurt0'];
+const pick = (kind, ids) => ids.map((n) => kind + n);
+const phases = q.get('frames') ? q.get('frames').split(',')
+  : anim === 'atk' ? [...pick('atk', [0, 3, 6, 9, 12, 14, 15, 16, 18, 20, 22, 23]), 'hurt0']
+  : anim === 'walk' ? [...pick('walk', [0, 2, 4, 6, 8, 10, 12, 14]), 'idle0']
+  : [...pick('idle', [0, 2, 4, 6, 8, 10]), 'hurt0', 'hurt1', 'hurt2', 'hurt3'];
 const set = new URLSearchParams(location.search).get('set') || 'units';
 const evoLv = Number(q.get('lv') || 1);
 const evolved = YG.UNITS.map((u) => YG.resolveDef(u, evoLv));
@@ -25,14 +29,18 @@ const scpBoss = YG.ENEMIES.filter((e) => e.region === '재단' && e.boss);
 const picked = (q.get('ids') || '').split(',').filter(Boolean).map((i) => YG.enemyById(i));
 const variants = ['rat:red','bat:blue','zombie:violet','vending:gold','cat:ink','slimeking:red','mecha:gold','librarian:violet'].map((i) => YG.enemyById(i));
 const defs = picked.length ? picked : set === 'abroad' ? abroad : set === 'abroadboss' ? abroadBoss : set === 'scp' ? scp : set === 'scpboss' ? scpBoss : set === 'evo' ? evolved : set === 'enemies' ? YG.ENEMIES.filter((e) => OLD.includes(e.id)) : set === 'mobs' ? mobs : set === 'bosses' ? bosses : set === 'variants' ? variants : YG.UNITS;
-const sc = Number(q.get('scale') || 2), cw = YG.sprites.CW*sc, ch = YG.sprites.CH*sc;
+/* 그림은 K배 해상도에 발밑 기준점이 붙어 있다. 모든 칸을 같은 크기로 잡고 발밑을 맞춰 그린다 */
+const sc = Number(q.get('scale') || 2), K = YG.sprites.K;
+let up = 0, down = 0, left = 0, right = 0;
+for (const d of defs) for (const p of phases) { const f = YG.sprites.frame(d, p); up = Math.max(up, f.ay); down = Math.max(down, f.height - f.ay); left = Math.max(left, f.ax); right = Math.max(right, f.width - f.ax); }
+const cw = Math.ceil((left + right) / K * sc) + 4, ch = Math.ceil((up + down) / K * sc) + 4;
 const sheet = document.getElementById('sheet');
 sheet.width = phases.length*cw; sheet.height = defs.length*ch;
 const sctx = sheet.getContext('2d'); sctx.imageSmoothingEnabled=false;
 sctx.fillStyle='#2a3641'; sctx.fillRect(0,0,sheet.width,sheet.height);
 defs.forEach((d,r)=>{ phases.forEach((p,c)=>{
-  const s = d.scale||1;
-  sctx.drawImage(YG.sprites.frame(d,p),c*cw,r*ch,cw,ch);
+  const f = YG.sprites.frame(d,p);
+  sctx.drawImage(f, c*cw + 2 + left/K*sc - f.ax/K*sc, r*ch + 2 + up/K*sc - f.ay/K*sc, f.width/K*sc, f.height/K*sc);
 });});
 const scene = document.getElementById('scene').getContext('2d');
 const stage = YG.STAGES[2];

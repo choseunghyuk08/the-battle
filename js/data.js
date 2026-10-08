@@ -2,7 +2,8 @@
   const YG = (g.YG = g.YG || {});
 
   YG.FPS = 30;
-  YG.VIEW = { w: 320, h: 180, groundY: 150, allyBaseX: 34, enemyBaseX: 286 };
+  /* k: 화면 한 칸(논리 1px)을 실제 캔버스에서 몇 칸으로 그릴지. 그림은 k배 해상도로 만든다 */
+  YG.VIEW = { w: 320, h: 180, groundY: 150, allyBaseX: 34, enemyBaseX: 286, k: 2 };
 
   YG.TRAITS = {
     ghost: { name: '귀신' },
@@ -544,6 +545,7 @@
       spriteKey: `${def.id}:e${lvl}`,
       evolved: lvl,
       fit: YG.formFit ? YG.formFit(def.id, lvl, def.fit) : def.fit,
+      ht: YG.formHt ? YG.formHt(def.id, lvl, def.ht) : def.ht,
     };
     return evoCache[key];
   };

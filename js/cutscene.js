@@ -6,7 +6,7 @@
   const GY = 134;
   const CX = 160;
   const CY = 90;
-  const SC = 3;
+  const SC = 2.4;
 
   /* 프레임 단위 타임라인. 진화는 짧게, 각성은 길게 간다 */
   const LINES = {
@@ -126,7 +126,7 @@
     function draw(ctx) {
       const f = st.f;
       const shk = st.shake > 0.2 ? st.shake : 0;
-      ctx.imageSmoothingEnabled = false;
+      YG.render.prep(ctx);
       ctx.save();
       if (shk) ctx.translate(Math.round((rnd() - 0.5) * 2 * shk), Math.round((rnd() - 0.5) * 2 * shk));
       ctx.fillStyle = '#05040a';
@@ -206,12 +206,13 @@
 
       /* 유닛 */
       const def = f < line.swapAt ? before : after;
-      let key = 'idle0';
-      if (f < line.swapAt) key = `idle${Math.floor(f / 7) % 4}`;
-      else if (f >= line.loopAt) {
+      let key = YG.idleKey(f);
+      if (f >= line.loopAt) {
+        /* 각성한 모습이 공격 모션을 한 번씩 보여 준다 */
         const t = (f - line.loopAt) % 48;
-        key = t < 30 ? `atk${Math.min(5, Math.floor(t / 5))}` : `idle${Math.floor(f / 7) % 4}`;
-      } else key = `idle${Math.floor(f / 7) % 4}`;
+        const { hit, total } = def.anim;
+        if (t < total) key = `atk${YG.atkIndex(t, hit, total)}`;
+      }
       const hot = (f >= line.charge[1] - 12 && f < line.swapAt + 2) || (f >= line.revealAt && f < line.revealAt + 5);
       const mode = hot && f % 2 === 0 ? 'flash' : 'base';
       const img = YG.sprites.frame(def, key, mode);
@@ -221,9 +222,13 @@
       /* 그림자 */
       ctx.fillStyle = 'rgba(5,4,10,0.55)';
       ctx.fillRect(CX - 26 + lift / 2, GY - 1, 52 - lift, 3);
-      const wide = SC * 48;
-      const high = SC * 36;
-      ctx.drawImage(img, CX - 20 * SC + dx - pulse, GY - 34 * SC - lift - pulse, wide + pulse * 2, high + pulse * 2);
+      /* 그림은 K배 해상도다. 발밑 기준점(ax, ay)을 서 있는 자리에 맞추고, 맥박은 기준점에서 퍼지게 키운다 */
+      const K = YG.sprites.K;
+      const wide = (img.width / K) * SC;
+      const high = (img.height / K) * SC;
+      const grow = (wide + pulse * 2) / wide;
+      const growY = (high + pulse * 2) / high;
+      ctx.drawImage(img, CX + dx - (img.ax / K) * SC * grow, GY - lift - (img.ay / K) * SC * growY, wide * grow, high * growY);
 
       /* 번개 */
       for (const b of st.bolts) {
@@ -281,7 +286,7 @@
     dlg.setAttribute('aria-label', '진화 연출');
     dlg.innerHTML = [
       '<div class="cs-stage">',
-      '<canvas width="320" height="180"></canvas>',
+      `<canvas width="${W * YG.VIEW.k}" height="${H * YG.VIEW.k}"></canvas>`,
       '<div class="cs-text" aria-live="polite">',
       '<span class="cs-label"></span><b class="cs-name"></b><p class="cs-blurb"></p><p class="cs-stat"></p>',
       '</div>',

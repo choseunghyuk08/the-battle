@@ -461,7 +461,7 @@ function testOverseas() {
     assert(new Set(fresh.filter((e) => e.region === r).map((e) => e.trait)).size >= 4, `${r} 적 특성이 고르게`);
   }
 
-  /* 스프라이트: 17프레임이 전부 그려지고 캔버스 안에 들어온다 */
+  /* 스프라이트: 프레임 41장이 전부 그려지고 비어 있지 않다 */
   const sc = require('./spritecheck.js').checkSprites();
   assert.strictEqual(sc.problems.length, 0, `스프라이트 문제 ${sc.problems.slice(0, 5).map((p) => `${p.id}/${p.frame}/${p.why}`).join(', ')}`);
 
@@ -552,10 +552,10 @@ function testScp() {
   const sha = (x) => crypto.createHash('sha1').update(JSON.stringify(x)).digest('hex').slice(0, 16);
   assert.strictEqual(sha(YG.STAGES.slice(0, 347)), '7b43c25d4050845e', '스테이지 1~347 데이터');
   assert.strictEqual(sha(YG.CHAPTERS.slice(0, 70)), '805aa0c3199a06c4', '장 1~70');
-  /* 크기 점검(cm, fit, scale)은 그림에만 쓰이는 값이라 빼고 센다 */
+  /* 크기 점검(cm, fit, scale, ht)은 그림과 이펙트 높이에만 쓰이는 값이라 빼고 센다 */
   const noLook = (e) => {
     const c = { ...e };
-    for (const k of ['cm', 'fit', 'scale']) delete c[k];
+    for (const k of ['cm', 'fit', 'scale', 'ht']) delete c[k];
     return c;
   };
   assert.strictEqual(sha(YG.ENEMIES.slice(0, 87).map(noLook)), 'abf110b9d3f3ac68', '기존 적 87종');

@@ -8,9 +8,11 @@
        키 170cm 사람이 REF 픽셀이고 크기가 2배가 되면 화면에서는 1.3배 정도로 보인다.
      - 동료는 현실 키(cm)에 더해 "좋은 동료일수록 크게 보이는" 보너스가 붙는다 (등급 + 진화 단계).
      - fit 은 그림을 얼마나 줄이거나 키울지의 배율이다. 그림이 바뀌면 `node tests/sizecheck.js --write` 로 다시 계산한다. */
-  const REF = 27;
+  const REF = 35;
   const EXP = 0.4;
-  const MIN_PX = 8;
+  const MIN_PX = 10;
+  /* 보스는 크기 표(cm)가 워낙 커서 그대로 쓰면 화면을 덮는다. 같은 식에 이 배율을 곱한다 */
+  const BOSS_K = 0.88;
 
   const px = (cm) => Math.max(MIN_PX, REF * Math.pow(cm / 170, EXP));
 
@@ -58,11 +60,11 @@
   };
 
   /* 동료 화면 높이(px): 등급이 높을수록, 진화할수록 크다. 현실 키는 ±3% 정도만 더한다 */
-  const GRADE_PX = { 4: 26, 3: 28, 2: 30, 1: 32, 0: 33 };
+  const GRADE_PX = { 4: 34, 3: 36.5, 2: 39, 1: 41.5, 0: 43 };
   /* 등급이 높을수록 다리를 늘려서 키를 키운다 (그림을 통째로 키우면 도트가 뭉개진다) */
   const GRADE_TALL = { 4: 0, 3: 1, 2: 2, 1: 3, 0: 4 };
   const FORM_UP = [1, 1.03, 1.06];
-  const ALLY_MAX_PX = 34;
+  const ALLY_MAX_PX = 46;
 
   const allyPx = (unit, lvl = 0) => {
     const real = Math.min(1.06, Math.max(0.95, Math.pow((ALLY_CM[unit.id] || 170) / 170, 0.5)));
@@ -70,67 +72,86 @@
   };
 
   /* 적 화면 크기 (px). 보스는 그림을 확대해서 그리므로 확대 전 그림에서 맞춰야 할 크기가 아니라 화면에서 보이는 크기다 */
-  const enemyPx = (def) => px(ENEMY_CM[def.id.split(':')[0]]);
+  const enemyPx = (def) => px(ENEMY_CM[def.id.split(':')[0]]) * (def.boss ? BOSS_K : 1);
 
   const cmText = (cm) => (cm < 100 ? `${cm}cm` : cm < 1000 ? `${parseFloat((cm / 100).toFixed(2))}m` : `${Math.round(cm / 100)}m`);
 
   /* FIT:begin (node tests/sizecheck.js --write 로 만든 값. 손으로 고치지 않는다) */
   const ENEMY_FIT = {
-    dust: 0.58, ghost: 0.91, mannequin: 0.79, shadow: 0.87, locker: 0.89, portrait: 0.81, tray: 0.61, skeleton: 0.75,
-    mirror: 0.78, principal: 0.78, megamirror: 0.79, slime: 0.75, rat: 0.51, cat: 0.57, dog: 0.62, bat: 0.59, crow: 0.7,
-    drone: 0.76, spider: 0.61, roach: 0.44, centipede: 0.59, eyeball: 0.77, balloon: 0.84, zombie: 0.96, teacher: 0.98,
-    lunch: 0.8, desk: 1.09, chair: 1.05, board: 1.1, vending: 0.93, tv: 0.86, piano: 1.07, bookmimic: 0.69,
-    cleaner: 0.91, librarian: 0.92, ratking: 0.81, pezombie: 1.09, megaeye: 1.02, mecha: 0.92, grandpiano: 1.02,
-    spiderqueen: 1.14, blackboard: 1.08, album: 0.89, supervisor: 1.05, uniformgiant: 1.03, vendingking: 0.85,
-    catking: 0.9, slimeking: 1.09, hanako: 0.84, kuchisake: 0.96, tekete: 0.78, kasa: 0.73, kappa: 0.73, jinmenken: 0.71,
-    jiangshi: 0.84, nvgui: 0.83, kumiho: 0.64, dokkaebibul: 0.59, shishi: 0.78, krasue: 0.7, manananggal: 0.78,
-    pontianak: 0.95, pocong: 0.89, tuktuk: 0.98, mada: 0.87, banshee: 0.87, blackshuck: 0.69, gargoyle: 0.8,
-    werewolf: 0.93, mummy: 0.98, bloodymary: 0.95, faceless: 0.92, mothman: 0.98, chupacabra: 0.76, lorona: 0.86,
-    jukebox: 0.83, oni: 0.87, tengu: 0.89, jiangshilord: 0.98, nian: 0.97, naga: 0.89, tikbalang: 0.85, dracula: 0.92,
-    babayaga: 0.92, horseman: 0.8, wendigo: 0.97, globeking: 0.99, hazmat: 0.98, sentry: 0.82, camera: 0.57,
-    scp999: 0.78, scp173: 0.87, scp294: 0.89, scp049_2: 0.82, scp035: 0.96, scp087_1: 0.84, blastdoor: 0.98, rack: 0.9,
-    agent: 0.98, redacted: 1.01, ooze: 0.93, guardmech: 0.85, scp914: 0.81, scp049: 0.82, scp096: 0.98, scp106: 0.92,
-    scp939: 0.85, scp079: 0.87, scp682: 0.88, redactlord: 0.99,
+    dust: 0.75, ghost: 1.18, mannequin: 1.02, shadow: 1.13, locker: 1.16, portrait: 1.05, tray: 0.8, skeleton: 0.97,
+    mirror: 1.02, principal: 0.89, megamirror: 0.9, slime: 0.98, rat: 0.69, cat: 0.74, dog: 0.8, bat: 0.76, crow: 0.91,
+    drone: 0.98, spider: 0.79, roach: 0.57, centipede: 0.76, eyeball: 0.98, balloon: 1.06, zombie: 1.25, teacher: 1.26,
+    lunch: 1.04, desk: 1.42, chair: 1.36, board: 1.43, vending: 1.2, tv: 1.12, piano: 1.39, bookmimic: 0.89,
+    cleaner: 1.18, librarian: 1.05, ratking: 0.95, pezombie: 1.24, megaeye: 1.14, mecha: 1.05, grandpiano: 1.16,
+    spiderqueen: 1.3, blackboard: 1.23, album: 1.02, supervisor: 1.2, uniformgiant: 1.18, vendingking: 0.97,
+    catking: 1.02, slimeking: 1.24, hanako: 1.09, kuchisake: 1.25, tekete: 0.99, kasa: 0.95, kappa: 0.94,
+    jinmenken: 0.92, jiangshi: 1.09, nvgui: 1.06, kumiho: 0.83, dokkaebibul: 0.77, shishi: 1.01, krasue: 0.91,
+    manananggal: 1.01, pontianak: 1.24, pocong: 1.15, tuktuk: 1.28, mada: 1.13, banshee: 1.13, blackshuck: 0.9,
+    gargoyle: 1.04, werewolf: 1.2, mummy: 1.26, bloodymary: 1.24, faceless: 1.2, mothman: 1.26, chupacabra: 0.98,
+    lorona: 1.12, jukebox: 1.07, oni: 0.99, tengu: 1.02, jiangshilord: 1.11, nian: 1.11, naga: 1.01, tikbalang: 0.97,
+    dracula: 1.05, babayaga: 1.05, horseman: 0.91, wendigo: 1.11, globeking: 1.13, hazmat: 1.26, sentry: 1.07,
+    camera: 0.74, scp999: 1.01, scp173: 1.13, scp294: 1.16, scp049_2: 1.06, scp035: 1.25, scp087_1: 1.09,
+    blastdoor: 1.28, rack: 1.17, agent: 1.26, redacted: 1.31, ooze: 1.21, guardmech: 0.97, scp914: 0.92, scp049: 0.93,
+    scp096: 1.11, scp106: 1.05, scp939: 0.97, scp079: 0.99, scp682: 1.01, redactlord: 1.13,
+  };
+  const ENEMY_HT = {
+    dust: 20, ghost: 34, mannequin: 36, shadow: 37, locker: 36, portrait: 28, tray: 16, skeleton: 35, mirror: 37,
+    principal: 69, megamirror: 65, slime: 17, rat: 13, cat: 16, dog: 19, bat: 11, crow: 12, drone: 13, spider: 14,
+    roach: 10, centipede: 11, eyeball: 23, balloon: 27, zombie: 35, teacher: 35, lunch: 34, desk: 28, chair: 27,
+    board: 31, vending: 36, tv: 25, piano: 33, bookmimic: 20, cleaner: 27, librarian: 67, ratking: 57, pezombie: 69,
+    megaeye: 65, mecha: 67, grandpiano: 70, spiderqueen: 62, blackboard: 71, album: 65, supervisor: 70, uniformgiant: 83,
+    vendingking: 74, catking: 57, slimeking: 67, hanako: 31, kuchisake: 35, tekete: 28, kasa: 29, kappa: 28,
+    jinmenken: 22, jiangshi: 35, nvgui: 34, kumiho: 23, dokkaebibul: 21, shishi: 24, krasue: 27, manananggal: 33,
+    pontianak: 35, pocong: 35, tuktuk: 35, mada: 35, banshee: 35, blackshuck: 23, gargoyle: 37, werewolf: 37, mummy: 35,
+    bloodymary: 35, faceless: 40, mothman: 38, chupacabra: 22, lorona: 35, jukebox: 33, oni: 71, tengu: 65,
+    jiangshilord: 73, nian: 64, naga: 67, tikbalang: 70, dracula: 65, babayaga: 73, horseman: 64, wendigo: 78,
+    globeking: 79, hazmat: 35, sentry: 37, camera: 21, scp999: 21, scp173: 36, scp294: 36, scp049_2: 35, scp035: 35,
+    scp087_1: 35, blastdoor: 41, rack: 37, agent: 35, redacted: 37, ooze: 27, guardmech: 70, scp914: 64, scp049: 67,
+    scp096: 73, scp106: 67, scp939: 52, scp079: 63, scp682: 51, redactlord: 79,
   };
   const ALLY_FIT = {
-    basic: [0.93, 0.96, 0.89], bag: [0.91, 0.94, 0.88], runner: [0.95, 0.98, 0.91], reader: [0.91, 0.85, 0.88],
-    bat: [0.96, 0.96, 0.95], cook: [0.8, 0.82, 0.85], tech: [0.88, 0.91, 0.93], radio: [0.93, 0.96, 0.92],
-    patrol: [0.99, 1.02, 0.99], lab: [0.99, 1.02, 0.96], robot: [0.88, 0.91, 0.93], pe: [1.07, 1.1, 0.94],
-    top: [0.96, 0.97, 0.92], warden: [0.97, 0.97, 0.92], cleaner: [0.79, 0.81, 0.84], basket: [0.98, 1.01, 0.94],
-    pingpong: [0.9, 0.93, 0.86], calli: [0.92, 0.95, 0.83], kendo: [0.98, 1.01, 0.94], volley: [1.02, 1.05, 0.98],
-    art: [0.87, 0.9, 0.87], drum: [0.93, 0.96, 0.93], coder: [0.97, 0.99, 0.93], nurse: [0.83, 0.85, 0.85],
-    fire: [0.99, 1.02, 0.99], archer: [1.01, 1.04, 0.97], choir: [0.99, 1.01, 0.9], electric: [1.01, 1.04, 0.97],
-    taekwon: [1.02, 1.05, 0.99], sciT: [1.05, 1.08, 1], nurseT: [0.9, 0.93, 0.93], senior: [1.06, 1.09, 1],
-    vice: [1.05, 1.08, 0.94], headmaster: [0.94, 0.97, 0.92], alumni: [0.97, 0.97, 0.92], shuttle: [0.93, 0.96, 0.89],
-    garden: [0.83, 0.85, 0.88], photo: [0.81, 0.86, 0.89], soccer: [0.85, 0.88, 0.9], cheer: [0.79, 0.81, 0.81],
-    judo: [0.98, 1.01, 0.94], fencing: [0.9, 0.93, 0.95], astro: [0.88, 0.9, 0.87], drama: [0.97, 1, 0.88],
-    carp: [0.98, 1.01, 0.94], shoot: [0.95, 0.98, 0.94], manga: [0.95, 0.98, 0.86], magic: [0.85, 0.87, 0.9],
-    sumo: [0.92, 0.95, 0.98], band: [0.92, 0.95, 0.98], swim: [0.95, 0.98, 1.01], gym: [0.97, 1, 0.88],
-    detect: [0.93, 0.96, 0.99], music: [0.91, 0.94, 0.94], math: [1.06, 1.09, 1], korean: [1.04, 1.07, 0.94],
-    homeroom: [1.05, 1.08, 0.94], council: [0.96, 0.97, 0.92], chair: [0.87, 0.89, 0.89], film: [0.89, 0.91, 0.94],
-    fishing: [0.91, 0.94, 0.93], hiking: [0.92, 0.94, 0.94], rugby: [1.01, 1.04, 0.97], weight: [1, 1.03, 0.96],
-    dance: [0.99, 1.02, 0.9], fortune: [0.99, 1.01, 0.9], air: [1.02, 1.05, 0.99], english: [0.91, 0.94, 0.94],
-    counselor: [1.02, 1.05, 0.93], librarian: [0.91, 0.94, 0.94], founder: [0.96, 0.97, 0.92],
-    prodigy: [0.91, 0.94, 0.92], dclass: [0.94, 0.97, 0.85], guard: [0.97, 1, 0.97], researcher: [0.97, 0.99, 0.87],
-    hazmat: [0.96, 0.99, 0.93], amnesic: [1.02, 1.05, 0.99], mtf: [0.98, 1.01, 1.01], containment: [1.06, 1.09, 0.94],
-    director: [1.06, 1.09, 0.94], o5: [0.96, 0.97, 0.92],
+    basic: [1.21, 1.25, 1.16], bag: [1.2, 1.23, 1.15], runner: [1.24, 1.28, 1.19], reader: [1.2, 1.11, 1.15],
+    bat: [1.25, 1.25, 1.24], cook: [1.04, 1.07, 1.1], tech: [1.15, 1.18, 1.22], radio: [1.21, 1.25, 1.2],
+    patrol: [1.29, 1.33, 1.28], lab: [1.29, 1.33, 1.25], robot: [1.15, 1.18, 1.21], pe: [1.39, 1.43, 1.26],
+    top: [1.25, 1.28, 1.24], warden: [1.29, 1.31, 1.24], cleaner: [1.03, 1.06, 1.09], basket: [1.28, 1.32, 1.23],
+    pingpong: [1.18, 1.21, 1.13], calli: [1.21, 1.24, 1.09], kendo: [1.28, 1.32, 1.23], volley: [1.33, 1.37, 1.28],
+    art: [1.13, 1.17, 1.13], drum: [1.22, 1.25, 1.21], coder: [1.26, 1.3, 1.21], nurse: [1.08, 1.11, 1.11],
+    fire: [1.29, 1.33, 1.28], archer: [1.31, 1.35, 1.26], choir: [1.28, 1.32, 1.16], electric: [1.31, 1.35, 1.26],
+    taekwon: [1.33, 1.37, 1.28], sciT: [1.36, 1.4, 1.31], nurseT: [1.17, 1.2, 1.2], senior: [1.38, 1.42, 1.33],
+    vice: [1.36, 1.4, 1.24], headmaster: [1.23, 1.27, 1.23], alumni: [1.28, 1.31, 1.24], shuttle: [1.22, 1.26, 1.17],
+    garden: [1.08, 1.11, 1.15], photo: [1.06, 1.13, 1.16], soccer: [1.11, 1.15, 1.18], cheer: [1.03, 1.06, 1.06],
+    judo: [1.28, 1.32, 1.23], fencing: [1.17, 1.21, 1.24], astro: [1.14, 1.17, 1.14], drama: [1.27, 1.3, 1.14],
+    carp: [1.28, 1.32, 1.23], shoot: [1.23, 1.27, 1.23], manga: [1.24, 1.28, 1.12], magic: [1.1, 1.13, 1.17],
+    sumo: [1.2, 1.23, 1.27], band: [1.2, 1.24, 1.27], swim: [1.23, 1.27, 1.31], gym: [1.26, 1.3, 1.15],
+    detect: [1.21, 1.25, 1.28], music: [1.19, 1.22, 1.22], math: [1.37, 1.41, 1.32], korean: [1.35, 1.39, 1.23],
+    homeroom: [1.36, 1.4, 1.24], council: [1.26, 1.29, 1.24], chair: [1.14, 1.17, 1.21], film: [1.16, 1.19, 1.23],
+    fishing: [1.18, 1.22, 1.22], hiking: [1.19, 1.23, 1.23], rugby: [1.31, 1.35, 1.26], weight: [1.3, 1.34, 1.25],
+    dance: [1.29, 1.33, 1.17], fortune: [1.28, 1.32, 1.16], air: [1.33, 1.37, 1.28], english: [1.19, 1.22, 1.22],
+    counselor: [1.32, 1.36, 1.2], librarian: [1.18, 1.21, 1.21], founder: [1.25, 1.28, 1.24], prodigy: [1.19, 1.23, 1.2],
+    dclass: [1.23, 1.27, 1.11], guard: [1.27, 1.31, 1.26], researcher: [1.26, 1.3, 1.14], hazmat: [1.25, 1.29, 1.22],
+    amnesic: [1.33, 1.37, 1.28], mtf: [1.27, 1.31, 1.31], containment: [1.38, 1.42, 1.26], director: [1.37, 1.41, 1.25],
+    o5: [1.25, 1.28, 1.24],
   };
   /* FIT:end */
 
   for (const e of YG.ENEMIES) {
     if (ENEMY_CM[e.id] === undefined) continue;
     e.cm = ENEMY_CM[e.id];
+    if (ENEMY_HT[e.id] !== undefined) e.ht = ENEMY_HT[e.id];
     if (BOSS_SCALE[e.id]) e.scale = BOSS_SCALE[e.id];
     if (ENEMY_FIT[e.id] !== undefined) e.fit = ENEMY_FIT[e.id];
   }
   for (const u of YG.UNITS) {
     u.cm = ALLY_CM[u.id];
+    u.ht = Math.round(allyPx(u, 0));
     u.look = { ...u.look, tall: GRADE_TALL[u.grade] };
     if (ALLY_FIT[u.id]) u.fit = ALLY_FIT[u.id][0];
   }
 
   /* 진화 형태의 배율 (data.js 의 resolveDef 가 부른다) */
   YG.formFit = (id, lvl, fallback) => (ALLY_FIT[id] && ALLY_FIT[id][lvl]) || fallback;
+  /* 몸 높이(px). 맞는 이펙트와 투사체가 나오는 높이를 정할 때 쓴다 */
+  YG.formHt = (id, lvl, fallback) => (ALLY_CM[id] ? Math.round(allyPx(YG.unitById(id), lvl)) : fallback);
 
-  YG.SIZES = { REF, EXP, MIN_PX, px, ENEMY_CM, ALLY_CM, GRADE_PX, GRADE_TALL, FORM_UP, allyPx, enemyPx, cmText, ENEMY_FIT, ALLY_FIT };
+  YG.SIZES = { REF, EXP, MIN_PX, BOSS_K, px, ENEMY_CM, ALLY_CM, GRADE_PX, GRADE_TALL, FORM_UP, allyPx, enemyPx, cmText, ENEMY_FIT, ALLY_FIT };
 })(globalThis);

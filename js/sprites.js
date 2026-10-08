@@ -1,13 +1,19 @@
 (function (g) {
   const YG = g.YG;
 
+  /* 도트는 48x36 칸 기준으로 그리지만, 실제 그림은 K배 해상도로 만든다.
+     그래서 크기를 1.3배처럼 어중간한 배율로 키우거나 줄여도 도트가 뭉개지지 않고, 외곽선은 가늘게 남는다.
+     그림 한 장의 크기는 내용에 맞춰 정해지고, 발밑 기준점(ax, ay)이 같이 붙는다. */
+  const K = YG.VIEW.k;
   const CW = 48;
   const CH = 36;
   const CX = 20;
   const BY = 34;
   const OUTLINE = '#141218';
+  const SHADE = true;
 
-  let fitNow = 1;
+  /* 지금 그리는 그림의 배율. fit(그림 맞춤) x scale(보스 확대) 이고, renderFrame 이 정해 준다 */
+  let sizeNow = 1;
 
   function canvas(w, h) {
     const c = document.createElement('canvas');
@@ -15,6 +21,18 @@
     c.height = h;
     return c;
   }
+
+  const HEX = /^#[0-9a-f]{6}$/i;
+  const tone = (hex, up, k) => {
+    const n = parseInt(hex.slice(1), 16);
+    const ch = (v) => Math.round(up ? v + (255 - v) * k : v * k).toString(16).padStart(2, '0');
+    return `#${ch((n >> 16) & 255)}${ch((n >> 8) & 255)}${ch(n & 255)}`;
+  };
+  const toneCache = {};
+  const shadeOf = (hex, up) => {
+    const key = `${hex}${up ? 'u' : 'd'}`;
+    return toneCache[key] || (toneCache[key] = up ? tone(hex, true, 0.2) : tone(hex, false, 0.78));
+  };
 
   function builder() {
     const parts = [];
@@ -29,6 +47,11 @@
         parts.push({ x, y, w: 1, h: 1, c, bare: true });
       },
       line(x0, y0, x1, y1, c, t = 1) {
+        /* 자세 값이 소수일 수 있어서 정수로 맞춘 뒤에 그린다 (안 맞추면 끝점에 영원히 닿지 못한다) */
+        x0 = Math.round(x0);
+        y0 = Math.round(y0);
+        x1 = Math.round(x1);
+        y1 = Math.round(y1);
         let dx = Math.abs(x1 - x0);
         let dy = -Math.abs(y1 - y0);
         const sx = x0 < x1 ? 1 : -1;
@@ -55,25 +78,61 @@
         }
       },
       flush(outline = OUTLINE) {
-        const c = canvas(CW, CH);
-        const ctx = c.getContext('2d');
-        /* fit: 발밑(CX, BY)을 기준으로 그림 전체를 줄이거나 키운다. 사각형의 모서리 좌표를 반올림해서 틈이 안 생기고, 외곽선은 1px 그대로다 */
-        const s = fitNow;
-        const edge = (v, a) => (s === 1 ? v : Math.round(a + (v - a) * s));
-        const box = (p) => {
-          if (s === 1) return p;
-          const x = edge(p.x, CX);
-          const y = edge(p.y, BY);
-          return { x, y, w: Math.max(1, edge(p.x + p.w, CX) - x), h: Math.max(1, edge(p.y + p.h, BY) - y), c: p.c, bare: p.bare };
-        };
-        const fitted = s === 1 ? parts : parts.map(box);
-        ctx.fillStyle = outline;
-        for (const p of fitted) if (p.c !== null && !p.bare) ctx.fillRect(p.x - 1, p.y - 1, p.w + 2, p.h + 2);
-        for (const p of fitted) {
+        const s = K * sizeNow;
+        /* 발밑(CX, BY)을 기준으로 모서리 좌표를 반올림한다. 이웃한 사각형이 모서리를 같이 쓰니 틈이 안 생긴다 */
+        const ex = (v) => Math.round((v - CX) * s);
+        const ey = (v) => Math.round((v - BY) * s);
+        const o = Math.max(1, Math.min(K, Math.round(s)));
+        const hi = [];
+        let x0 = 1e9;
+        let y0 = 1e9;
+        let x1 = -1e9;
+        let y1 = -1e9;
+        let nx0 = 1e9;
+        let ny0 = 1e9;
+        let nx1 = -1e9;
+        let ny1 = -1e9;
+        for (const p of parts) {
           if (p.c === null) continue;
-          ctx.fillStyle = p.c;
-          ctx.fillRect(p.x, p.y, p.w, p.h);
+          const a = ex(p.x);
+          const b = ey(p.y);
+          const r = { x: a, y: b, w: Math.max(1, ex(p.x + p.w) - a), h: Math.max(1, ey(p.y + p.h) - b), c: p.c, bare: p.bare, big: p.w >= 3 && p.h >= 3 };
+          const pad = p.bare ? 0 : o;
+          x0 = Math.min(x0, r.x - pad);
+          y0 = Math.min(y0, r.y - pad);
+          x1 = Math.max(x1, r.x + r.w + pad);
+          y1 = Math.max(y1, r.y + r.h + pad);
+          const npad = p.bare ? 0 : 1;
+          nx0 = Math.min(nx0, p.x - npad);
+          ny0 = Math.min(ny0, p.y - npad);
+          nx1 = Math.max(nx1, p.x + p.w + npad);
+          ny1 = Math.max(ny1, p.y + p.h + npad);
+          hi.push(r);
         }
+        if (!hi.length) {
+          x0 = y0 = 0;
+          x1 = y1 = 1;
+          nx0 = ny0 = nx1 = ny1 = 0;
+        }
+        const c = canvas(x1 - x0, y1 - y0);
+        const ctx = c.getContext('2d');
+        ctx.fillStyle = outline;
+        for (const r of hi) if (!r.bare) ctx.fillRect(r.x - o - x0, r.y - o - y0, r.w + 2 * o, r.h + 2 * o);
+        const band = Math.max(1, Math.round(s * 0.5));
+        for (const r of hi) {
+          ctx.fillStyle = r.c;
+          ctx.fillRect(r.x - x0, r.y - y0, r.w, r.h);
+          /* 큰 면에는 위쪽에 밝은 줄, 아래쪽에 어두운 줄을 얇게 넣어서 입체감을 낸다 */
+          if (SHADE && r.big && !r.bare && HEX.test(r.c) && r.h > band * 2 + 1) {
+            ctx.fillStyle = shadeOf(r.c, true);
+            ctx.fillRect(r.x - x0, r.y - y0, r.w, band);
+            ctx.fillStyle = shadeOf(r.c, false);
+            ctx.fillRect(r.x - x0, r.y - y0 + r.h - band, r.w, band);
+          }
+        }
+        c.ax = -x0;
+        c.ay = -y0;
+        c.nat = { w: nx1 - nx0, h: ny1 - ny0, x0: nx0, y0: ny0 };
         return c;
       },
     };
@@ -1262,8 +1321,17 @@
     return b.flush(look === 'shadow' || look === 'principal' ? '#08060c' : OUTLINE);
   }
 
-  function whiten(src) {
+  /* 색을 바꾼 복사본에도 발밑 기준점과 원래 크기 정보를 그대로 붙인다 */
+  function twin(src) {
     const c = canvas(src.width, src.height);
+    c.ax = src.ax;
+    c.ay = src.ay;
+    c.nat = src.nat;
+    return c;
+  }
+
+  function whiten(src) {
+    const c = twin(src);
     const ctx = c.getContext('2d');
     ctx.drawImage(src, 0, 0);
     ctx.globalCompositeOperation = 'source-atop';
@@ -1273,7 +1341,7 @@
   }
 
   function tint(src, color, alpha) {
-    const c = canvas(src.width, src.height);
+    const c = twin(src);
     const ctx = c.getContext('2d');
     ctx.drawImage(src, 0, 0);
     ctx.globalCompositeOperation = 'source-atop';
@@ -1304,13 +1372,13 @@
   function renderFrame(def, key) {
     const q = YG.POSES[key];
     let img;
-    fitNow = def.fit || 1;
+    sizeNow = (def.fit || 1) * (def.scale || 1);
     try {
       if (typeof def.look === 'string') img = renderEnemy(def.look, q);
       else if (def.look.arch && def.look.arch !== 'human') img = YG.archRender(def.look, q);
       else img = drawStudent(def.look, q);
     } finally {
-      fitNow = 1;
+      sizeNow = 1;
     }
     return def.tint ? tint(img, def.tint.color, def.tint.alpha) : img;
   }
@@ -1324,10 +1392,10 @@
     return cache[key] || (cache[key] = { frames: {}, flash: {}, frozen: {}, rage: {} });
   }
 
-  YG.spriteKit = { builder, canvas, CX, BY, CW, CH, OUTLINE };
+  YG.spriteKit = { builder, canvas, CX, BY, CW, CH, OUTLINE, K };
 
   YG.sprites = {
-    CW, CH, CX, BY, keyOf,
+    CW, CH, CX, BY, K, keyOf,
     frame(def, key = 'idle0', mode = 'base') {
       const set = setFor(def);
       const base = set.frames[key] || (set.frames[key] = renderFrame(def, key));
@@ -1341,8 +1409,9 @@
       const box = bounds(src);
       const c = canvas(box.w, box.h);
       c.getContext('2d').drawImage(src, box.x, box.y, box.w, box.h, 0, 0, box.w, box.h);
-      c.style.width = `${box.w * scale}px`;
-      c.style.height = `${box.h * scale}px`;
+      /* 그림은 K배 해상도라서 화면에 보이는 크기는 K로 나눈다 */
+      c.style.width = `${(box.w / K) * scale}px`;
+      c.style.height = `${(box.h / K) * scale}px`;
       c.className = 'portrait';
       return c;
     },

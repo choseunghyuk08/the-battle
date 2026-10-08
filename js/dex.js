@@ -163,7 +163,16 @@
     const wp = clamp(Math.round(0.5 / speed), 2, 5); /* 걷기 자세 하나가 머무는 프레임 */
     const flight = def.ranged ? 12 : 0;
 
-    const dist = clamp(Math.round(range + (scale - 1) * 8), 18, 64);
+    /* 몸 크기: 서 있는 그림에서 발밑 기준으로 위로 얼마나, 옆으로 얼마나 뻗는지 (화면 px) */
+    const body = YG.sprites.frame(def, 'idle0');
+    const upPx = body.ay / YG.sprites.K;
+    const sidePx = (body.width - body.ax) / YG.sprites.K;
+
+    /* 앞쪽으로 뻗은 몸 크기만큼 더 떨어져 서야 겹치지 않는다 */
+    const frontPx = (body.width - body.ax) / YG.sprites.K;
+    const standOff = clamp(Math.round(0.6 * range + 10 + 0.9 * frontPx), 22, 120);
+    const muzzleY = clamp(Math.round(upPx * 0.5), 12, 60);
+    const dist = standOff;
     const xAtk = SX + dist;
     const WALK0 = 4;
     const ARRIVE = 87;
@@ -176,11 +185,11 @@
     const impactF = hitF + flight;
     const END = Math.max(swing + atk.total, impactF) + 24;
     const FALL = 26;
-    const peekX = VIEW.w + 2 * scale;
+    const peekX = VIEW.w + sidePx - 10;
     const slideLen = 50 + Math.round((0.9 - speed) * 60);
 
-    const idle = (f, seed = 0) => `idle${(Math.floor(f / 7) + seed) % 4}`;
-    const walk = (n) => `walk${Math.floor(n / wp) % 6}`;
+    const idle = (f, seed = 0) => YG.idleKey(f, seed);
+    const walk = (n) => `walk${Math.floor(n / (wp / (YG.POSE_COUNT.walk / 6))) % YG.POSE_COUNT.walk}`;
     const atkKey = (t) => YG.frameKey({ state: 'atk', t, def });
 
     function studentAt(f) {
@@ -190,7 +199,7 @@
       let mode = 'base';
       if (f < ARRIVE) {
         x = lerp(-16, SX_ARRIVE, clamp((f - WALK0) / (ARRIVE - WALK0), 0, 1));
-        if (f >= WALK0) key = `walk${Math.floor((f - WALK0) / 2.4) % 6}`;
+        if (f >= WALK0) key = `walk${Math.floor((f - WALK0) / (2.4 / (YG.POSE_COUNT.walk / 6))) % YG.POSE_COUNT.walk}`;
       }
       const s = f - startle;
       if (s >= 0) {
@@ -200,7 +209,7 @@
       const h = f - impactF;
       if (h >= 0) {
         x -= 12 * ease(clamp(h / 10, 0, 1));
-        if (h < 14) key = 'hurt0';
+        if (h < 14) key = YG.hurtKey(h);
         if (h < 4) mode = 'flash';
       }
       return { id: 'student', def: student, x, z: 3, dir: 1, key, mode, alpha: 1, yOff, sx: 1, sy: 1, clipY: null, shadow: 1 };
@@ -229,7 +238,7 @@
         }
       } else if (lore.intro === 'rise') {
         const p = ease(clamp(u / 56, 0, 1));
-        a.yOff = (1 - p) * (36 * scale + 6);
+        a.yOff = (1 - p) * (upPx + 6);
         a.shadow = p;
         if (p < 1) a.clipY = GY + a.z;
       } else if (lore.intro === 'fade') {
@@ -272,7 +281,7 @@
         for (let k = 0; k < 8; k++) fx.push({ kind: 'puff', x: XIN + (k - 3.5) * 5 * scale, y: gy, p: (u - FALL) / 20, seed: k, size: scale });
       }
       if (f >= hitF && f < hitF + flight) {
-        fx.push({ kind: 'proj', sub: def.ranged, x0: xAtk - 8, x1: SX + 4, y: gy - 16, p: (f - hitF) / flight, dir: -1 });
+        fx.push({ kind: 'proj', sub: def.ranged, x0: xAtk - 8, x1: SX + 4, y: gy - muzzleY, p: (f - hitF) / flight, dir: -1 });
       }
       if (def.area && f >= hitF && f < hitF + 10) fx.push({ kind: 'ring', x: xAtk, y: gy, r: dist + 10, p: (f - hitF) / 10 });
       if (f >= impactF && f < impactF + 7) {
@@ -303,7 +312,7 @@
     const loopP = (g0) => (((g0 - XF) % period) + period) % period;
     /* 공격을 받아 주는 허수아비. 사거리 끝에 서 있고, 맞으면 하얗게 번쩍이며 뒤로 밀린다. */
     const dummyDef = { ...YG.enemyById('mannequin'), id: 'dummy', spriteKey: 'dummy', name: '허수아비' };
-    const dummyX = LOOP_X - clamp(range - 2, 16, 120);
+    const dummyX = LOOP_X - standOff;
     function loop(g0) {
       const p = loopP(g0);
       const gy = GY + 3;
@@ -312,12 +321,12 @@
       const hurt = p - land;
       const dummy = {
         id: 'dummy', def: dummyDef, x: dummyX - (hurt >= 0 && hurt < 12 ? Math.round(5 * ease(hurt / 12)) : 0), z: 3, dir: 1,
-        key: hurt >= 0 && hurt < 12 ? 'hurt0' : idle(g0, 2), mode: hurt >= 0 && hurt < 3 ? 'flash' : 'base',
+        key: hurt >= 0 && hurt < 12 ? YG.hurtKey(hurt) : idle(g0, 2), mode: hurt >= 0 && hurt < 3 ? 'flash' : 'base',
         alpha: 1, yOff: 0, sx: 1, sy: 1, clipY: null, shadow: 1,
       };
       const fx = [{ kind: 'range', x: LOOP_X, y: gy + 2, w: range }];
       if (def.ranged && p >= atk.hit && p < atk.hit + flight) {
-        fx.push({ kind: 'proj', sub: def.ranged, x0: LOOP_X - 8, x1: dummyX + 4, y: gy - 16, p: (p - atk.hit) / flight, dir: -1 });
+        fx.push({ kind: 'proj', sub: def.ranged, x0: LOOP_X - 8, x1: dummyX + 4, y: gy - muzzleY, p: (p - atk.hit) / flight, dir: -1 });
       }
       if (p >= land && p < land + 7) {
         if (!def.ranged) fx.push({ kind: 'slash', x: dummyX + 4, y: gy - 14, dir: -1, p: (p - land) / 7 });
@@ -366,8 +375,9 @@
     YG.render.battle(ctx, BG, theme);
     /* 전투 화면의 양쪽 근원(아군/적 본진)은 지우고, 안쪽 한 줄을 바깥으로 늘여 메운다 */
     const c = ctx.canvas;
-    ctx.drawImage(c, 31, 0, 1, GY, 0, 0, 31, GY);
-    ctx.drawImage(c, 282, 0, 1, GY, 283, 0, VIEW.w - 283, GY);
+    const k = c.width / VIEW.w;
+    ctx.drawImage(c, 31 * k, 0, k, GY * k, 0, 0, 31, GY);
+    ctx.drawImage(c, 282 * k, 0, k, GY * k, 283, 0, VIEW.w - 283, GY);
   }
 
   function drawEdges(ctx) {
@@ -383,11 +393,10 @@
 
   function drawActor(ctx, a) {
     const S = YG.sprites;
-    const scale = a.def.scale || 1;
     const img = S.frame(a.def, a.key, a.mode);
     const gy = GY + a.z;
     const x = Math.round(a.x);
-    const sw = Math.round(14 * scale * (a.def.float ? 0.7 : 1));
+    const sw = Math.round(YG.render.shadowWidth(a.def, img, S.K) * (a.def.float ? 0.7 : 1));
     ctx.globalAlpha = 0.35 * a.alpha * a.shadow;
     ctx.fillStyle = '#05040a';
     ctx.fillRect(x - Math.floor(sw / 2), gy - 1, sw, 2);
@@ -401,7 +410,7 @@
     ctx.translate(x, gy + a.yOff);
     if (a.dir < 0) ctx.scale(-1, 1);
     ctx.scale(a.sx, a.sy);
-    ctx.drawImage(img, -S.CX * scale, -S.BY * scale, S.CW * scale, S.CH * scale);
+    ctx.drawImage(img, -img.ax / S.K, -img.ay / S.K, img.width / S.K, img.height / S.K);
     ctx.restore();
     ctx.globalAlpha = 1;
   }
@@ -514,6 +523,7 @@
   };
 
   function drawState(ctx, st, theme) {
+    YG.render.prep(ctx);
     drawBackdrop(ctx, theme, st.f);
     for (const a of [...st.actors].sort((p, q) => p.z - q.z)) drawActor(ctx, a);
     for (const f of st.fx) FX[f.kind](ctx, f);
@@ -522,13 +532,13 @@
 
   /* 장면 한두 겹을 흔들림과 암전을 얹어 화면에 올린다 */
   function present(ctx, layers, shake, fade) {
-    ctx.imageSmoothingEnabled = false;
+    YG.render.prep(ctx);
     ctx.globalAlpha = 1;
     ctx.fillStyle = '#05070a';
     ctx.fillRect(0, 0, VIEW.w, VIEW.h);
     for (const [img, alpha] of layers) {
       ctx.globalAlpha = alpha;
-      ctx.drawImage(img, shake[0], shake[1]);
+      ctx.drawImage(img, shake[0], shake[1], VIEW.w, VIEW.h);
     }
     if (fade > 0) {
       ctx.globalAlpha = fade;
@@ -555,10 +565,10 @@
     const sfx = opts.sfx || (() => {});
     const sc = script(entry);
     const theme = entry.lore.place;
-    canvas.width = VIEW.w;
-    canvas.height = VIEW.h;
+    canvas.width = VIEW.w * VIEW.k;
+    canvas.height = VIEW.h * VIEW.k;
     const ctx = canvas.getContext('2d');
-    const mk = () => Object.assign(document.createElement('canvas'), { width: VIEW.w, height: VIEW.h });
+    const mk = () => Object.assign(document.createElement('canvas'), { width: VIEW.w * VIEW.k, height: VIEW.h * VIEW.k });
     const A = mk();
     const B = mk();
     const actx = A.getContext('2d');

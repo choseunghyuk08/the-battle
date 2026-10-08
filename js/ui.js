@@ -844,8 +844,8 @@
     out.width = w + 2;
     out.height = h + 2;
     out.className = 'portrait';
-    out.style.width = `${out.width * scale}px`;
-    out.style.height = `${out.height * scale}px`;
+    out.style.width = `${(out.width / YG.sprites.K) * scale}px`;
+    out.style.height = `${(out.height / YG.sprites.K) * scale}px`;
     const x = out.getContext('2d');
     const rim = layer('#34414f');
     for (const [dx, dy] of [[1, 0], [1, 2], [0, 1], [2, 1]]) x.drawImage(rim, dx, dy);
@@ -1339,7 +1339,7 @@
     seen.add(e.id);
     const def = YG.ownedDef(app.save, e.id);
     box.replaceChildren(
-      YG.sprites.portrait(def, 2, 'atk3'),
+      YG.sprites.portrait(def, 2, YG.IMPACT_KEY),
       el('div', {}, [el('em', { text: '각성' }), el('b', { text: def.name })])
     );
     box.classList.add('on');

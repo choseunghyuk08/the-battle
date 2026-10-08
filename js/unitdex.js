@@ -134,6 +134,7 @@
 
     function draw() {
       YG.render.battle(ctx, sc.b, 'corridor');
+      YG.render.prep(ctx);
       /* 사거리: 발밑에 점선과 끝 눈금 */
       const gy = YG.VIEW.groundY + 6;
       const x0 = Math.round(sc.unit ? sc.unit.x : HOME_X);

@@ -1,40 +1,19 @@
-/* 적 스프라이트 17프레임을 전부 그려 보고 캔버스(48x36) 밖으로 잘려 나가는 그림을 찾는다.
+/* 적 스프라이트 프레임(YG.FRAME_KEYS 전부)을 모두 그려 보고 예외가 나거나 거의 빈 그림이 있는지 찾는다.
+   그림은 내용에 맞춰 크기가 정해지므로 칸 밖으로 잘리는 일은 없다. 크기 자체는 tests/sizecheck.js 가 본다.
    브라우저 없이 돌 수 있게 canvas 를 흉내 낸다. node tests/spritecheck.js [id,id,...] */
 const path = require('path');
 const root = path.join(__dirname, '..', 'js');
 
-/* builder.flush 는 외곽선을 먼저 모두 그리고 색을 나중에 칠한다. 외곽선 단계는 밖으로 나가도 안 보이므로 무시한다. */
-function fakeCanvas(w, h) {
-  const grid = new Uint8Array(w * h);
-  const c = { width: w, height: h, grid, oob: 0, box: [99, 99, -99, -99] };
-  let outline = null;
-  let filling = false;
-  const ctx = {
-    fillStyle: '#000',
-    fillRect(x, y, rw, rh) {
-      if (outline === null) outline = ctx.fillStyle;
-      if (!filling && ctx.fillStyle !== outline) filling = true;
-      if (!filling) return;
-      for (let yy = y; yy < y + rh; yy++) {
-        for (let xx = x; xx < x + rw; xx++) {
-          if (xx < 0 || yy < 0 || xx >= w || yy >= h) {
-            c.oob++;
-            c.box = [Math.min(c.box[0], xx), Math.min(c.box[1], yy), Math.max(c.box[2], xx), Math.max(c.box[3], yy)];
-          } else {
-            grid[yy * w + xx] = 1;
-          }
-        }
-      }
-    },
-    drawImage() {},
-  };
+function fakeCanvas() {
+  const c = { width: 0, height: 0, rects: 0, area: 0 };
+  const ctx = new Proxy({ fillRect(x, y, w, h) { c.rects++; c.area += w * h; } }, { get: (t, k) => (k in t ? t[k] : () => {}), set: (t, k, v) => { t[k] = v; return true; } });
   c.getContext = () => ctx;
   return c;
 }
 
 function load() {
-  if (!globalThis.document) globalThis.document = { createElement: () => fakeCanvas(48, 36) };
-  if (!globalThis.YG || !globalThis.YG.ENEMIES) ['data.js', 'units2.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'bestiary3.js'].forEach((f) => require(path.join(root, f)));
+  if (!globalThis.document) globalThis.document = { createElement: fakeCanvas };
+  if (!globalThis.YG || !globalThis.YG.ENEMIES) ['data.js', 'units2.js', 'units3.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'bestiary3.js', 'sizes.js'].forEach((f) => require(path.join(root, f)));
   for (const f of ['poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js', 'sprites4.js']) require(path.join(root, f));
   return globalThis.YG;
 }
@@ -42,23 +21,32 @@ function load() {
 /* 문제가 있는 프레임 목록을 돌려준다: { id, frame, why } */
 function checkSprites(ids) {
   const YG = load();
+  const K = YG.sprites.K;
   const defs = ids ? ids.map((i) => YG.enemyById(i)) : YG.ENEMIES.filter((e) => e.region);
   const problems = [];
-  for (const def of defs) {
-    for (const key of YG.FRAME_KEYS) {
-      let img;
-      try {
-        img = YG.sprites.frame({ ...def, spriteKey: `check:${def.id}` }, key);
-      } catch (e) {
-        problems.push({ id: def.id, frame: key, why: `예외 ${e.message}` });
-        continue;
+  /* 다른 점검이 가짜 canvas 를 안 끼워 놨을 수 있어서 그리는 동안만 끼운다 */
+  const prev = globalThis.document;
+  globalThis.document = { createElement: fakeCanvas };
+  try {
+    for (const def of defs) {
+      for (const key of YG.FRAME_KEYS) {
+        let img;
+        try {
+          img = YG.sprites.frame({ ...def, spriteKey: `check:${def.id}` }, key);
+        } catch (e) {
+          problems.push({ id: def.id, frame: key, why: `예외 ${e.message}` });
+          continue;
+        }
+        if (img.rects < 6) problems.push({ id: def.id, frame: key, why: `거의 비어 있음 (${img.rects}칸)` });
+        if (!(img.width > 0 && img.height > 0)) problems.push({ id: def.id, frame: key, why: '크기가 0' });
+        if (!(Number.isFinite(img.ax) && Number.isFinite(img.ay))) problems.push({ id: def.id, frame: key, why: '기준점이 숫자가 아님' });
+        if (img.width / K > 220 || img.height / K > 200) problems.push({ id: def.id, frame: key, why: `너무 큼 ${img.width / K}x${img.height / K}` });
       }
-      const filled = img.grid.reduce((a, v) => a + v, 0);
-      if (filled < 60) problems.push({ id: def.id, frame: key, why: `거의 비어 있음 (${filled}px)` });
-      if (img.oob > 0) problems.push({ id: def.id, frame: key, why: `캔버스 밖 ${img.oob}px x${img.box[0]}..${img.box[2]} y${img.box[1]}..${img.box[3]}` });
     }
+  } finally {
+    globalThis.document = prev;
   }
-  return { count: defs.length, problems };
+  return { count: defs.length, frames: YG.FRAME_KEYS.length, problems };
 }
 
 module.exports = { checkSprites };
@@ -69,5 +57,5 @@ if (require.main === module) {
   const byId = {};
   for (const p of r.problems) (byId[p.id] = byId[p.id] || []).push(`${p.frame}:${p.why}`);
   for (const [id, list] of Object.entries(byId)) console.log(`${id}  ${list.slice(0, 6).join(' | ')}${list.length > 6 ? ` ... (${list.length})` : ''}`);
-  console.log(`적 ${r.count}종, 문제 프레임 ${r.problems.length}개`);
+  console.log(`적 ${r.count}종 x ${r.frames}프레임, 문제 프레임 ${r.problems.length}개`);
 }
