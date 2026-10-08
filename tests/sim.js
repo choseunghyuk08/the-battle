@@ -289,7 +289,21 @@ function testUnitDex() {
   for (const u of YG.UNITS) {
     for (const f of YG.unitdex.forms(u)) {
       const sc = YG.unitdex.makeScene(f.def, { lv: 1, plus: 0 });
-      for (let i = 0; i < 150; i++) sc.step();
+      let atk = 0;
+      let hit = 0;
+      let proj = 0;
+      for (let i = 0; i < 190; i++) {
+        sc.step();
+        for (const e of sc.b.events) {
+          if (e.t === 'atk') atk++;
+          if (e.t === 'hit' && e.side === 'enemy') hit++;
+        }
+        sc.b.events = [];
+        if (sc.b.fx.some((x) => x.kind === 'proj')) proj++;
+      }
+      assert(atk > 0 && hit > 0, `${u.id}:${f.lvl} 공격이 나가고 맞는다 (공격 ${atk}, 명중 ${hit})`);
+      assert(!f.def.ranged || proj > 0, `${u.id}:${f.lvl} 원거리는 투사체가 보인다`);
+      assert(sc.foe.x - sc.unit.x <= f.def.range, `${u.id}:${f.lvl} 허수아비가 사거리 안에 있다`);
       assert(sc.foe.maxHp === sc.foe.hp && !sc.foe.dying, `${u.id}:${f.lvl} 허수아비는 죽지 않는다`);
       assert(sc.unit && !sc.unit.dying, `${u.id}:${f.lvl} 유닛이 살아 있다`);
       assert(sc.b.stats.summoned === 1, `${u.id}:${f.lvl} 한 번 소환`);
