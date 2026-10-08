@@ -42,43 +42,8 @@
     [70, '월드 투어 종착역', '교실 벽 세계지도에서 학교 불빛이 하나씩 꺼진다.', 'atlas:gold', 'kuchisake,nvgui,gargoyle,faceless'],
   ];
 
-  /* 장마다 마지막 스테이지 보스. 지역마다 둘씩 번갈아 나오고, 뒤쪽 장은 색 변종이다. */
-  const BOSS_PLAN = [
-    'oni', 'tengu', 'oni:blue', 'tengu:violet',
-    'jiangshilord', 'nian', 'jiangshilord:red', 'nian:gold',
-    'naga', 'tikbalang', 'naga:violet', 'tikbalang:red',
-    'dracula', 'babayaga', 'dracula:red', 'babayaga:ink',
-    'horseman', 'wendigo', 'horseman:violet', 'globeking',
-  ];
-  const baseOf = (id) => id.split(':')[0];
-  const FIRST = ROWS[0][0];
-
-  YG.WORLD_BOSS_BASES = [...new Set(BOSS_PLAN.map(baseOf))];
-  const bossOf = (c) => BOSS_PLAN[c - FIRST];
-
-  /* 국내 bossIdFor 는 그대로 두고, 해외 장만 여기서 정한다 */
-  const domesticBossId = YG.bossIdFor;
-  YG.bossIdFor = (chapter) => (chapter >= FIRST ? bossOf(chapter) : domesticBossId(chapter));
-
-  /* 한 장 앞선 보스들이 뒤쪽 장에서 엘리트 잡몹으로 다시 나온다 */
-  function eliteFor(c, k) {
-    const seen = [...new Set(BOSS_PLAN.slice(0, c - FIRST).map(baseOf))];
-    const pool = [...seen, ...YG.BOSS_BASES.slice(-4)];
-    return pool[(c * 7 + k * 3) % pool.length];
-  }
-
-  /* 둘째 보스: 두 장 앞의 보스. 마지막 장은 첫 보스가 황금빛으로 돌아온다 */
-  function secondBoss(c) {
-    if (c === ROWS[ROWS.length - 1][0]) return 'oni:gold';
-    return c - FIRST >= 2 ? bossOf(c - 2) : null;
-  }
-
-  const VARIANT_SEQ = [['', ''], ['', ''], ['red', 'blue'], ['violet', 'ink']];
-  const mobId = (id, c, i) => {
-    const last = c === ROWS[ROWS.length - 1][0];
-    const v = last ? ['gold', 'ink'][i % 2] : VARIANT_SEQ[(c - FIRST) % 4][i % 2];
-    return v ? `${id}:${v}` : id;
-  };
+  /* 보스, 엘리트, 색 변종 고르는 규칙은 bestiary2.js (YG.WORLD) */
+  const { first: FIRST, bossFor: bossOf, elite: eliteFor, secondBoss, mobId } = YG.WORLD;
 
   /* 난이도: 국내 마지막 스테이지(247)의 값에서 완만하게 이어지는 직선 위에, 장마다 보정(BIAS)과 스테이지별 보정(EASE)을 얹는다.
      보정값은 tests/calibrate.js --robust 로 구한 "봇이 간신히 깨는 선"(S_max)의 0.8배에 맞췄고, 쉬운 장은 BIAS 1.35에서 끊었다.

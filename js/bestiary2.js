@@ -190,4 +190,41 @@
     YG.ENEMIES.push({ ...base, hp: Math.round(base.hp * K * k), atk: Math.round(base.atk * K * k), ...rest });
   }
   for (const b of BOSSES) YG.ENEMIES.push({ boss: true, scale: 2, heavy: true, ...b });
+
+  /* 해외 장(51~70)의 보스와 색 변종. 국내의 YG.BOSS_BASES 와 bossIdFor 는 그대로 두고(국내 스테이지가 달라지면 안 된다)
+     51장 이후만 따로 정한다. */
+  const FIRST = 51;
+  const LAST = 70;
+  /* 장마다 마지막 스테이지 보스: 지역마다 둘이 번갈아 나오고, 뒤쪽 장은 색 변종이다 */
+  const BOSS_PLAN = [
+    'oni', 'tengu', 'oni:blue', 'tengu:violet',
+    'jiangshilord', 'nian', 'jiangshilord:red', 'nian:gold',
+    'naga', 'tikbalang', 'naga:violet', 'tikbalang:red',
+    'dracula', 'babayaga', 'dracula:red', 'babayaga:ink',
+    'horseman', 'wendigo', 'horseman:violet', 'globeking',
+  ];
+  const baseOf = (id) => id.split(':')[0];
+  const bossFor = (c) => BOSS_PLAN[c - FIRST];
+  const domesticBossId = YG.bossIdFor;
+  YG.bossIdFor = (chapter) => (chapter >= FIRST ? bossFor(chapter) : domesticBossId(chapter));
+  YG.WORLD_BOSS_BASES = [...new Set(BOSS_PLAN.map(baseOf))];
+
+  /* 앞선 해외 보스들이 뒤쪽 장에서 엘리트 잡몹으로 다시 나온다 (국내 보스 4종도 섞인다) */
+  const elite = (c, k) => {
+    const seen = [...new Set(BOSS_PLAN.slice(0, c - FIRST).map(baseOf))];
+    const pool = [...seen, ...YG.BOSS_BASES.slice(-4)];
+    return pool[(c * 7 + k * 3) % pool.length];
+  };
+
+  /* 둘째 보스: 두 장 앞의 보스. 마지막 장은 첫 보스가 황금빛으로 돌아온다 */
+  const secondBoss = (c) => (c === LAST ? 'oni:gold' : c - FIRST >= 2 ? bossFor(c - 2) : null);
+
+  /* 잡몹 색 변종: 지역 안에서 1~2번째 장은 본래 색, 3번째는 붉은/푸른, 4번째는 보랏빛/칠흑, 마지막 장은 황금/칠흑 */
+  const VARIANT_SEQ = [['', ''], ['', ''], ['red', 'blue'], ['violet', 'ink']];
+  const mobId = (id, c, i) => {
+    const v = c === LAST ? ['gold', 'ink'][i % 2] : VARIANT_SEQ[(c - FIRST) % 4][i % 2];
+    return v ? `${id}:${v}` : id;
+  };
+
+  YG.WORLD = { first: FIRST, last: LAST, bossPlan: BOSS_PLAN, bossFor, elite, secondBoss, mobId };
 })(globalThis);

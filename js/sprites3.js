@@ -1095,37 +1095,42 @@
     },
 
     tuktuk(b, q, p) {
+      /* 삼륜 택시: 앞바퀴 하나, 뒷바퀴, 열린 객석, 지붕 */
       const cx = CX + 3 + q.lunge;
       const body = p.body || '#e8b83a';
-      const dark = darken(body, 0.7);
+      const dark = darken(body, 0.68);
       const roof = p.roof || '#3a8a6a';
       const wheelie = Math.round(q.atk * 3) + (q.wind > 0.5 ? -1 : 0);
-      const y = BY - 5 + q.rise - q.bob;
-      const spin = (q.i + (q.kind === 'walk' ? 1 : 0)) % 2;
-      for (const wx of [-9, -3]) {
-        b.disc(cx + wx, BY - 3, 3, '#26232b');
-        b.px(cx + wx + (spin ? 1 : -1), BY - 3, '#8a8f99');
-      }
-      b.disc(cx + 10, BY - 3 - wheelie, 3, '#26232b');
-      b.px(cx + 10 + (spin ? 1 : -1), BY - 3 - wheelie, '#8a8f99');
-      b.r(cx - 12, y - 10, 24, 9, body);
-      b.r(cx + 4, y - 7 - wheelie, 9, 6, body);
-      b.r(cx - 12, y - 3, 24, 2, dark);
-      b.r(cx - 10, y - 8, 4, 4, '#3a2a1a');
-      b.r(cx - 4, y - 8, 4, 4, '#3a2a1a');
-      b.r(cx - 13, y - 18, 20, 3, roof);
-      b.r(cx - 12, y - 15, 2, 6, dark);
-      b.r(cx + 4, y - 15, 2, 6, dark);
-      b.r(cx - 14, y - 16, 2, 2, roof);
+      const y = BY - 6 + q.rise - q.bob;
+      const spin = (q.i + (q.kind === 'walk' ? 1 : 0)) % 2 ? 1 : -1;
+      b.disc(cx - 6, BY - 3, 3, '#26232b');
+      b.px(cx - 6 + spin, BY - 3, '#9aa0aa');
+      b.disc(cx + 9, BY - 3 - wheelie, 3, '#26232b');
+      b.px(cx + 9 + spin, BY - 3 - wheelie, '#9aa0aa');
+      /* 차대와 객석 */
+      b.r(cx - 11, y - 4, 22, 4, body);
+      b.r(cx - 11, y - 1, 22, 1, dark);
+      b.r(cx - 11, y - 12, 2, 8, dark);
+      b.r(cx - 9, y - 9, 8, 5, body);
+      b.r(cx - 8, y - 11, 6, 2, '#a04a4a');
+      b.r(cx - 1, y - 13, 2, 9, dark);
+      /* 지붕 */
+      b.r(cx - 12, y - 17, 20, 3, roof);
+      b.r(cx - 12, y - 14, 20, 1, darken(roof, 0.65));
+      b.r(cx + 6, y - 15, 3, 2, roof);
+      /* 앞쪽: 운전대와 보닛 */
+      b.line(cx + 5, y - 9 - wheelie, cx + 3, y - 13, '#3a3a44', 1);
+      b.r(cx + 1, y - 9 - wheelie, 10, 5, body);
+      b.r(cx + 3, y - 5 - wheelie, 8, 5, body);
       const glow = q.atk > 0.5 ? '#fff6a8' : '#f4d24a';
-      b.r(cx + 10, y - 6 - wheelie, 3, q.wind > 0.7 ? 2 : 3, glow);
-      b.r(cx + 6, y - 6 - wheelie, 3, q.wind > 0.7 ? 2 : 3, glow);
-      b.r(cx + 6, y - 2 - wheelie, 7, q.atk > 0.4 ? 3 : 2, '#14121a');
-      for (const k of [7, 9, 11]) b.px(cx + k, y - 2 - wheelie, '#f6f3ea');
-      if (q.i % 2) b.disc(cx - 16, y - 3, 1, '#9a9a9a');
-      else b.disc(cx - 17, y - 5, 2, '#b8b4aa');
-      b.r(cx - 14, y - 4, 3, 2, '#5a5a62');
-      if (q.hurt) b.line(cx - 6, y - 17, cx + 2, y - 4, '#14121a', 1);
+      b.r(cx + 7, y - 8 - wheelie, 3, q.wind > 0.7 ? 2 : 3, glow);
+      b.r(cx + 3, y - 8 - wheelie, 3, q.wind > 0.7 ? 2 : 3, glow);
+      b.r(cx + 4, y - 4 - wheelie, 7, q.atk > 0.4 ? 3 : 2, '#14121a');
+      for (const k of [5, 7, 9]) b.px(cx + k, y - 4 - wheelie, '#f6f3ea');
+      if (q.i % 2) b.disc(cx - 15, y - 3, 1, '#9a9a9a');
+      else b.disc(cx - 16, y - 5, 2, '#b8b4aa');
+      b.r(cx - 13, y - 3, 3, 2, '#5a5a62');
+      if (q.hurt) b.line(cx - 6, y - 16, cx + 2, y - 3, '#14121a', 1);
     },
 
     jukebox(b, q, p) {
@@ -1314,10 +1319,11 @@
     b.disc(hx, hy + 3, 4, body);
     b.r(hx - 2, hy + 2, 5, 1, band);
     for (const h of heads) {
-      const c = h.k % 2 ? body : darken(body, 0.92);
-      b.line(hx, hy + 3, h.ex, h.ey + 1, c, 3);
+      const c = h.k % 2 ? lighten(body, 0.12) : darken(body, 0.92);
+      b.line(hx, hy + 3, h.ex, h.ey + 1, c, 2);
       b.r(h.ex - 1, h.ey - 1, 6, 4, c);
       b.r(h.ex + 3, h.ey + 1, 3, 2, belly);
+      b.r(h.ex - 1, h.ey - 1, 3, 1, band);
       b.px(h.ex + 3, h.ey, q.atk > 0.5 ? '#ff6a4a' : p.eye || '#f4d24a');
       if (Math.abs(h.u) < 0.5 && q.atk > 0.3) {
         b.r(h.ex + 5, h.ey + 2, 3, 2, '#7a1f2a');
