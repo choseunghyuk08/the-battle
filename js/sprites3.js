@@ -3,7 +3,7 @@
   const { builder, CX, BY } = YG.spriteKit;
 
   /* 해외편 적 아키타입. sprites2.js 와 같은 방식(자세표 q로 17프레임)이고, YG.archRender 를 감싸서 끼워 넣는다.
-     folk(사람꼴), crawler, quad, thing, wisp, head, serpent, rider */
+     folk(사람꼴), crawler, kasa, wisp, flyhead, quad, thing, serpent, rider */
 
   const hex = (n) => `#${[16, 8, 0].map((s) => ((n >> s) & 255).toString(16).padStart(2, '0')).join('')}`;
   const rgb = (c) => parseInt(c.slice(1), 16);
@@ -651,7 +651,7 @@
         b.line(ux - 3, uy - 12 + k, Math.max(2, ux - 10 - k * 2 + ph), Math.min(33, uy - 14 + k * 4 + dir * ph), p.tentacles, 1);
       }
     }
-    if (p.shroud) return shroudFolk(b, q, p, ux, uy, gy, hopH);
+    if (p.shroud) return shroudFolk(b, q, p, ux, uy, gy);
 
     /* 뒤팔 */
     if (!p.noArms) {
@@ -717,7 +717,7 @@
   }
 
   /* 수의를 입은 시체: 흰 천 기둥 하나가 통통 뛴다 */
-  function shroudFolk(b, q, p, ux, uy, gy, hopH) {
+  function shroudFolk(b, q, p, ux, uy, gy) {
     const cloth = p.top || '#e8e4d6';
     const shade = darken(cloth, 0.86);
     const tilt = Math.round(q.atk * 3) - Math.round(q.wind * 2) - (q.hurt ? 2 : 0);

@@ -1,6 +1,6 @@
 (function (g) {
   const YG = g.YG;
-  const { w: W, groundY: GY } = YG.VIEW;
+  const { w: W } = YG.VIEW;
 
   /* 해외편 배경: 지역별 장면 18개와 팔레트. scenery.js 와 같은 방식(320x180, 코드로 그림)이다.
      일본 jhall shrine onsen alley / 중국 neon temple bamboo / 동남아 stilt jungle khmer
