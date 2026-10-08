@@ -25,6 +25,7 @@
           <button class="btn big" data-go="formation">편성</button>
           <button class="btn big" data-go="gacha">문방구</button>
           <button class="btn big" id="openMissions">임무<i class="nav-badge" id="missionBadge" hidden></i></button>
+          <button class="btn big" data-go="dex" id="openDex">도감<small id="dexCount"></small></button>
         </nav>
         <button class="btn ghost" id="openSettings">소리 설정</button>
       </div>
@@ -106,6 +107,26 @@
       </div>
     </section>
 
+    <section class="screen sub" id="dex" aria-label="괴담 도감">
+      <header class="bar">
+        <button class="btn ghost" data-go="home">← 처음</button>
+        <h2>괴담 도감.</h2>
+        <div class="purse"><span class="pill">발견 <b id="dexFound"></b></span></div>
+      </header>
+      <div class="dex-wrap">
+        <div class="dex-tools">
+          <div class="seg flow" id="dexKind" role="group" aria-label="종류">
+            <button data-kind="all">전체</button>
+            <button data-kind="mob">잡몹</button>
+            <button data-kind="boss">보스</button>
+          </div>
+          <div class="seg flow" id="dexRegion" role="group" aria-label="지역" hidden></div>
+          <span class="eyebrow" id="dexShown"></span>
+        </div>
+        <div class="dex-grid" id="dexGrid"></div>
+      </div>
+    </section>
+
     <section class="screen battle" id="battle" aria-label="전투">
       <div class="b-top">
         <div class="b-name"><span id="bSub"></span> <b id="bName"></b></div>
@@ -122,6 +143,7 @@
           <div class="hp ally"><span>교실</span><i><b id="hpAlly"></b></i><em id="hpAllyNum"></em></div>
           <div class="hp enemy"><span id="hpEnemyName">근원</span><i><b id="hpEnemy"></b></i><em id="hpEnemyNum"></em></div>
         </div>
+        <div class="seen-banner" id="seenBanner" role="status" aria-live="polite"></div>
       </div>
       <div class="b-console" id="bConsole">
         <div class="money-box">
@@ -198,6 +220,38 @@
     </div>
   </dialog>
 
+  <dialog id="dexDlg" class="sheet dex" aria-labelledby="dexName">
+    <div class="dex-stage">
+      <canvas id="dexCanvas" width="320" height="180" role="img" aria-label="괴담 장면"></canvas>
+      <button class="btn small dex-x" id="dexX">닫기</button>
+    </div>
+    <div class="dex-cap">
+      <div class="dex-cap-top">
+        <span class="pips" id="dexPips" aria-hidden="true"><i class="pip"></i><i class="pip"></i><i class="pip"></i></span>
+        <span class="dex-phase" id="dexPhase"></span>
+      </div>
+      <p class="dex-line" id="dexLine"></p>
+      <p class="sr-only" id="dexSr"></p>
+    </div>
+    <div class="dex-info">
+      <div class="dex-head">
+        <h3 id="dexName"></h3>
+        <div class="chips" id="dexChips"></div>
+      </div>
+      <div class="stat-grid" id="dexStats"></div>
+      <p class="dex-note">기본 수치(×1)다. 스테이지에 따라 배율이 붙는다.</p>
+      <p class="dex-desc" id="dexDesc"></p>
+      <div class="dex-var">
+        <p class="eyebrow">색 변종</p>
+        <div class="dex-vars" id="dexVars"></div>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn" id="dexReplay">다시 보기</button>
+      <button class="btn primary" id="dexClose">닫기</button>
+    </div>
+  </dialog>
+
   <dialog id="settingsDlg" class="sheet small">
     <div class="sheet-head">
       <h3>소리.</h3>
@@ -223,6 +277,8 @@
       <button class="btn" data-dbg="pity">천장 초기화</button>
       <button class="btn" data-dbg="missionDone">오늘 임무 전부 완료</button>
       <button class="btn" data-dbg="missionReset">임무/기록 초기화</button>
+      <button class="btn" data-dbg="dexAll">도감 전부 해금</button>
+      <button class="btn" data-dbg="dexReset">도감 초기화</button>
       <button class="btn" data-dbg="clear">스테이지 전부 해금</button>
       <button class="btn danger" data-dbg="reset">세이브 초기화</button>
     </div>
@@ -238,6 +294,8 @@
   <script src="js/world.js"></script>
   <script src="js/engine.js"></script>
   <script src="js/game.js"></script>
+  <script src="js/lore.js"></script>
+  <script src="js/dex.js"></script>
   <script src="js/missions.js"></script>
   <script src="js/poses.js"></script>
   <script src="js/sprites.js"></script>
