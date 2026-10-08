@@ -481,8 +481,10 @@
     },
     proj(ctx, f) {
       const x = f.x0 + (f.x1 - f.x0) * f.p;
-      if (PROJ[f.sub]) {
-        PROJ[f.sub](ctx, f, x, f.y, f.p);
+      /* 전투 화면의 투사체(해외 적 것 포함)를 그대로 쓴다. 없으면 구슬 */
+      const draw = PROJ[f.sub] || (YG.render.PROJ || {})[f.sub] || (YG.PROJ_EXTRA || {})[f.sub];
+      if (draw) {
+        draw(ctx, { dir: -1, ...f }, x, f.y, f.p);
         return;
       }
       ctx.fillStyle = '#141218';

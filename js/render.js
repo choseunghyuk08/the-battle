@@ -662,6 +662,7 @@
   }
 
   YG.render = {
+    PROJ,
     battle(ctx, b, theme) {
       ctx.imageSmoothingEnabled = false;
       ctx.save();
