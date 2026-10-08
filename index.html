@@ -110,11 +110,17 @@
     <section class="screen sub" id="dex" aria-label="괴담 도감">
       <header class="bar">
         <button class="btn ghost" data-go="home">← 처음</button>
-        <h2>괴담 도감.</h2>
-        <div class="purse"><span class="pill">발견 <b id="dexFound"></b></span></div>
+        <h2 id="dexTitle">괴담 도감.</h2>
+        <div class="purse"><span class="pill"><span id="dexFoundLabel">발견</span> <b id="dexFound"></b></span></div>
       </header>
       <div class="dex-wrap">
         <div class="dex-tools">
+          <div class="seg" id="dexMode" role="group" aria-label="도감 종류">
+            <button data-mode="enemy">괴담</button>
+            <button data-mode="unit">동료</button>
+          </div>
+        </div>
+        <div class="dex-tools" id="dexEnemyTools">
           <div class="seg flow" id="dexKind" role="group" aria-label="종류">
             <button data-kind="all">전체</button>
             <button data-kind="mob">잡몹</button>
@@ -122,6 +128,22 @@
           </div>
           <div class="seg flow" id="dexRegion" role="group" aria-label="지역" hidden></div>
           <span class="eyebrow" id="dexShown"></span>
+        </div>
+        <div class="dex-tools" id="dexUnitTools" hidden>
+          <div class="seg flow" id="dexGrade" role="group" aria-label="등급">
+            <button data-grade="all">전체</button>
+            <button data-grade="4">4등급</button>
+            <button data-grade="3">3등급</button>
+            <button data-grade="2">2등급</button>
+            <button data-grade="1">1등급</button>
+            <button data-grade="0">만점</button>
+          </div>
+          <div class="seg flow" id="dexHave" role="group" aria-label="보유">
+            <button data-have="all">모두</button>
+            <button data-have="own">보유</button>
+            <button data-have="none">미보유</button>
+          </div>
+          <span class="eyebrow" id="dexUnitShown"></span>
         </div>
         <div class="dex-grid" id="dexGrid"></div>
       </div>
@@ -253,6 +275,35 @@
     </div>
   </dialog>
 
+  <dialog id="unitDlg" class="sheet dex unit" aria-labelledby="udName">
+    <div class="dex-stage">
+      <canvas id="udCanvas" width="320" height="180" role="img" aria-label="공격 모션"></canvas>
+      <button class="btn small dex-x" id="udX">닫기</button>
+    </div>
+    <div class="dex-cap">
+      <div class="ud-forms" id="udForms" role="group" aria-label="모습"></div>
+      <p class="dex-line" id="udBlurb"></p>
+    </div>
+    <div class="dex-info">
+      <div class="dex-head">
+        <h3 id="udName"></h3>
+        <div class="chips" id="udChips"></div>
+      </div>
+      <div class="stat-grid" id="udStats"></div>
+      <p class="dex-note" id="udNote"></p>
+      <div class="abil" id="udAbil"></div>
+      <div class="ud-own" id="udOwn"></div>
+      <div class="ud-get">
+        <p class="eyebrow">얻는 곳</p>
+        <p id="udGet"></p>
+      </div>
+    </div>
+    <div class="sheet-actions">
+      <button class="btn" id="udFormation">편성에서 보기</button>
+      <button class="btn primary" id="udClose">닫기</button>
+    </div>
+  </dialog>
+
   <dialog id="settingsDlg" class="sheet small">
     <div class="sheet-head">
       <h3>소리.</h3>
@@ -300,6 +351,7 @@
   <script src="js/game.js"></script>
   <script src="js/lore.js"></script>
   <script src="js/dex.js"></script>
+  <script src="js/unitdex.js"></script>
   <script src="js/missions.js"></script>
   <script src="js/poses.js"></script>
   <script src="js/sprites.js"></script>

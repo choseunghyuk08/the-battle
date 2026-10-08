@@ -1,7 +1,7 @@
 const path = require('path');
 const assert = require('assert');
 const root = path.join(__dirname, '..', 'js');
-['data.js', 'units2.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'world.js', 'world2.js', 'engine.js', 'game.js', 'lore.js', 'lore_world.js', 'dex.js', 'missions.js', 'cutscene.js', 'scenery.js', 'scenery2.js', 'poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js'].forEach((f) => require(path.join(root, f)));
+['data.js', 'units2.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'world.js', 'world2.js', 'engine.js', 'game.js', 'lore.js', 'lore_world.js', 'dex.js', 'unitdex.js', 'missions.js', 'cutscene.js', 'scenery.js', 'scenery2.js', 'poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js'].forEach((f) => require(path.join(root, f)));
 const YG = globalThis.YG;
 
 function seeded(seed) {
@@ -261,6 +261,45 @@ function testAwakenFx() {
   }
   assert(t2.total > t1.total, '각성이 더 길다');
   console.log('awaken fx ok');
+}
+
+function testUnitDex() {
+  const save = YG.newSave();
+  const c0 = YG.unitdex.counts(save);
+  assert.strictEqual(c0.total, YG.UNITS.length);
+  assert.strictEqual(c0.have, 4);
+  assert.strictEqual(Object.values(c0.byGrade).reduce((a, g) => a + g.total, 0), YG.UNITS.length);
+  /* 얻는 곳 안내가 모든 유닛에 있다 */
+  const kinds = new Set();
+  for (const u of YG.UNITS) {
+    const a = YG.unitdex.acquire(u);
+    assert(a.text && a.short, `${u.id} 얻는 곳`);
+    kinds.add(a.kind);
+    if (u.limited) assert.strictEqual(a.kind, 'limited');
+    const f = YG.unitdex.forms(u);
+    assert.strictEqual(f.length, 3);
+    assert(f[0].name !== f[1].name && f[1].name !== f[2].name, `${u.id} 모습 이름이 모두 다르다`);
+    const rows = YG.unitdex.statRows(f[2].def, { lv: 10, plus: 2 });
+    assert.strictEqual(rows.length, 8);
+    assert(Number(rows[0].value) > Number(YG.unitdex.statRows(f[2].def, null)[0].value), '레벨을 반영한다');
+  }
+  assert.deepStrictEqual([...kinds].sort(), ['gacha', 'limited', 'stage', 'starter']);
+  assert.strictEqual(YG.unitdex.acquire(YG.unitById('cleaner')).stage.sub, '1-2');
+  /* 모든 유닛의 세 모습이 허수아비를 실제로 때린다 (장면 엔진 점검) */
+  for (const u of YG.UNITS) {
+    for (const f of YG.unitdex.forms(u)) {
+      const sc = YG.unitdex.makeScene(f.def, { lv: 1, plus: 0 });
+      for (let i = 0; i < 150; i++) sc.step();
+      assert(sc.foe.maxHp === sc.foe.hp && !sc.foe.dying, `${u.id}:${f.lvl} 허수아비는 죽지 않는다`);
+      assert(sc.unit && !sc.unit.dying, `${u.id}:${f.lvl} 유닛이 살아 있다`);
+      assert(sc.b.stats.summoned === 1, `${u.id}:${f.lvl} 한 번 소환`);
+    }
+  }
+  /* 한 사이클 뒤 다시 소환된다 */
+  const sc = YG.unitdex.makeScene(YG.unitById('bat'));
+  for (let i = 0; i < 6 * 30 + 5; i++) sc.step();
+  assert.strictEqual(sc.b.stats.summoned, 2);
+  console.log('unit dex ok');
 }
 
 function testBalance() {
@@ -577,6 +616,7 @@ if (require.main === module) {
   testBalance();
   testSpecials();
   testAwakenFx();
+  testUnitDex();
   testWorld();
   testOverseas();
   testGacha();

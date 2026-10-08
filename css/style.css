@@ -485,6 +485,7 @@ dialog.sheet[open] { animation: enter 0.3s var(--ease) both; }
 .seg.flow button { min-height: 32px; padding: 4px 14px; font-size: 13px; }
 .seg[hidden] { display: none; }
 .dex-wrap { padding: 16px 16px 48px; display: grid; gap: 16px; align-content: start; }
+.dex-tools[hidden] { display: none; }
 .dex-tools { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 16px; }
 .dex-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 8px; }
 .dex-card {
@@ -655,3 +656,28 @@ dialog.cutscene.level2 .cs-name { color: #fff6c8; text-shadow: 0 0 14px rgba(242
   .cs-text { transition: none; }
 }
 @keyframes cutin-fade { 0%, 100% { opacity: 0; } 15%, 80% { opacity: 1; } }
+
+
+/* 동료 도감 */
+.dex-card .badge { position: absolute; top: 6px; left: 6px; font-size: 10px; line-height: 1.5; padding: 0 4px; }
+.dex-card.g1, .dex-card.g0 { border-color: var(--accent); }
+.dex-card.g0:not(.locked) { outline: 1px solid var(--accent); outline-offset: 1px; }
+.dex-card.locked.g1, .dex-card.locked.g0 { border-color: rgba(242, 212, 80, 0.4); }
+.dex-empty { grid-column: 1 / -1; padding: 32px 0; text-align: center; color: var(--ink-3); }
+.ud-forms { display: flex; gap: 8px; }
+.ud-form {
+  appearance: none; flex: 1 1 0; min-width: 0; cursor: pointer; color: inherit; text-align: center;
+  display: grid; justify-items: center; align-content: center; gap: 2px; padding: 6px 4px;
+  background: var(--s1); border: 1px solid var(--line-2); border-radius: var(--r-slot);
+  transition: border-color 0.2s var(--ease), background-color 0.2s var(--ease);
+}
+.ud-form:hover { background: var(--s3); }
+.ud-form:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.ud-form.on { border-color: var(--accent); background: var(--s3); }
+.ud-form.locked { border-style: dashed; background: transparent; }
+.ud-form em { font-style: normal; font-size: 11px; line-height: 1.3; color: var(--ink-3); }
+.ud-form.on em { color: var(--accent); }
+.ud-form small { font-size: 12px; line-height: 1.3; color: var(--ink-2); overflow-wrap: anywhere; }
+.ud-form.locked small { color: var(--ink-3); }
+.ud-own, .ud-get { display: grid; gap: 4px; font-size: 14px; color: var(--ink-2); }
+.ud-get p:last-child { line-height: 1.6; }

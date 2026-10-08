@@ -37,6 +37,7 @@
 | `js/scenery.js` | 배경 아키타입과 팔레트 |
 | `js/scenery2.js` | 해외 배경 18장면과 팔레트 10종 |
 | `js/render.js` | 전투 화면 그리기 |
+| `js/unitdex.js` | 동료 도감: 얻는 곳, 모습별 정보, 허수아비 앞 공격 모션 재생기 |
 | `js/cutscene.js` | 진화/각성 컷신 |
 | `js/audio.js` | 효과음(합성)과 배경음 재생. 배경음 파일은 `assets/bgm/README.md` 참고 |
 | `js/ui.js` | 화면 전환과 HUD |

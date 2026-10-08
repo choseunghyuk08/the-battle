@@ -118,8 +118,9 @@
 
   function refreshDexCount() {
     const c = YG.dex.counts(app.save);
-    $('#dexCount').textContent = `${c.seen}/${c.total}`;
-    $('#openDex').setAttribute('aria-label', `도감, 발견 ${c.seen}/${c.total}`);
+    const u = YG.unitdex.counts(app.save);
+    $('#dexCount').textContent = `${c.seen + u.have}/${c.total + u.total}`;
+    $('#openDex').setAttribute('aria-label', `도감, 괴담 ${c.seen}/${c.total}, 동료 ${u.have}/${u.total}`);
   }
 
   function enterHome() {
@@ -805,7 +806,8 @@
   }
 
   /* 도감 */
-  const dexUi = { kind: 'all', region: 'all', entry: null, player: null, opener: null };
+  const dexUi = { mode: 'enemy', kind: 'all', region: 'all', grade: 'all', have: 'all', entry: null, player: null, opener: null };
+  const unitUi = { id: null, form: 0, player: null, opener: null };
 
   /* 같은 적의 초상화는 한 번만 만들고 복사해 쓴다 (목록을 다시 그릴 때마다 픽셀을 읽지 않게) */
   const portraits = new Map();
@@ -882,6 +884,19 @@
   }
 
   function renderDex() {
+    const unitMode = dexUi.mode === 'unit';
+    for (const b of $$('#dexMode button')) {
+      b.classList.toggle('on', b.dataset.mode === dexUi.mode);
+      b.setAttribute('aria-pressed', String(b.dataset.mode === dexUi.mode));
+    }
+    $('#dexEnemyTools').hidden = unitMode;
+    $('#dexUnitTools').hidden = !unitMode;
+    $('#dexTitle').textContent = unitMode ? '동료 도감.' : '괴담 도감.';
+    $('#dexFoundLabel').textContent = unitMode ? '보유' : '발견';
+    if (unitMode) {
+      renderUnitDex();
+      return;
+    }
     const list = YG.dex.entries();
     const regions = [...new Set(list.map((e) => e.region))];
     if (dexUi.region !== 'all' && !regions.includes(dexUi.region)) dexUi.region = 'all';
@@ -914,6 +929,138 @@
       (dexUi.kind === 'all' || (dexUi.kind === 'boss') === e.boss) && (dexUi.region === 'all' || e.region === dexUi.region));
     $('#dexShown').textContent = `${shown.filter((e) => YG.dex.isSeen(app.save, e.id)).length}/${shown.length}`;
     $('#dexGrid').replaceChildren(...shown.map(dexCard));
+  }
+
+  /* 동료 도감 */
+  function unitCard(u) {
+    const st = YG.unitdex.state(app.save, u);
+    const get = YG.unitdex.acquire(u);
+    if (!st.owned) {
+      return el('button', {
+        class: `dex-card locked g${u.grade}`, 'aria-label': `???, ${YG.GRADES[u.grade].name}, ${get.text}`, 'aria-disabled': 'true',
+        onclick: () => {
+          play('error');
+          toast(`아직 없다. ${get.text}.`);
+        },
+      }, [
+        gradeBadge(u.grade),
+        el('span', { class: 'pic' }, [silhouette(u)]),
+        el('span', { class: 'name', text: '???' }),
+        el('small', { class: 'hint', text: get.short }),
+      ]);
+    }
+    const def = YG.ownedDef(app.save, u.id);
+    return el('button', {
+      class: `dex-card g${u.grade}`, 'aria-label': `${def.name}, ${YG.GRADES[u.grade].name}${st.evo ? (st.evo > 1 ? ', 각성' : ', 진화') : ''}`,
+      onclick: () => openUnit(u),
+    }, [
+      gradeBadge(u.grade),
+      st.evo ? el('span', { class: `evo-tag${st.evo > 1 ? ' two' : ''}`, text: st.evo > 1 ? '각성' : '진화' }) : null,
+      el('span', { class: 'pic' }, [dexPortrait(def, 2)]),
+      el('span', { class: 'name', text: def.name }),
+      el('small', { class: 'hint', text: `Lv ${st.o.lv}${st.o.plus ? ` +${st.o.plus}` : ''}` }),
+    ].filter(Boolean));
+  }
+
+  function renderUnitDex() {
+    const c = YG.unitdex.counts(app.save);
+    $('#dexFound').textContent = `${c.have}/${c.total}`;
+    for (const b of $$('#dexGrade button')) {
+      const g = b.dataset.grade;
+      const part = g === 'all' ? c : c.byGrade[g];
+      const label = g === 'all' ? '전체' : YG.GRADES[g].name;
+      b.textContent = `${label} ${part.have}/${part.total}`;
+      b.classList.toggle('on', g === dexUi.grade);
+      b.setAttribute('aria-pressed', String(g === dexUi.grade));
+    }
+    for (const b of $$('#dexHave button')) {
+      b.classList.toggle('on', b.dataset.have === dexUi.have);
+      b.setAttribute('aria-pressed', String(b.dataset.have === dexUi.have));
+    }
+    const shown = sortedUnits().filter((u) => {
+      const own = !!app.save.owned[u.id];
+      return (dexUi.grade === 'all' || String(u.grade) === dexUi.grade) && (dexUi.have === 'all' || (dexUi.have === 'own') === own);
+    });
+    $('#dexUnitShown').textContent = `진화 ${c.evolved} · 각성 ${c.awakened}`;
+    $('#dexGrid').replaceChildren(...(shown.length ? shown.map(unitCard) : [el('p', { class: 'dex-empty', text: '해당하는 동료가 없다.' })]));
+  }
+
+  function unitFormButton(u, f, st) {
+    const reached = st.evo >= f.lvl;
+    const next = st.evo + 1 === f.lvl;
+    const req = !reached && next ? YG.evoReq(u, st.evo) : null;
+    return el('button', {
+      class: `ud-form${unitUi.form === f.lvl ? ' on' : ''}${reached ? '' : ' locked'}`, type: 'button',
+      'aria-pressed': String(unitUi.form === f.lvl), 'aria-disabled': reached ? null : 'true',
+      'aria-label': reached ? `${f.label}, ${f.name}` : `${f.label}, 아직 안 됨`,
+      onclick: () => {
+        if (!reached) {
+          play('error');
+          toast(req ? `${f.label}: Lv ${req.lv} · 형광펜 ${req.pens} · 경험치 ${fmt(req.xp)}` : `먼저 ${['', '진화', '각성'][f.lvl - 1]}해야 한다.`);
+          return;
+        }
+        selectUnitForm(f.lvl, true);
+      },
+    }, [
+      reached ? dexPortrait(f.def, 2) : silhouette(f.def),
+      el('em', { text: f.label }),
+      el('small', { text: reached ? f.name : '???' }),
+    ]);
+  }
+
+  function selectUnitForm(lvl, keepFocus) {
+    const u = YG.unitById(unitUi.id);
+    const st = YG.unitdex.state(app.save, u);
+    unitUi.form = lvl;
+    const forms = YG.unitdex.forms(u);
+    const f = forms[lvl];
+    const def = f.def;
+    $('#udName').textContent = def.name;
+    $('#udChips').replaceChildren(...[
+      gradeBadge(u.grade),
+      el('span', { class: 'chip', text: u.role }),
+      ...YG.unitdex.tags(def).map((t) => el('span', { class: 'chip', text: t })),
+    ]);
+    $('#udStats').replaceChildren(...YG.unitdex.statRows(def, st.o).map((r) => statRow(r.label, r.value)));
+    $('#udNote').textContent = `체력과 공격력은 내 레벨(Lv ${st.o.lv}${st.o.plus ? `, +${st.o.plus}` : ''})을 반영한 값이다.`;
+    $('#udBlurb').textContent = def.blurb;
+    const abil = YG.abilityText(def);
+    $('#udAbil').replaceChildren(...(abil.length
+      ? abil.map((a) => el('div', {}, [a.trait ? YG.icon(a.trait, 2) : null, a.text].filter(Boolean)))
+      : [el('div', { text: '특성 능력 없음. 무특성 적에게 쓰기 좋다.' })]));
+    $('#udForms').replaceChildren(...forms.map((x) => unitFormButton(u, x, st)));
+    if (unitUi.player) unitUi.player.setDef(def, { lv: st.o.lv, plus: st.o.plus });
+    if (keepFocus) {
+      const on = $('#udForms .ud-form.on');
+      if (on) on.focus();
+    }
+  }
+
+  function openUnit(u) {
+    const st = YG.unitdex.state(app.save, u);
+    unitUi.id = u.id;
+    unitUi.opener = document.activeElement;
+    const get = YG.unitdex.acquire(u);
+    $('#udGet').textContent = get.text;
+    const own = [`Lv ${st.o.lv}${st.o.plus ? ` +${st.o.plus}` : ''}`, ['기본 모습', '진화한 모습', '각성한 모습'][st.evo], `조각 ${st.o.shards}`];
+    const nextReq = st.evo < 2 ? YG.evoReq(u, st.evo) : null;
+    $('#udOwn').replaceChildren(...[
+      el('p', { class: 'eyebrow', text: '내 상태' }),
+      el('p', { text: own.join(' · ') }),
+      nextReq ? el('p', { class: 'dex-note', text: `${st.evo ? '각성' : '진화'}까지 Lv ${nextReq.lv} · 형광펜 ${nextReq.pens} · 경험치 ${fmt(nextReq.xp)}` }) : null,
+    ].filter(Boolean));
+    const dlg = $('#unitDlg');
+    dlg.showModal();
+    dlg.scrollTop = 0;
+    if (unitUi.player) unitUi.player.stop();
+    unitUi.player = YG.unitdex.play($('#udCanvas'), YG.resolveDef(u, st.evo), { lv: st.o.lv, plus: st.o.plus });
+    selectUnitForm(st.evo);
+  }
+
+  function closeUnit() {
+    if (unitUi.player) unitUi.player.stop();
+    unitUi.player = null;
+    if (unitUi.opener && unitUi.opener.isConnected && unitUi.opener.focus) unitUi.opener.focus();
   }
 
   const PHASE_LABEL = ['이야기 1/3', '이야기 2/3', '이야기 3/3', '공격 모션'];
@@ -1460,6 +1607,33 @@
         renderDex();
       });
     }
+    for (const b of $$('#dexMode button')) {
+      b.addEventListener('click', () => {
+        dexUi.mode = b.dataset.mode;
+        renderDex();
+      });
+    }
+    for (const b of $$('#dexGrade button')) {
+      b.addEventListener('click', () => {
+        dexUi.grade = b.dataset.grade;
+        renderDex();
+      });
+    }
+    for (const b of $$('#dexHave button')) {
+      b.addEventListener('click', () => {
+        dexUi.have = b.dataset.have;
+        renderDex();
+      });
+    }
+    $('#udClose').addEventListener('click', () => $('#unitDlg').close());
+    $('#udX').addEventListener('click', () => $('#unitDlg').close());
+    $('#unitDlg').addEventListener('close', closeUnit);
+    $('#udFormation').addEventListener('click', () => {
+      app.selected = unitUi.id;
+      app.filter = 'all';
+      $('#unitDlg').close();
+      show('formation');
+    });
     $('#dexClose').addEventListener('click', () => $('#dexDlg').close());
     $('#dexX').addEventListener('click', () => $('#dexDlg').close());
     $('#dexReplay').addEventListener('click', () => dexUi.player && dexUi.player.replay());
