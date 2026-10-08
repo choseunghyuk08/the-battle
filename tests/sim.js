@@ -1,7 +1,7 @@
 const path = require('path');
 const assert = require('assert');
 const root = path.join(__dirname, '..', 'js');
-['data.js', 'units2.js', 'evolutions.js', 'bestiary.js', 'world.js', 'engine.js', 'game.js', 'lore.js', 'dex.js', 'missions.js', 'cutscene.js', 'poses.js', 'scenery.js'].forEach((f) => require(path.join(root, f)));
+['data.js', 'units2.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'world.js', 'world2.js', 'engine.js', 'game.js', 'lore.js', 'lore_world.js', 'dex.js', 'missions.js', 'cutscene.js', 'scenery.js', 'scenery2.js', 'poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js'].forEach((f) => require(path.join(root, f)));
 const YG = globalThis.YG;
 
 function seeded(seed) {
@@ -279,8 +279,8 @@ function testBalance() {
 }
 
 function testWorld() {
-  assert.strictEqual(YG.STAGES.length, 7 + 48 * 5, '스테이지 247개');
-  assert.strictEqual(YG.CHAPTERS.length, 50);
+  assert.strictEqual(YG.STAGES.length, 7 + 48 * 5 + 20 * 5, '스테이지 347개 (국내 247 + 해외 100)');
+  assert.strictEqual(YG.CHAPTERS.length, 70);
   YG.STAGES.forEach((st, i) => {
     assert.strictEqual(st.id, i + 1, 'id는 연속');
     assert(YG.PALETTES[st.theme.split(':')[1]] || !st.theme.includes(':'), `팔레트 ${st.theme}`);
@@ -292,15 +292,164 @@ function testWorld() {
     assert(st.reward.first.coins > 0 && st.reward.first.xp > 0 && st.reward.first.pens > 0);
   });
   const finales = YG.STAGES.filter((s) => s.sub.endsWith('-5') && s.chapter >= 3);
-  assert.strictEqual(finales.length, 48);
+  assert.strictEqual(finales.length, 68);
   assert(finales.every((s) => s.bosses && s.bosses.length >= 1), '장마다 마지막 스테이지는 보스');
   const bossNames = new Set(finales.map((s) => YG.enemyById(s.bosses[0].id).name));
-  assert(bossNames.size >= 40, `보스 종류 ${bossNames.size}`);
+  assert(bossNames.size >= 60, `보스 종류 ${bossNames.size}`);
   const elites = YG.STAGES.filter((s) => s.chapter >= 9 && s.waves.some((w) => YG.enemyById(w.id).boss));
   assert(elites.length > 100, '보스가 후반에 잡몹으로 다시 등장');
   const early = YG.STAGES.filter((s) => s.chapter <= 8 && s.waves.some((w) => YG.enemyById(w.id).boss));
   assert.strictEqual(early.length, 0, '초반 잡몹 웨이브에는 보스가 없다');
   console.log(`world ok (스테이지 ${YG.STAGES.length}, 보스 ${bossNames.size}종, 보스 재등장 스테이지 ${elites.length})`);
+}
+
+/* 해외편: 51~70장, 스테이지 248~347 */
+function testOverseas() {
+  const REGIONS = ['일본', '중국', '동남아', '유럽', '아메리카'];
+  const TRAITS = ['ghost', 'specimen', 'dark', 'metal', 'none'];
+  const over = YG.STAGES.slice(YG.DOMESTIC.stages);
+  assert.strictEqual(over.length, 100);
+  assert.deepStrictEqual(YG.REGIONS.map((r) => r.id), ['국내', ...REGIONS]);
+  assert.strictEqual(over[0].id, 248);
+  assert.strictEqual(over[0].chapter, 51);
+
+  /* 지역과 장: 지역마다 4장, 장마다 5스테이지, 마지막은 보스 */
+  for (const c of YG.CHAPTERS) assert(c.region, `${c.id}장 지역`);
+  assert.strictEqual(YG.CHAPTERS.filter((c) => c.region === '국내').length, 50);
+  for (const r of YG.REGIONS.slice(1)) {
+    const list = YG.CHAPTERS.filter((c) => c.region === r.id);
+    assert.deepStrictEqual(list.map((c) => c.id), [0, 1, 2, 3].map((k) => r.from + k), `${r.id} 4장`);
+    const traits = new Set();
+    for (const c of list) for (const st of YG.chapterStages(c.id)) for (const t of YG.stageTraits(st)) traits.add(t);
+    assert(traits.size >= 4, `${r.id}편 적 특성 ${[...traits]} (4종 이상이어야 카운터가 다 쓰인다)`);
+  }
+  for (let c = 51; c <= 70; c++) {
+    const list = YG.chapterStages(c);
+    assert.strictEqual(list.length, 5, `${c}장 5스테이지`);
+    list.forEach((st, i) => {
+      assert.strictEqual(st.sub, `${c}-${i + 1}`);
+      assert.strictEqual(!!st.bosses, i === 4, `${st.sub} 보스는 마지막 스테이지만`);
+      assert.strictEqual(st.chapter, c);
+    });
+    const fin = list[4];
+    assert(YG.enemyById(fin.bosses[0].id).boss);
+    assert.strictEqual(fin.name, YG.enemyById(fin.bosses[0].id).name);
+    assert.strictEqual(YG.regionOf(c), YG.REGIONS.find((r) => c >= r.from && c <= r.to).id);
+  }
+  assert.strictEqual(YG.chapterStages(70)[4].bosses[0].id, 'globeking', '월드 피날레 보스');
+
+  /* 재생성해도 같은 스테이지 (보정 도구가 쓴다) */
+  for (const id of [248, 290, 330, 347]) assert.deepStrictEqual(YG.regenStage(id), YG.STAGES[id - 1], `${id} 재생성`);
+
+  /* 새 적: 모두 풀리고, 지역/특성/외형/전설 데이터가 있다 */
+  const fresh = YG.ENEMIES.filter((e) => e.region);
+  const mobs = fresh.filter((e) => !e.boss);
+  const bosses = fresh.filter((e) => e.boss);
+  assert(mobs.length >= 25 && bosses.length >= 10, `새 적 잡몹 ${mobs.length} 보스 ${bosses.length}`);
+  assert.strictEqual(new Set(fresh.map((e) => e.id)).size, fresh.length, '새 적 id 중복 없음');
+  const KNOWN_PROJ = ['salt', 'beam', 'book', 'wave', 'beaker', 'exam', 'ball', 'arrow', 'foam', 'bolt', 'laser', 'chalk', 'shuttle', 'flash', 'star', 'pellet', 'card', 'ink', 'water', 'plane', 'hook', 'note', ...Object.keys(YG.PROJ_EXTRA || {})];
+  const ARCHS = ['slime', 'beast', 'winged', 'box', 'bug', 'orb', 'human', ...Object.keys(YG.ARCH3 || {})];
+  for (const e of fresh) {
+    assert.strictEqual(YG.enemyById(e.id), e);
+    assert(REGIONS.includes(e.region), `${e.id} 지역`);
+    assert(TRAITS.includes(e.trait), `${e.id} 특성 ${e.trait}`);
+    assert(e.hp > 0 && e.atk > 0 && e.range > 0 && e.speed > 0 && e.interval > 0 && e.drop > 0 && e.kb > 0, `${e.id} 스탯`);
+    assert(e.anim.hit > 0 && e.anim.total > e.anim.hit, `${e.id} 공격 모션`);
+    assert(typeof e.look === 'object' && ARCHS.includes(e.look.arch), `${e.id} 외형 ${e.look && e.look.arch}`);
+    assert(!e.ranged || KNOWN_PROJ.includes(e.ranged), `${e.id} 투사체 ${e.ranged}`);
+    assert(e.name && e.name.length <= 12, `${e.id} 이름`);
+    const lore = (YG.LORE || {})[e.id];
+    assert(lore, `${e.id} 도감 데이터`);
+    assert(['rise', 'slide', 'fade', 'drop', 'peek'].includes(lore.intro), `${e.id} 등장 연출`);
+    assert(Array.isArray(lore.beats) && lore.beats.length === 3 && lore.beats.every((s) => typeof s === 'string' && s.length > 3), `${e.id} 3줄`);
+    assert(typeof lore.desc === 'string' && lore.desc.length > 30, `${e.id} 설명`);
+    const [scene, pal] = lore.place.split(':');
+    assert(YG.scenery[scene] || ['corridor', 'lab', 'basement', 'bathroom', 'cafeteria', 'music', 'roof'].includes(scene), `${e.id} 장소 ${lore.place}`);
+    assert(!pal || YG.PALETTES[pal], `${e.id} 팔레트`);
+    /* 색 변종도 만들어진다 */
+    for (const v of ['red', 'violet', 'gold', 'ink']) {
+      const vv = YG.enemyById(`${e.id}:${v}`);
+      assert(vv.hp > e.hp && vv.tint, `${e.id}:${v}`);
+    }
+  }
+  for (const r of REGIONS) {
+    assert(mobs.filter((e) => e.region === r).length >= 5, `${r} 잡몹 5종 이상`);
+    assert(bosses.filter((e) => e.region === r).length >= 2, `${r} 보스 2종 이상`);
+    assert(new Set(fresh.filter((e) => e.region === r).map((e) => e.trait)).size >= 4, `${r} 적 특성이 고르게`);
+  }
+
+  /* 스프라이트: 17프레임이 전부 그려지고 캔버스 안에 들어온다 */
+  const sc = require('./spritecheck.js').checkSprites();
+  assert.strictEqual(sc.problems.length, 0, `스프라이트 문제 ${sc.problems.slice(0, 5).map((p) => `${p.id}/${p.frame}/${p.why}`).join(', ')}`);
+
+  /* 레벨 상한: 국내 마지막 스테이지(247)를 깨야 70 */
+  const s = YG.newSave();
+  assert.strictEqual(YG.maxLevel(s), 50);
+  s.cleared[246] = true;
+  assert.strictEqual(YG.maxLevel(s), 50, '246까지로는 안 풀린다');
+  s.owned.basic.lv = 50;
+  s.xp = 1e9;
+  assert(!YG.levelUp(s, 'basic'), '50에서 막힌다');
+  assert(!YG.isUnlocked(s, YG.STAGES[247]), '해외 첫 스테이지는 247을 깨야 열린다');
+  YG.applyReward(s, YG.STAGES[246]);
+  assert.strictEqual(YG.maxLevel(s), 70);
+  assert(YG.isUnlocked(s, YG.STAGES[247]));
+  assert(!YG.isUnlocked(s, YG.STAGES[248]), '해외도 순서대로');
+  for (let lv = 51; lv <= 70; lv++) assert(YG.levelUp(s, 'basic') && s.owned.basic.lv === lv);
+  assert(!YG.levelUp(s, 'basic'), '70에서 다시 막힌다');
+  assert.strictEqual(YG.PROG.maxLv, 50, '기본 상한 값은 그대로');
+  assert(YG.levelUpCost(69) > YG.levelUpCost(49), '레벨업 비용 공식은 이어진다');
+
+  /* 난이도: 국내 마지막보다 낮아지지 않고, 뒤로 갈수록 오른다 */
+  const last = YG.difficulty(246, 50);
+  const ds = over.map((st) => YG.difficulty(st.id - 1, st.chapter));
+  assert(ds.every((d) => d >= last - 1e-9), '해외 난이도는 국내 마지막 이상');
+  assert(ds[0] >= last);
+  const avg = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+  assert(avg(ds.slice(80)) > avg(ds.slice(0, 20)) * 1.15, '난이도는 뒤로 갈수록 오른다');
+  for (let c = 52; c <= 70; c++) {
+    const prev = avg(ds.slice((c - 52) * 5, (c - 51) * 5));
+    const cur = avg(ds.slice((c - 51) * 5, (c - 50) * 5));
+    assert(cur > prev * 0.45, `${c}장 난이도가 앞 장의 절반 아래로 떨어지지 않는다 (${cur.toFixed(1)} vs ${prev.toFixed(1)})`);
+  }
+
+  /* 보상: 국내 공식이 이어진다 */
+  let prevXp = 0;
+  for (const st of over) {
+    const { first, repeat } = st.reward;
+    assert(first.coins > 0 && first.xp > 0 && first.pens > 0 && repeat.coins > 0 && repeat.xp > 0 && repeat.pens > 0, `${st.sub} 보상`);
+    assert(first.coins > repeat.coins && first.xp > repeat.xp);
+    if (!st.bosses) assert(first.xp >= prevXp - 1, `${st.sub} 경험치가 줄지 않는다`);
+    prevXp = st.bosses ? prevXp : first.xp;
+    assert(st.startMoney > 0 && st.allyBaseHp > 0 && st.enemyBaseHp > 0);
+    assert(st.waves.length >= 3);
+  }
+  assert(over[0].reward.first.xp >= YG.STAGES[246].reward.first.xp * 0.9 / 1.4, '보상이 국내 마지막에서 이어진다');
+
+  /* 특성 표시 */
+  const t51 = YG.stageTraits(YG.chapterStages(51)[0]);
+  assert(t51.includes('ghost') && t51.includes('none'), `51-1 특성 ${t51}`);
+  assert(YG.stageTraits(YG.chapterStages(70)[4]).includes('metal'), '지구본 대마왕은 철제');
+  for (const st of over) for (const t of YG.stageTraits(st)) assert(TRAITS.includes(t));
+
+  /* 업적과 임무가 세계 크기를 따라간다 */
+  const ach = (save, id) => YG.achievementStatus(save).find((a) => a.id === id);
+  const as = YG.newSave();
+  assert.strictEqual(YG.achievementTiers('chapters').slice(-1)[0].goal, 70);
+  assert.strictEqual(YG.achievementTiers('firsts').slice(-1)[0].goal, 347);
+  assert.deepStrictEqual(YG.achievementTiers('abroad').map((t) => t.goal), [1, 4, 8, 14, 20]);
+  assert(!ach(as, 'maxLv2'), '레벨 상한이 풀리기 전에는 한계 돌파 업적이 안 보인다');
+  for (const st of YG.STAGES) if (st.id <= 247) as.cleared[st.id] = true;
+  assert.deepStrictEqual(YG.achievementTiers('maxLv2').map((t) => t.goal), [60, 70]);
+  assert(ach(as, 'maxLv2') && ach(as, 'maxLv2').goal === 60);
+  assert.strictEqual(ach(as, 'abroad').value, 0);
+  for (const st of YG.chapterStages(51)) as.cleared[st.id] = true;
+  assert(ach(as, 'abroad').ready, '해외 1개 장을 깨면 업적');
+  for (const st of YG.STAGES) as.cleared[st.id] = true;
+  assert.strictEqual(ach(as, 'abroad').value, 20);
+  assert.strictEqual(ach(as, 'abroad').readyCount, 5);
+
+  console.log(`overseas ok (적 ${fresh.length}종: 잡몹 ${mobs.length} 보스 ${bosses.length}, 난이도 ${ds[0].toFixed(0)}~${ds[ds.length - 1].toFixed(0)})`);
 }
 
 function testProgression() {
@@ -429,6 +578,7 @@ if (require.main === module) {
   testSpecials();
   testAwakenFx();
   testWorld();
+  testOverseas();
   testGacha();
   testProgression();
   testMissions();
@@ -449,7 +599,9 @@ const GRADE_SCORE = { 4: 1, 3: 3, 2: 4.5, 1: 6, 0: 7 };
 function progressTier(stageId, roster = process.env.ROSTER || 'base') {
   const stage = YG.STAGES[stageId - 1];
   const g = stage.id - 1;
-  const lv = Math.max(1, Math.min(50, Math.round(4 + 0.19 * g)));
+  /* 레벨 상한이 풀리는 247번 다음(해외편)부터는 70까지 이어진다. 국내 247개는 예전과 똑같다. */
+  const cap = g >= YG.PROG.breakStage ? YG.PROG.breakLv : YG.PROG.maxLv;
+  const lv = Math.max(1, Math.min(cap, Math.round(4 + 0.19 * g)));
   const have = Math.min(BASE_ORDER.length, 4 + Math.floor(g / 3));
   const owned = BASE_ORDER.slice(0, have);
   if (roster === 'all') {
@@ -712,7 +864,7 @@ function testDex() {
   const firstBoss = list.findIndex((e) => e.boss);
   assert(firstBoss > 0 && list.slice(0, firstBoss).every((e) => !e.boss) && list.slice(firstBoss).every((e) => e.boss), '보스는 잡몹 뒤');
   assert.deepStrictEqual(YG.dex.entries().map((e) => e.id), ids, '순서는 항상 같다');
-  assert(list.every((e) => e.region === '국내' && e.trait && e.def.name), '지역 기본값은 국내');
+  assert(list.every((e) => e.region === (e.def.region || '국내') && e.trait && e.def.name), '지역 기본값은 국내');
 
   /* 모든 기본 적에게 이야기가 있다 */
   const intros = new Set();

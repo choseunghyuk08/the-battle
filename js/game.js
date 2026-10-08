@@ -134,9 +134,14 @@
   YG.levelUpCost = (lv) => Math.round(50 * lv * (1 + Math.max(0, lv - 10) / 20));
   YG.plusCost = (plus) => plus + 2;
 
+  /* 레벨 상한: 국내 마지막 스테이지(247)를 깨면 해외편에서 70까지 올릴 수 있다. PROG.maxLv 는 기본 상한이다. */
+  YG.PROG.breakLv = 70;
+  YG.PROG.breakStage = 247;
+  YG.maxLevel = (save) => (save && save.cleared && save.cleared[YG.PROG.breakStage] ? YG.PROG.breakLv : YG.PROG.maxLv);
+
   YG.levelUp = (save, id) => {
     const o = save.owned[id];
-    if (!o || o.lv >= YG.PROG.maxLv) return false;
+    if (!o || o.lv >= YG.maxLevel(save)) return false;
     const cost = YG.levelUpCost(o.lv);
     if (save.xp < cost) return false;
     save.xp -= cost;

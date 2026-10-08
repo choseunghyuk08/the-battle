@@ -1,6 +1,6 @@
 const { playBot, progressTier } = require('./sim.js');
 const YG = globalThis.YG;
-const picks = [8, 10, 13, 20, 25, 30, 40, 50, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 247];
+const picks = [8, 10, 13, 20, 25, 30, 40, 50, 60, 80, 100, 120, 140, 160, 180, 200, 220, 240, 247, 248, 252, 260, 275, 290, 305, 320, 335, 347];
 console.log('stage  chapter-stage  Lv deck  승/6  시간  우리성최저  적최전선');
 for (const id of picks) {
   const t = progressTier(id);

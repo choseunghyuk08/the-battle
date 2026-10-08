@@ -224,6 +224,11 @@
     return YG.CHAPTERS.filter((c) => YG.chapterStages(c.id).every((s) => save.cleared[s.id])).length;
   }
 
+  /* 해외편 장 (51장~). 해외편이 없으면 빈 목록이라 업적도 나오지 않는다 */
+  const overseasChapters = () => YG.CHAPTERS.filter((c) => c.region && c.region !== '국내');
+  const abroadChapters = (save) => overseasChapters().filter((c) => YG.chapterStages(c.id).every((s) => save.cleared[s.id])).length;
+  const brokenCap = (save) => !!save.cleared[YG.PROG.breakStage];
+
   function statValue(save, key) {
     const st = save.stats || {};
     if (key === 'firstClears') return Math.max(st.firstClears || 0, clearedCount(save));
@@ -252,11 +257,12 @@
 
   const ACH = [
     stat('stages', 'clear', '야자 개근', 'stagesCleared', () => [5, 20, 60, 120, 240], (n) => `스테이지 ${fmt(n)}번 클리어`),
-    stat('chapters', 'clear', '장 돌파', 'chaptersCleared', () => [1, 5, 15, 30, YG.CHAPTERS.length], (n) => `${n}개 장을 끝까지 클리어`),
-    stat('firsts', 'clear', '새 교실 탐험', 'firstClears', () => [10, 40, 100, 180, YG.STAGES.length], (n) => `서로 다른 스테이지 ${n}개 클리어`),
+    stat('chapters', 'clear', '장 돌파', 'chaptersCleared', () => [1, 5, 15, 35, YG.CHAPTERS.length], (n) => `${n}개 장을 끝까지 클리어`),
+    stat('firsts', 'clear', '새 교실 탐험', 'firstClears', () => [10, 40, 100, 200, YG.STAGES.length], (n) => `서로 다른 스테이지 ${n}개 클리어`),
+    derived('abroad', 'clear', '월드 투어', abroadChapters, () => within([1, 4, 8, 14, overseasChapters().length], overseasChapters().length), (n) => `해외 ${n}개 장을 끝까지 클리어`, 1.2),
     stat('battles', 'clear', '출전 기록', 'battles', () => [10, 50, 200, 600], (n) => `전투 ${fmt(n)}번 치르기`, 0.6),
     stat('kills', 'combat', '퇴마 전문', 'kills', () => [100, 1000, 5000, 20000, 60000], (n) => `적 ${fmt(n)}마리 처치`),
-    stat('bosses', 'combat', '보스 사냥', 'bossKills', () => [3, 20, 60, 150], (n) => `보스 ${fmt(n)}마리 처치`),
+    stat('bosses', 'combat', '보스 사냥', 'bossKills', () => [3, 20, 60, 150, 300], (n) => `보스 ${fmt(n)}마리 처치`),
     stat('cannon', 'combat', '방송실 단골', 'cannonShots', () => [10, 50, 200, 500], (n) => `방송 대포 ${fmt(n)}번 발사`, 0.7),
     stat('summons', 'combat', '소환 달인', 'summons', () => [200, 1500, 6000, 20000], (n) => `유닛 ${fmt(n)}번 소환`, 0.8),
     derived('owned', 'collect', '도감 수집', (s) => Object.keys(s.owned).length, () => upTo([6, 12, 20, 30], YG.UNITS.length), (n) => `유닛 ${n}종 모으기`),
@@ -272,6 +278,8 @@
     stat('plusUps', 'growth', '강화 장인', 'plusUps', () => [10, 50, 200], (n) => `+강화 ${n}번`, 0.8),
     derived('maxPlus', 'growth', '풀 강화', (s) => owned(s).filter((o) => o.plus >= YG.PROG.maxPlus).length, () => within([1, 3, 6, 10], YG.UNITS.length), (n) => `+${YG.PROG.maxPlus} 유닛 ${n}종`, 0.8),
     derived('maxLv', 'growth', '에이스', (s) => Math.max(0, ...owned(s).map((o) => o.lv)), () => [10, 20, 30, 40, YG.PROG.maxLv], (n) => `유닛 하나를 Lv ${n}까지`, 0.8),
+    /* 레벨 상한이 풀린 뒤에만 보인다 */
+    { ...derived('maxLv2', 'growth', '한계 돌파', (s) => Math.max(0, ...owned(s).map((o) => o.lv)), () => [60, YG.PROG.breakLv], (n) => `유닛 하나를 Lv ${n}까지`, 1), rewards: [{ coins: 800, xp: 1500, pens: 2 }, { coins: 1500, xp: 3000, pens: 3 }], show: brokenCap },
     derived('lvUnits', 'growth', '골고루 육성', (s) => owned(s).filter((o) => o.lv >= 10).length, () => upTo([3, 8, 15, 25], YG.UNITS.length), (n) => `Lv 10 이상 유닛 ${n}종`, 0.6),
     stat('days', 'daily', '출석 도장', 'days', () => [3, 7, 14, 30, 60], (n) => `${n}일 출석`, 0.8),
     stat('missionsDone', 'daily', '임무 해결사', 'missionsDone', () => [10, 50, 150], (n) => `일일 임무 ${n}개 달성`, 0.8),
@@ -295,6 +303,7 @@
   YG.achievementStatus = (save) => {
     const out = [];
     for (const a of ACH) {
+      if (a.show && !a.show(save)) continue;
       const tiers = tiersOf(a);
       if (!tiers.length) continue;
       const value = a.value(save);

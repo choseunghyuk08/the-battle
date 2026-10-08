@@ -1,9 +1,18 @@
 const { playBest, progressTier } = require('./sim.js');
 const YG = globalThis.YG;
 
+/* node tests/calibrate.js 92,97 | all | abroad [--csv] [--robust]
+   PART=i/n 으로 n개 프로세스에 나눠 돌릴 수 있다. --robust 는 S, 0.88S, 0.77S 에서 모두 이겨야 통과로 쳐서
+   봇 결과가 들쭉날쭉한 구간(비단조)에 속지 않는다. */
 const arg = process.argv[2] || '8,12,20,30,50,80,120,160,200,240';
-const ids = arg === 'all' ? Array.from({ length: 240 }, (_, i) => i + 8) : arg.split(',').map(Number);
+const range = (a, b) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+let ids = arg === 'all' ? range(8, YG.STAGES.length) : arg === 'abroad' ? range(YG.DOMESTIC.stages + 1, YG.STAGES.length) : arg.split(',').map(Number);
+if (process.env.PART) {
+  const [i, n] = process.env.PART.split('/').map(Number);
+  ids = ids.filter((_, k) => k % n === i);
+}
 const quiet = process.argv.includes('--csv');
+const robust = process.argv.includes('--robust');
 const seeds = Number(process.env.SEEDS || 4);
 const original = YG.difficulty;
 
@@ -19,7 +28,9 @@ for (const id of ids) {
   let hi = 600;
   for (let i = 0; i < 9; i++) {
     const mid = Math.sqrt(lo * hi);
-    if (trial(id, mid).wins >= Math.ceil(seeds * 0.75)) lo = mid;
+    const need = Math.ceil(seeds * 0.75);
+    const ok = trial(id, mid).wins >= need && (!robust || (trial(id, mid * 0.88).wins >= need && trial(id, mid * 0.77).wins >= need));
+    if (ok) lo = mid;
     else hi = mid;
   }
   if (quiet) {
