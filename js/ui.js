@@ -360,7 +360,7 @@
     const ch = YG.CHAPTERS.find((c) => c.id === app.chapter);
     const list = YG.chapterStages(ch.id);
     $('#chName').textContent = ch.name;
-    $('#chProg').textContent = `${chapterCleared(ch.id)}/${list.length} 클리어 · ${ch.blurb}`;
+    $('#chProg').textContent = `${ch.region || '국내'} · ${chapterCleared(ch.id)}/${list.length} 클리어 · ${ch.blurb}`;
     $('#chPrev').disabled = ch.id <= YG.CHAPTERS[0].id;
     $('#chNext').disabled = ch.id >= YG.CHAPTERS[YG.CHAPTERS.length - 1].id;
     $('#stageList').replaceChildren(el('div', { class: 'stage-grid' }, list.map(stageCard)));
@@ -370,12 +370,18 @@
     const total = YG.CHAPTERS.length;
     const doneChapters = YG.CHAPTERS.filter((c) => chapterCleared(c.id) === YG.chapterStages(c.id).length).length;
     $('#chapterSummary').textContent = `${doneChapters}/${total}장 완료 · 클리어 ${Object.keys(app.save.cleared).length}/${YG.STAGES.length}`;
-    $('#chapterGrid').replaceChildren(
-      ...YG.CHAPTERS.map((c) => {
+    /* 지역별로 묶어서 지역 제목을 먼저 보여준다 */
+    const nodes = [];
+    for (const region of YG.REGIONS || [{ id: '국내', from: 1, to: total }]) {
+      const chapters = YG.CHAPTERS.filter((c) => (c.region || '국내') === region.id);
+      if (!chapters.length) continue;
+      const done = chapters.filter((c) => chapterCleared(c.id) === YG.chapterStages(c.id).length).length;
+      nodes.push(el('h4', { class: `chap-region${chapterUnlocked(chapters[0].id) ? '' : ' locked'}`, text: `${region.id} · ${done}/${chapters.length}장` }));
+      for (const c of chapters) {
         const n = chapterCleared(c.id);
         const size = YG.chapterStages(c.id).length;
         const open = chapterUnlocked(c.id);
-        return el('button', {
+        nodes.push(el('button', {
           class: `chap-btn${open ? '' : ' locked'}${n === size ? ' done' : ''}${c.id === app.chapter ? ' cur' : ''}`,
           onclick: () => {
             app.chapter = c.id;
@@ -385,9 +391,10 @@
         }, [
           el('b', { text: c.name.replace(/^\d+장 /, '') }),
           el('span', { text: `${c.id}장 · ${n}/${size}` }),
-        ]);
-      })
-    );
+        ]));
+      }
+    }
+    $('#chapterGrid').replaceChildren(...nodes);
     $('#chapterDlg').showModal();
     const cur = $('#chapterGrid .cur');
     if (cur) cur.scrollIntoView({ block: 'center' });
@@ -516,7 +523,8 @@
     const inDeck = app.save.deck.includes(base.id);
     const abil = YG.abilityText(def);
     const lvCost = YG.levelUpCost(o.lv);
-    const maxLv = o.lv >= YG.PROG.maxLv;
+    const cap = YG.maxLevel(app.save);
+    const maxLv = o.lv >= cap;
     const maxPlus = o.plus >= YG.PROG.maxPlus;
     const pCost = YG.plusCost(o.plus);
 
@@ -530,7 +538,7 @@
       ]),
       el('p', { class: 'blurb', text: def.blurb }),
       el('div', { class: 'stat-grid' }, [
-        statRow('레벨', `${o.lv}${o.plus ? ` +${o.plus}` : ''}`),
+        statRow('레벨', `${o.lv}${o.plus ? ` +${o.plus}` : ''} / ${cap}`),
         statRow('체력', fmt(st.hp)),
         statRow('공격력', fmt(st.atk)),
         statRow('사거리', String(def.range)),
@@ -546,7 +554,8 @@
         el('div', { class: 'row' }, [
           el('button', {
             class: 'btn', disabled: maxLv || app.save.xp < lvCost,
-            text: maxLv ? '최대 레벨' : `레벨업 · ${fmt(lvCost)}`,
+            title: maxLv && cap < YG.PROG.breakLv ? `${YG.DOMESTIC.chapters}장을 끝까지 깨면 Lv ${YG.PROG.breakLv}까지 오른다.` : false,
+            text: maxLv ? (cap < YG.PROG.breakLv ? `한계 Lv ${cap}` : '최대 레벨') : `레벨업 · ${fmt(lvCost)}`,
             onclick: () => {
               YG.levelUp(app.save, base.id);
               play('levelup');
@@ -980,7 +989,11 @@
           ? el('p', { class: 'unlock' }, [YG.sprites.portrait(YG.unitById(r.unit), 2), el('span', { text: `새 동료 · ${YG.unitById(r.unit).name}` })])
           : null,
         slotsAfter > slotsBefore ? el('p', { text: `출전 칸 ${slotsAfter}칸으로 늘었다.` }) : null,
+        !wasCleared && next && YG.regionOf(next.chapter) !== YG.regionOf(battle.stage.chapter)
+          ? el('p', { class: 'unlock-region', text: YG.regionOf(battle.stage.chapter) === '국내' ? `해외 원정 열림 · ${YG.regionOf(next.chapter)}편` : `${YG.regionOf(next.chapter)}편 열림` })
+          : null,
         !wasCleared && next ? el('p', { text: `${next.sub} ${next.name} 열림.` }) : null,
+        !wasCleared && battle.stage.id === YG.PROG.breakStage ? el('p', { text: `레벨 상한이 ${YG.PROG.breakLv}으로 늘었다.` }) : null,
       ].filter(Boolean));
     } else {
       YG.trackBattle(app.save, b);

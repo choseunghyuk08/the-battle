@@ -2,19 +2,26 @@
 <html lang="ko"><head><meta charset="utf-8"><title>background preview</title>
 <style>body{margin:0;background:#000;display:grid;grid-template-columns:repeat(3,420px);gap:4px}canvas{width:420px;height:236px;image-rendering:pixelated;display:block}</style></head>
 <body>
-<script src="../js/data.js"></script><script src="../js/bestiary.js"></script><script src="../js/engine.js"></script><script src="../js/game.js"></script>
-<script src="../js/poses.js"></script><script src="../js/sprites.js"></script><script src="../js/sprites2.js"></script><script src="../js/scenery.js"></script><script src="../js/render.js"></script>
+<script src="../js/data.js"></script><script src="../js/units2.js"></script><script src="../js/evolutions.js"></script><script src="../js/bestiary.js"></script><script src="../js/bestiary2.js"></script><script src="../js/world.js"></script><script src="../js/world2.js"></script><script src="../js/engine.js"></script><script src="../js/game.js"></script>
+<script src="../js/poses.js"></script><script src="../js/sprites.js"></script><script src="../js/sprites2.js"></script><script src="../js/sprites3.js"></script><script src="../js/scenery.js"></script><script src="../js/scenery2.js"></script><script src="../js/render.js"></script>
 <script>
+/* ?all=1 국내 장 첫 스테이지 배경 / ?set=abroad 해외 20장 배경 / ?set=abroad&region=일본 / ?only=장면이름,... 기본은 국내 16개 장면 */
 const YG = globalThis.YG;
 const q = new URLSearchParams(location.search);
 let themes;
-if (q.get('all')) {
+if (q.get('set') === 'abroad') {
+  const region = q.get('region');
+  themes = YG.STAGES.filter((s) => s.chapter >= 51 && s.sub.endsWith('-1') && (!region || YG.regionOf(s.chapter) === region)).map((s) => s.theme);
+} else if (q.get('all')) {
   themes = YG.STAGES.filter((s, i) => s.sub.endsWith('-1') || s.id <= 3).map((s) => s.theme);
+} else if (q.get('only')) {
+  themes = q.get('only').split(',');
 } else {
   const scenes = ['library','gym','pool','office','art','computer','auditorium','field','street','dorm','forest','exam','ruin','kitchen','mirrors','final'];
   const pals = Object.keys(YG.PALETTES);
   themes = scenes.map((sc, i) => `${sc}:${pals[(i * 3) % pals.length]}`);
 }
+const frame = Number(q.get('frame') || 120);
 for (const theme of themes) {
   const c = document.createElement('canvas'); c.width = 320; c.height = 180; document.body.append(c);
   const ctx = c.getContext('2d');
@@ -22,8 +29,9 @@ for (const theme of themes) {
   const save = YG.newSave(); save.deck = ['basic','bag','reader'];
   const b = new YG.Battle(stage, YG.buildDeck(save), Math.random);
   b.money = 5000; b.workerLv = 8;
-  for (let f = 0; f < 120; f++) { if (f % 30 === 0) for (let i = 0; i < 3; i++) b.summon(i); b.step(); }
+  for (let f = 0; f < frame; f++) { if (f % 30 === 0) for (let i = 0; i < 3; i++) b.summon(i); b.step(); }
   YG.render.battle(ctx, b, theme);
   ctx.fillStyle = '#fff'; ctx.font = '10px sans-serif'; ctx.fillText(theme, 6, 172);
 }
+window.__ready = true;
 </script></body></html>
