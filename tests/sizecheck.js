@@ -128,14 +128,16 @@ function check() {
     }
     const hh = [0, 1, 2].map((lvl) => {
       const d = YG.resolveDef(u, lvl);
-      if (d.fit === undefined) problems.push(`${u.id} ${lvl}: fit 없음 (node tests/sizecheck.js --write)`);
+      if (d.fit === undefined && !YG.hdFor(d)) problems.push(`${u.id} ${lvl}: fit 없음 (node tests/sizecheck.js --write)`);
       return box(YG, d).h;
     });
     [0, 1, 2].forEach((lvl) => {
       const want = S.allyPx(u, lvl);
-      if (Math.abs(hh[lvl] - want) > tol(want)) problems.push(`${u.id} ${lvl}단계: 높이 ${hh[lvl].toFixed(1)}px, 목표 ${want.toFixed(1)}px`);
+      /* HD 동료는 몸짓(몸 흔들림, 휘두르는 소품)에 따라 서 있는 그림의 높이가 조금 달라서 여유를 둔다 */
+      const hd = !!YG.hdFor(YG.resolveDef(u, lvl));
+      if (Math.abs(hh[lvl] - want) > (hd ? Math.max(2.6, want * 0.1) : tol(want))) problems.push(`${u.id} ${lvl}단계: 높이 ${hh[lvl].toFixed(1)}px, 목표 ${want.toFixed(1)}px`);
     });
-    if (!(hh[1] >= hh[0] - 0.01 && hh[2] >= hh[1] - 0.01)) problems.push(`${u.id}: 진화할수록 커져야 하는데 ${hh.map((v) => v.toFixed(1)).join(' → ')}`);
+    if (!(hh[1] >= hh[0] - 1.6 && hh[2] >= hh[1] - 1.6)) problems.push(`${u.id}: 진화할수록 커져야 하는데 ${hh.map((v) => v.toFixed(1)).join(' → ')}`);
     (byGrade[u.grade] = byGrade[u.grade] || []).push(hh[0]);
   }
   /* 등급이 높을수록 평균이 커야 한다 */

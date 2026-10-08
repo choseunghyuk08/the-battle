@@ -27,10 +27,9 @@ const only = (process.argv[5] || 'idle,walk,atk,hurt').split(',');
     const K = YG.sprites.K;
     const rows = [['idle', YG.POSE_COUNT.idle], ['walk', YG.POSE_COUNT.walk], ['atk', YG.POSE_COUNT.atk], ['hurt', YG.POSE_COUNT.hurt]].filter((r) => only.includes(r[0]));
     for (const id of ids) {
-      const def = YG.unitById(id.replace(/^e:/, '')) && !id.startsWith('e:') ? YG.unitById(id) : YG.enemyById(id.replace(/^e:/, ''));
-      const lvlMatch = id.match(/^(\w+)@(\d)$/);
-      let d = def;
-      if (lvlMatch) d = YG.resolveDef(YG.unitById(lvlMatch[1]), Number(lvlMatch[2]));
+      const isEnemy = id.startsWith('e:');
+      const m = id.replace(/^e:/, '').match(/^([\w:]+?)(?:@(\d))?$/);
+      const d = isEnemy ? YG.enemyById(m[1]) : YG.resolveDef(YG.unitById(m[1]), Number(m[2] || 0));
       // cell size from union of all frames
       let up = 0, down = 0, left = 0, right = 0;
       for (const k of YG.FRAME_KEYS) { const f = YG.sprites.frame(d, k); up = Math.max(up, f.ay); down = Math.max(down, f.height - f.ay); left = Math.max(left, f.ax); right = Math.max(right, f.width - f.ax); }

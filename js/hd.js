@@ -50,6 +50,7 @@
     const layers = [{ outline: null, parts: [] }];
     let cur = layers[0];
     const sparks = [];
+    const sparkList = sparks;
     let rimColor = null;
     const add = (x, y, w, hh, c) => {
       if (w > 0 && hh > 0 && c) cur.parts.push({ x: Math.round(x), y: Math.round(y), w: Math.round(w) || 1, h: Math.round(hh) || 1, c });
@@ -137,6 +138,22 @@
       spark(x, y, w, hh, c) {
         sparks.push({ x: Math.round(x), y: Math.round(y), w: Math.round(w) || 1, h: Math.round(hh) || 1, c });
       },
+      /* 지금까지 그린 것의 바깥 상자 (점 단위). 반짝임을 빼고 몸만 재려면 sparks=false */
+      bounds(sparks = true) {
+        let x0 = Infinity;
+        let y0 = Infinity;
+        let x1 = -Infinity;
+        let y1 = -Infinity;
+        const grow = (p) => {
+          x0 = Math.min(x0, p.x);
+          y0 = Math.min(y0, p.y);
+          x1 = Math.max(x1, p.x + p.w);
+          y1 = Math.max(y1, p.y + p.h);
+        };
+        for (const l of layers) for (const p of l.parts) grow(p);
+        if (sparks) for (const p of sparkList) grow(p);
+        return { x0, y0, x1, y1 };
+      },
       /* 화면에 어떻게 놓일지 계산해서 canvas 를 돌려준다 */
       flush(outline = OUTLINE) {
         let x0 = Infinity;
@@ -209,8 +226,11 @@
     return api;
   }
 
+  YG.hdBuilder = hdBuilder;
+
   /* sprites.js 가 부른다: 이 적에게 HD 그림이 있으면 그걸로 그린다 */
-  YG.hdFor = (def) => (def.grade === undefined && YG.HD[String(def.id).split(':')[0]]) || null;
+  /* 적은 id 별 그림, 동료는 사람 그리는 공통 함수(js/hdu.js)로 그린다 */
+  YG.hdFor = (def) => (def.grade === undefined ? YG.HD[String(def.id).split(':')[0]] || null : YG.hdUnit && YG.HDU_ON ? YG.hdUnit : null);
   YG.hdRender = (fn, def, q) => {
     const h = hdBuilder(true);
     fn(h, q, def);
