@@ -38,6 +38,9 @@
   let toastTimer = 0;
   function toast(msg) {
     const t = $('#toast');
+    /* 모달은 맨 위 레이어를 차지해서, 임무 창이 열려 있으면 그 안으로 옮겨야 토스트가 보인다 */
+    const host = $('#missionDlg[open]') || document.body;
+    if (t.parentNode !== host) host.append(t);
     t.textContent = msg;
     t.classList.add('on');
     clearTimeout(toastTimer);
@@ -103,15 +106,209 @@
   }
 
   /* 홈 */
-  function enterHome() {
+  function renderHomeLive() {
     const cleared = Object.keys(app.save.cleared).length;
     $('#homeLive').replaceChildren(
       '동전 ', el('b', { text: fmt(app.save.coins) }),
       ' · 클리어 ', el('b', { text: `${cleared}/${YG.STAGES.length}` }),
       ' · 마지막 접속 ', el('b', { text: YG.ago(app.lastSeen) })
     );
+  }
+
+  function enterHome() {
+    renderHomeLive();
+    refreshBadge();
     const ctx = $('#backdrop').getContext('2d');
     startLoop('home', (f) => YG.render.backdrop(ctx, f), 30);
+  }
+
+  /* 임무와 업적 */
+  const REWARD_KINDS = [['coins', '동전'], ['xp', '경험치'], ['pens', '형광펜']];
+  const rewardText = (r) => REWARD_KINDS.filter(([k]) => r[k] > 0).map(([k, label]) => `${label} +${fmt(r[k])}`).join(' · ');
+  const missionUi = { tab: 'daily', opener: null, day: null, timer: 0 };
+
+  function rewardChips(r) {
+    return el('span', { class: 'rw' }, REWARD_KINDS.filter(([k]) => r[k] > 0).map(([k, label]) =>
+      el('span', { class: `pill${k === 'coins' ? ' coin' : ''}` }, [`${label} `, el('b', { text: `+${fmt(r[k])}` })])
+    ));
+  }
+
+  function progressBar(value, goal, label) {
+    return el('div', {
+      class: 'mbar', role: 'progressbar', 'aria-label': label,
+      'aria-valuemin': 0, 'aria-valuemax': goal, 'aria-valuenow': Math.min(value, goal),
+    }, [el('i', { style: `width:${Math.min(100, (value / goal) * 100)}%` })]);
+  }
+
+  const doneMissionIds = () => YG.dailyStatus(app.save).missions.filter((m) => m.done).map((m) => m.id);
+
+  function refreshBadge() {
+    const n = YG.claimableCount(app.save);
+    const total = n.daily + n.ach;
+    const badge = $('#missionBadge');
+    badge.hidden = total === 0;
+    badge.textContent = total > 9 ? '9+' : String(total);
+    $('#openMissions').setAttribute('aria-label', total ? `임무, 받을 보상 ${total}개` : '임무');
+  }
+
+  function claimButton(label, enabled, key, onclick) {
+    return el('button', { class: `btn small${enabled ? ' primary' : ''}`, disabled: !enabled, 'data-key': key, text: label, onclick });
+  }
+
+  function dailyRow(m) {
+    return el('li', { class: `mrow${m.claimed ? ' claimed' : m.done ? ' ready' : ''}` }, [
+      el('div', { class: 'mrow-main' }, [
+        el('div', { class: 'mrow-head' }, [
+          el('b', { class: 'mrow-name', text: m.name }),
+          el('span', { class: `mtier ${m.tier}`, text: m.tierName }),
+        ]),
+        el('div', { class: 'mrow-prog' }, [
+          progressBar(m.value, m.goal, m.name),
+          el('span', { class: 'mnum', text: `${fmt(m.value)}/${fmt(m.goal)}` }),
+        ]),
+        rewardChips(m.reward),
+      ]),
+      claimButton(m.claimed ? '받음' : '받기', m.done && !m.claimed, `m-${m.id}`, () => claimOne(m.id)),
+    ]);
+  }
+
+  function bonusRow(b) {
+    return el('li', { class: `mrow bonus${b.claimed ? ' claimed' : b.ready ? ' ready' : ''}` }, [
+      el('div', { class: 'mrow-main' }, [
+        el('div', { class: 'mrow-head' }, [
+          el('b', { class: 'mrow-name', text: '올 클리어 보너스' }),
+          el('span', { class: 'mtier', text: '4개 모두 받으면' }),
+        ]),
+        el('div', { class: 'mrow-prog' }, [
+          progressBar(b.value, b.goal, '올 클리어 보너스'),
+          el('span', { class: 'mnum', text: `${b.value}/${b.goal}` }),
+        ]),
+        rewardChips(b.reward),
+      ]),
+      claimButton(b.claimed ? '받음' : '받기', b.ready, 'bonus', () => claimOne('bonus')),
+    ]);
+  }
+
+  function achRow(a) {
+    const shown = Math.min(a.done ? a.goal : a.value, a.goal);
+    const pips = Array.from({ length: a.tiers }, (_, i) =>
+      el('i', { class: `pip${i < a.tier ? ' on' : i < a.tier + a.readyCount ? ' rdy' : ''}` })
+    );
+    return el('li', { class: `mrow${a.done ? ' claimed' : a.ready ? ' ready' : ''}` }, [
+      el('div', { class: 'mrow-main' }, [
+        el('div', { class: 'mrow-head' }, [
+          el('b', { class: 'mrow-name', text: a.name }),
+          el('span', { class: 'pips', role: 'img', 'aria-label': `${a.tiers}단계 중 ${a.tier}단계 받음` }, pips),
+        ]),
+        el('p', { class: 'mrow-desc', text: a.done ? '모두 달성' : a.desc }),
+        el('div', { class: 'mrow-prog' }, [
+          progressBar(shown, a.goal, a.name),
+          el('span', { class: 'mnum', text: `${fmt(shown)}/${fmt(a.goal)}` }),
+        ]),
+        a.done ? null : rewardChips(a.reward),
+        a.readyCount > 1 ? el('span', { class: 'mrow-note', text: `${a.readyCount}단계를 한꺼번에 받는다` }) : null,
+      ]),
+      claimButton(a.done ? '완료' : '받기', a.ready, `a-${a.id}`, () => claimOne(a.id)),
+    ]);
+  }
+
+  const achOrder = (a, b) => (b.ready - a.ready) || (a.done - b.done) || (b.value / b.goal - a.value / a.goal);
+
+  const dailyLeftText = (daily) => `내일 0시에 바뀐다 · ${timeLeft(daily.endsAt - Date.now())}`;
+
+  function renderMissions() {
+    const { save } = app;
+    const daily = YG.dailyStatus(save);
+    const ach = YG.achievementStatus(save).sort(achOrder);
+    const focused = document.activeElement && document.activeElement.dataset ? document.activeElement.dataset.key : null;
+    missionUi.day = daily.day;
+
+    const claimable = { daily: daily.claimable, ach: ach.filter((a) => a.ready).length };
+    for (const tab of $$('#missionTabs button')) {
+      const on = tab.dataset.tab === missionUi.tab;
+      const n = tab.querySelector('.tab-n');
+      tab.classList.toggle('on', on);
+      tab.setAttribute('aria-selected', String(on));
+      tab.tabIndex = on ? 0 : -1;
+      n.hidden = !claimable[tab.dataset.tab];
+      n.textContent = String(claimable[tab.dataset.tab]);
+    }
+    const body = $('#missionBody');
+    body.setAttribute('aria-labelledby', missionUi.tab === 'daily' ? 'tabDaily' : 'tabAch');
+    if (missionUi.tab === 'daily') {
+      $('#missionSub').textContent = dailyLeftText(daily);
+      body.replaceChildren(el('ul', { class: 'mlist' }, [...daily.missions.map(dailyRow), bonusRow(daily.bonus)]));
+    } else {
+      $('#missionSub').textContent = `달성 ${ach.filter((a) => a.done).length}/${ach.length} · 목표를 넘긴 단계는 한꺼번에 받는다`;
+      body.replaceChildren(el('ul', { class: 'mlist' }, ach.map(achRow)));
+    }
+
+    const n = claimable[missionUi.tab];
+    $('#missionAll').disabled = n === 0;
+    $('#missionAll').textContent = n ? `모두 받기 · ${n}` : '모두 받기';
+    refreshBadge();
+
+    /* 눌렀던 버튼이 꺼지거나 사라지면 다음 버튼으로 포커스를 옮겨서 키보드 흐름이 끊기지 않게 한다 */
+    const dlg = $('#missionDlg');
+    if (dlg.open) {
+      const cur = document.activeElement;
+      const same = focused && $(`#missionBody [data-key="${focused}"]`);
+      if (same && !same.disabled) same.focus();
+      else if (focused || !dlg.contains(cur) || cur.disabled) {
+        const fallback = $('#missionAll').disabled ? $('#missionClose') : $('#missionAll');
+        ($('#missionBody .mrow .btn:not(:disabled)') || fallback).focus();
+      }
+    }
+  }
+
+  function openMissions() {
+    missionUi.opener = document.activeElement;
+    $('#missionNote').textContent = '';
+    renderMissions();
+    $('#missionDlg').showModal();
+    $('#missionBody').scrollTop = 0;
+    clearInterval(missionUi.timer);
+    missionUi.timer = setInterval(() => {
+      if (YG.dayKey(Date.now()) !== missionUi.day) renderMissions();
+      else if (missionUi.tab === 'daily') $('#missionSub').textContent = dailyLeftText(YG.dailyStatus(app.save));
+    }, 30000);
+  }
+
+  function closeMissions() {
+    clearInterval(missionUi.timer);
+    if (missionUi.opener && missionUi.opener.focus) missionUi.opener.focus();
+    refreshBadge();
+  }
+
+  function setMissionTab(tab, focus) {
+    missionUi.tab = tab;
+    $('#missionNote').textContent = '';
+    renderMissions();
+    $('#missionBody').scrollTop = 0;
+    if (focus) $(`#missionTabs [data-tab="${tab}"]`).focus();
+  }
+
+  function gotReward(r, count) {
+    persist();
+    renderPurse();
+    renderHomeLive();
+    renderMissions();
+    const msg = `${count > 1 ? `${count}개 ` : ''}${rewardText(r)} 받았다.`;
+    $('#missionNote').textContent = msg;
+    toast(msg);
+    play('coin');
+  }
+
+  function claimOne(id) {
+    const r = id === 'bonus' ? YG.claimDailyBonus(app.save)
+      : missionUi.tab === 'daily' ? YG.claimMission(app.save, id)
+        : YG.claimAchievement(app.save, id);
+    if (r) gotReward(r, 1);
+  }
+
+  function claimAll() {
+    const r = missionUi.tab === 'daily' ? YG.claimAllDaily(app.save) : YG.claimAllAchievements(app.save);
+    if (r) gotReward(r, r.count);
   }
 
   /* 스테이지 */
@@ -764,30 +961,35 @@
     const box = $('#endReward');
     $('#endTitle').textContent = win ? '승리.' : '패배.';
     $('#endSub').textContent = win ? `${battle.stage.sub} ${battle.stage.name}` : '교실이 무너졌다.';
+    const doneBefore = doneMissionIds();
     const summary = el('p', { text: `소환 ${b.stats.summoned} · 처치 ${b.stats.kills} · ${$('#bTime').textContent}` });
     if (win) {
       const wasCleared = !!app.save.cleared[battle.stage.id];
       const slotsBefore = YG.slotCount(app.save);
       const r = YG.applyReward(app.save, battle.stage);
+      YG.trackBattle(app.save, b);
       persist();
       const slotsAfter = YG.slotCount(app.save);
       const next = YG.STAGES.find((s) => s.id === battle.stage.id + 1);
       if (next && next.chapter !== battle.stage.chapter) app.chapter = next.chapter;
-      box.replaceChildren(
-        ...[
-          el('p', {}, [r.first ? '첫 클리어 · ' : '반복 · ', '동전 ', el('b', { text: `+${fmt(r.coins)}` })]),
-          el('p', {}, ['경험치 ', el('b', { text: `+${fmt(r.xp)}` }), ' · 형광펜 ', el('b', { text: `+${r.pens}` })]),
-          summary,
-          r.unit
-            ? el('p', { class: 'unlock' }, [YG.sprites.portrait(YG.unitById(r.unit), 2), el('span', { text: `새 동료 · ${YG.unitById(r.unit).name}` })])
-            : null,
-          slotsAfter > slotsBefore ? el('p', { text: `출전 칸 ${slotsAfter}칸으로 늘었다.` }) : null,
-          !wasCleared && next ? el('p', { text: `${next.sub} ${next.name} 열림.` }) : null,
-        ].filter(Boolean)
-      );
+      box.replaceChildren(...[
+        el('p', {}, [r.first ? '첫 클리어 · ' : '반복 · ', '동전 ', el('b', { text: `+${fmt(r.coins)}` })]),
+        el('p', {}, ['경험치 ', el('b', { text: `+${fmt(r.xp)}` }), ' · 형광펜 ', el('b', { text: `+${r.pens}` })]),
+        summary,
+        r.unit
+          ? el('p', { class: 'unlock' }, [YG.sprites.portrait(YG.unitById(r.unit), 2), el('span', { text: `새 동료 · ${YG.unitById(r.unit).name}` })])
+          : null,
+        slotsAfter > slotsBefore ? el('p', { text: `출전 칸 ${slotsAfter}칸으로 늘었다.` }) : null,
+        !wasCleared && next ? el('p', { text: `${next.sub} ${next.name} 열림.` }) : null,
+      ].filter(Boolean));
     } else {
+      YG.trackBattle(app.save, b);
+      persist();
       box.replaceChildren(summary, el('p', { text: '편성을 바꾸거나 일꾼을 먼저 올려보자.' }));
     }
+    const names = YG.dailyStatus(app.save).missions.filter((m) => m.done && !doneBefore.includes(m.id)).map((m) => m.name);
+    if (names.length) box.append(el('p', { class: 'mission-hint', text: `임무 달성: ${names.join(', ')}` }));
+    refreshBadge();
     $('#endRetry').textContent = win ? '한 번 더' : '다시';
     play(win ? 'win' : 'lose');
     YG.audio.music([win ? 'victory' : 'defeat'], { loop: false, ms: 300 });
@@ -822,6 +1024,11 @@
       s.lpity = 0;
     }
     if (kind === 'clear') for (const st of YG.STAGES) s.cleared[st.id] = true;
+    if (kind === 'missionDone') for (const m of YG.dailyStatus(s).missions) s.daily.progress[m.id] = m.goal;
+    if (kind === 'missionReset') {
+      const fresh = YG.newSave();
+      Object.assign(s, { stats: fresh.stats, daily: fresh.daily, ach: fresh.ach });
+    }
     if (kind === 'reset') {
       app.save = YG.newSave();
       app.selected = null;
@@ -966,9 +1173,21 @@
     document.addEventListener('click', (e) => {
       const btn = e.target.closest && e.target.closest('button');
       if (!btn || btn.disabled || btn.closest('#slots') || btn.id === 'upBtn' || btn.id === 'cannonBtn') return;
-      if (btn.dataset.go === 'home' || btn.id === 'pullClose' || btn.id === 'chapterClose') play('back');
+      if (btn.dataset.go === 'home' || btn.id === 'pullClose' || btn.id === 'chapterClose' || btn.id === 'missionClose') play('back');
       else play('click');
     });
+    $('#openMissions').addEventListener('click', openMissions);
+    $('#missionClose').addEventListener('click', () => $('#missionDlg').close());
+    $('#missionDlg').addEventListener('close', closeMissions);
+    $('#missionAll').addEventListener('click', claimAll);
+    for (const tab of $$('#missionTabs button')) {
+      tab.addEventListener('click', () => setMissionTab(tab.dataset.tab, false));
+      tab.addEventListener('keydown', (e) => {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        e.preventDefault();
+        setMissionTab(missionUi.tab === 'daily' ? 'ach' : 'daily', true);
+      });
+    }
     $('#openSettings').addEventListener('click', () => {
       renderSettings();
       $('#settingsDlg').showModal();
