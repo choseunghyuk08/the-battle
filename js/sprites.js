@@ -71,7 +71,7 @@
   const SKIN = '#f0c8a0';
   const SKIN_SHADE = '#d9a77c';
 
-  const REPLACES_HAIR = new Set(['cap', 'cap2', 'chef', 'hardhat', 'strawhat', 'tophat', 'helmet', 'beanie', 'fedora']);
+  const REPLACES_HAIR = new Set(['cap', 'cap2', 'chef', 'hardhat', 'strawhat', 'tophat', 'helmet', 'beanie', 'fedora', 'bucket']);
 
   function drawHair(b, look, ux, uy, q) {
     const hy = uy - 25;
@@ -264,6 +264,12 @@
         b.r(ux - 6, hy - 1, 12, 1, '#3a3f4b');
         b.r(ux - 8, hy + 3, 3, 6, look.trim);
         b.r(ux + 5, hy + 3, 3, 6, look.trim);
+        break;
+      case 'bucket':
+        b.r(ux - 5, hy - 2, 10, 4, look.trim);
+        b.r(ux - 8, hy + 2, 16, 2, look.trim);
+        b.r(ux - 5, hy + 1, 10, 1, look.top);
+        b.r(ux - 7, hy + 4, 2, 3, look.hair);
         break;
       case 'bandana':
         b.r(ux - 6, hy, 12, 4, look.trim);
@@ -583,6 +589,52 @@
         b.r(ex - 3, ey - 2, 7, 1, '#9a7a4a');
         break;
       }
+      case 'pickaxe': {
+        const [ex, ey] = along(10);
+        b.line(hx, hy, ex, ey, '#8a5a34', 2);
+        b.r(ex - 3, ey - 2, 7, 2, '#9aa3ad');
+        b.px(ex - 3, ey, '#9aa3ad');
+        b.px(ex + 3, ey, '#9aa3ad');
+        break;
+      }
+      case 'clapper':
+        b.r(hx - 3, hy - 6, 8, 6, '#2a2a33');
+        b.r(hx - 3, hy - 9, 8, 3, '#efe9dc');
+        b.r(hx - 2, hy - 9, 2, 3, '#2a2a33');
+        b.r(hx + 2, hy - 9, 2, 3, '#2a2a33');
+        b.r(hx - 2, hy - 4, 5, 1, '#efe9dc');
+        break;
+      case 'rod': {
+        const [ex, ey] = along(18);
+        b.line(hx, hy, ex, ey, '#8a5a34', 1);
+        b.line(ex, ey, ex, ey + 6, '#cfd5dc', 1);
+        b.px(ex, ey + 7, '#d9483b');
+        break;
+      }
+      case 'barbell':
+        b.r(hx - 7, hy - 7, 15, 1, '#9aa3ad');
+        b.r(hx - 8, hy - 10, 2, 7, '#3a3f4b');
+        b.r(hx + 7, hy - 10, 2, 7, '#3a3f4b');
+        b.r(hx - 10, hy - 9, 2, 5, '#5a6070');
+        b.r(hx + 9, hy - 9, 2, 5, '#5a6070');
+        break;
+      case 'crystal':
+        b.disc(hx, hy - 5, 3, '#b79bf0');
+        b.px(hx - 1, hy - 7, '#efe9dc');
+        b.r(hx - 2, hy - 1, 5, 1, '#c9a24a');
+        break;
+      case 'plane':
+        b.r(hx - 3, hy - 5, 8, 2, '#efe9dc');
+        b.r(hx - 1, hy - 7, 3, 2, '#efe9dc');
+        b.px(hx + 5, hy - 4, '#cfd5dc');
+        b.px(hx - 3, hy - 4, '#9aa3ad');
+        break;
+      case 'rugbyball':
+        b.r(hx - 3, hy - 5, 7, 4, '#8a5a34');
+        b.r(hx - 2, hy - 6, 5, 1, '#8a5a34');
+        b.r(hx - 2, hy - 1, 5, 1, '#8a5a34');
+        b.r(hx - 1, hy - 4, 3, 1, '#efe9dc');
+        break;
       case 'guitar': {
         const [ex, ey] = along(12);
         b.line(hx, hy, ex, ey, '#8a5a34', 1);

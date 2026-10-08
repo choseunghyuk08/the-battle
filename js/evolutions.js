@@ -488,6 +488,111 @@
         { top: '#14121a', gear: ['cape:#6a4a2a', 'epaulette2', 'wings:#f2d450', 'halo'] },
       ],
     },
+
+    film: {
+      name: '영화부장', name2: '거장 감독',
+      blurb: '편집 한 번에 어둠이 컷된다.', blurb2: '레디, 액션. 괴담은 엑스트라일 뿐이다.',
+      look: [
+        { gear: ['scarf:#c25a5a', 'epaulette'] },
+        { top: '#1c1a22', trim: '#f2d450', gear: ['cape:#1c1a22', 'epaulette2', 'medal'] },
+      ],
+    },
+    fishing: {
+      name: '낚시부장', name2: '강태공',
+      blurb: '월척을 노리는 눈빛이다.', blurb2: '기다림 끝에 가장 큰 놈이 걸린다.',
+      look: [
+        { gear: ['vest:#c9a24a', 'scarf:#efe9dc'] },
+        { top: '#3a5a3a', trim: '#f2d450', gear: ['cape:#3a5a3a', 'epaulette2', 'medal'] },
+      ],
+    },
+    hiking: {
+      name: '등산부장', name2: '히말라야 원정대장',
+      blurb: '정상 정복이 목표다.', blurb2: '8천 미터에서도 호흡이 일정하다.',
+      look: [
+        { gear: ['scarf:#efe9dc', 'epaulette'] },
+        { top: '#8a2f1f', trim: '#f2d450', gear: ['cape:#efe9dc', 'epaulette2', 'plate:#6b7280'] },
+      ],
+    },
+    rugby: {
+      name: '럭비부 주장', name2: '올블랙스의 후예',
+      blurb: '태클 한 번에 사물함이 눕는다.', blurb2: '쓰러지지 않는다. 쓰러뜨릴 뿐이다.',
+      look: [
+        { gear: ['scarf:#efe9dc', 'armband:#f2d450'] },
+        { top: '#14121a', trim: '#efe9dc', gear: ['cape:#14121a', 'epaulette2', 'plate:#3a3f4b'] },
+      ],
+    },
+    weight: {
+      name: '역도 선수', name2: '세계 기록 보유자',
+      blurb: '바벨 원판이 하나 더 늘었다.', blurb2: '들 수 없는 건 이미 들어 올린 것뿐이다.',
+      look: [
+        { gear: ['medal', 'scarf:#d9483b'] },
+        { top: '#8a1f1a', trim: '#f2d450', gear: ['cape:#14121a', 'epaulette2', 'medal'] },
+      ],
+    },
+    dance: {
+      name: '댄스부 센터', name2: '무대의 제왕',
+      blurb: '안무가 점점 날카로워진다.', blurb2: '스포트라이트가 따라온다.',
+      look: [
+        { gear: ['scarf:#f2d450', 'armband:#f2d450'] },
+        { top: '#14121a', trim: '#f2d450', gear: ['wings:#e84a8a', 'epaulette2', 'halo'] },
+      ],
+    },
+    fortune: {
+      name: '점술부장', name2: '운명의 예언자',
+      blurb: '수정구가 어둠을 비춘다.', blurb2: '미래를 보았다. 이미 이긴 싸움이다.',
+      look: [
+        { gear: ['scarf:#f2d450', 'medal'] },
+        { top: '#2a1a4a', trim: '#f2d450', gear: ['cape:#6a2a8a', 'epaulette2', 'halo'] },
+      ],
+    },
+    air: {
+      name: '항공부장', name2: '에이스 파일럿',
+      blurb: '종이비행기가 제트기급이 됐다.', blurb2: '음속을 넘은 종이비행기는 막을 수 없다.',
+      look: [
+        { gear: ['scarf:#d9483b', 'epaulette'] },
+        { top: '#3a5a8a', trim: '#f2d450', gear: ['wings:#efe9dc', 'epaulette2', 'medal'] },
+      ],
+    },
+    english: {
+      name: '영어 회화 강사', name2: '퍼펙트 발음',
+      blurb: '받아쓰기 점수가 올랐다.', blurb2: '원어민 발음에 표본이 알아서 물러난다.',
+      look: [
+        { gear: ['scarf:#d9483b', 'medal'] },
+        { top: '#8a1f1a', trim: '#f2d450', gear: ['cape:#c9a24a', 'epaulette2', 'halo'] },
+      ],
+    },
+    counselor: {
+      name: '상담 교사', name2: '마음의 수호자',
+      blurb: '고민을 듣는 중에 괴담이 먼저 말문이 막힌다.', blurb2: '한 마디면 충분하다. 모두가 편해진다.',
+      look: [
+        { gear: ['scarf:#9fb4c9', 'medal'] },
+        { top: '#efe9dc', trim: '#9fb4c9', gear: ['wings:#ffffff', 'epaulette2', 'halo', 'cape:#9fb4c9'] },
+      ],
+    },
+    librarian: {
+      name: '도서관장', name2: '금서의 수호자',
+      blurb: '대출 연체는 용서하지 않는다.', blurb2: '금서가 스스로 날아와 적을 친다.',
+      look: [
+        { gear: ['scarf:#5a6a4a', 'medal'] },
+        { top: '#2a3a2a', trim: '#f2d450', gear: ['cape:#2a3a2a', 'epaulette2', 'halo'] },
+      ],
+    },
+    founder: {
+      name: '초대 이사', name2: '학교의 아버지',
+      blurb: '교훈이 새겨진 지팡이를 짚는다.', blurb2: '건물 하나하나가 그의 의지다.',
+      look: [
+        { gear: ['scarf', 'epaulette', 'medal'] },
+        { top: '#14121a', gear: ['cape:#4a2a5a', 'epaulette2', 'wings:#f2d450', 'halo'] },
+      ],
+    },
+    prodigy: {
+      name: '천재 소년', name2: '시대의 천재',
+      blurb: '풀지 못한 문제가 하나도 없다.', blurb2: '정답은 이미 알고 있다. 확인만 한다.',
+      look: [
+        { gear: ['scarf', 'epaulette', 'laurel'] },
+        { top: '#14121a', gear: ['cape:#f2d450', 'epaulette2', 'laurel', 'halo'] },
+      ],
+    },
   };
 
   for (const u of YG.UNITS) {

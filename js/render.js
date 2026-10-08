@@ -509,6 +509,25 @@
       }
       ctx.globalAlpha = 1;
     },
+    plane(ctx, f, x, y, p) {
+      const yy = Math.round(y - Math.sin(p * Math.PI) * 10);
+      const d = f.dir;
+      ctx.fillStyle = '#141218';
+      ctx.fillRect(Math.round(x) - 5, yy - 3, 11, 6);
+      ctx.fillStyle = '#efe9dc';
+      ctx.fillRect(Math.round(x - d * 4), yy - 1, 8, 2);
+      ctx.fillRect(Math.round(x - d * 2), yy - 2, 4, 1);
+      ctx.fillStyle = '#9aa3ad';
+      ctx.fillRect(Math.round(x + d * 3), yy, 2, 1);
+    },
+    hook(ctx, f, x, y) {
+      ctx.fillStyle = '#141218';
+      ctx.fillRect(Math.round(x - f.dir * 10) - 1, Math.round(y) - 1, 14, 3);
+      ctx.fillStyle = '#cfd5dc';
+      ctx.fillRect(Math.round(x - f.dir * 10), Math.round(y), 10, 1);
+      ctx.fillStyle = '#d9483b';
+      ctx.fillRect(Math.round(x), Math.round(y) - 1, 2, 3);
+    },
     note(ctx, f, x, y, p) {
       const yy = Math.round(y - 4 + Math.sin(p * 9) * 3);
       ctx.fillStyle = '#141218';

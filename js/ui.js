@@ -483,9 +483,7 @@
     $('#pityLine').replaceChildren(
       '1등급 안 나온 지 ', el('b', { text: `${save.pity}회` }),
       ' · 지금 1등급 확률 ', el('b', { text: `${rate.toFixed(1)}%` }),
-      limited ? el('br') : null,
-      limited ? '만점 확정까지 ' : null,
-      limited ? el('b', { text: `${save.lpity}/${banner.hardPity}` }) : null
+      ...(limited ? [el('br'), '만점 확정까지 ', el('b', { text: `${save.lpity}/${banner.hardPity}` })] : [])
     );
     $('#cost1').textContent = fmt(c.cost1);
     $('#cost11').textContent = fmt(c.cost11);
@@ -776,14 +774,16 @@
       const next = YG.STAGES.find((s) => s.id === battle.stage.id + 1);
       if (next && next.chapter !== battle.stage.chapter) app.chapter = next.chapter;
       box.replaceChildren(
-        el('p', {}, [r.first ? '첫 클리어 · ' : '반복 · ', '동전 ', el('b', { text: `+${fmt(r.coins)}` })]),
-        el('p', {}, ['경험치 ', el('b', { text: `+${fmt(r.xp)}` }), ' · 형광펜 ', el('b', { text: `+${r.pens}` })]),
-        summary,
-        r.unit
-          ? el('p', { class: 'unlock' }, [YG.sprites.portrait(YG.unitById(r.unit), 2), el('span', { text: `새 동료 · ${YG.unitById(r.unit).name}` })])
-          : null,
-        slotsAfter > slotsBefore ? el('p', { text: `출전 칸 ${slotsAfter}칸으로 늘었다.` }) : null,
-        !wasCleared && next ? el('p', { text: `${next.sub} ${next.name} 열림.` }) : null
+        ...[
+          el('p', {}, [r.first ? '첫 클리어 · ' : '반복 · ', '동전 ', el('b', { text: `+${fmt(r.coins)}` })]),
+          el('p', {}, ['경험치 ', el('b', { text: `+${fmt(r.xp)}` }), ' · 형광펜 ', el('b', { text: `+${r.pens}` })]),
+          summary,
+          r.unit
+            ? el('p', { class: 'unlock' }, [YG.sprites.portrait(YG.unitById(r.unit), 2), el('span', { text: `새 동료 · ${YG.unitById(r.unit).name}` })])
+            : null,
+          slotsAfter > slotsBefore ? el('p', { text: `출전 칸 ${slotsAfter}칸으로 늘었다.` }) : null,
+          !wasCleared && next ? el('p', { text: `${next.sub} ${next.name} 열림.` }) : null,
+        ].filter(Boolean)
       );
     } else {
       box.replaceChildren(summary, el('p', { text: '편성을 바꾸거나 일꾼을 먼저 올려보자.' }));

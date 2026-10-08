@@ -185,6 +185,109 @@
       blurb: '돈이 흐르는 곳에 괴담은 오래 머물지 못한다.',
       look: { hair: '#d9d3c7', style: 'short', top: '#1c1a22', trim: '#f2d450', pants: '#14121a', prop: 'gavel', face: 'mustache', hat: 'tophat', wear: ['vest:#6a4a2a'], legend: true },
     },
+
+    /* ---- 3차 추가 ---- */
+    {
+      id: 'film', name: '영화부', grade: 3, role: '광역',
+      hp: 340, atk: 40, range: 58, speed: 0.4, interval: 78, anim: { hit: 13, total: 26 },
+      cost: 240, cooldown: 190, kb: 3, area: true, ranged: 'beam', abilities: [{ vs: 'dark', type: 'strong' }],
+      blurb: '영사기를 켜면 어둠이 스크린에 갇힌다.',
+      look: { hair: '#2a2220', style: 'short', top: '#3a2a3a', trim: '#c25a5a', pants: '#1c1a22', prop: 'clapper', hat: 'beret' },
+    },
+    {
+      id: 'fishing', name: '낚시부', grade: 3, role: '저격',
+      hp: 260, atk: 50, range: 78, speed: 0.4, interval: 78, anim: { hit: 14, total: 26 },
+      cost: 230, cooldown: 180, kb: 3, ranged: 'hook', abilities: [{ vs: 'ghost', type: 'strong' }],
+      blurb: '귀신은 미끼를 문다. 의외로 잘 문다.',
+      look: { hair: '#3a2a1f', style: 'short', top: '#6a8a5a', trim: '#c9a24a', pants: '#4a4a3a', prop: 'rod', hat: 'bucket' },
+    },
+    {
+      id: 'hiking', name: '등산부', grade: 3, role: '근접',
+      hp: 520, atk: 64, range: 18, speed: 0.42, interval: 70, anim: { hit: 12, total: 24 },
+      cost: 230, cooldown: 180, kb: 3, abilities: [{ vs: 'metal', type: 'strong' }],
+      blurb: '피켈이 사물함 문틈에 정확히 박힌다.',
+      look: { hair: '#2a2323', style: 'short', top: '#c25a3a', trim: '#efe9dc', pants: '#3a4a3a', prop: 'pickaxe', hat: 'helmet', wear: ['vest:#2f5f5f'] },
+    },
+    {
+      id: 'rugby', name: '럭비부', grade: 3, role: '근접',
+      hp: 760, atk: 46, range: 17, speed: 0.5, interval: 62, anim: { hit: 11, total: 22 },
+      cost: 240, cooldown: 190, kb: 2, survive: 0.3, abilities: [{ vs: 'specimen', type: 'strong' }],
+      blurb: '넘어져도 공은 놓치지 않는다.',
+      look: { hair: '#6a4a2a', style: 'short', top: '#2f5f8a', trim: '#efe9dc', pants: '#1f2a44', prop: 'rugbyball', hat: 'sweatband', wear: ['stripe:#efe9dc'] },
+    },
+
+    /* 2등급 */
+    {
+      id: 'weight', name: '역도부', grade: 2, role: '근접',
+      hp: 1000, atk: 140, range: 18, speed: 0.34, interval: 110, anim: { hit: 20, total: 38 },
+      cost: 430, cooldown: 310, kb: 2, abilities: [{ vs: 'metal', type: 'massive' }],
+      blurb: '철제도 한 번 들어 올리면 던질 수 있다.',
+      look: { hair: '#14121a', style: 'short', top: '#d9483b', trim: '#efe9dc', pants: '#2a2a33', prop: 'barbell', hat: 'sweatband', wear: ['bulk', 'belt:#14121a'] },
+    },
+    {
+      id: 'dance', name: '댄스부', grade: 2, role: '속공',
+      hp: 400, atk: 50, range: 20, speed: 0.9, interval: 38, anim: { hit: 7, total: 14 },
+      cost: 400, cooldown: 280, kb: 3, crit: 0.25, abilities: [{ vs: 'dark', type: 'massive' }],
+      blurb: '박자를 타는 순간 어둠이 따라오지 못한다.',
+      look: { hair: '#e84a8a', style: 'pony', top: '#1c1a22', trim: '#f2d450', pants: '#e84a8a', prop: null, hat: 'bandana', wear: ['stripe:#f2d450'] },
+    },
+    {
+      id: 'fortune', name: '점술부', grade: 2, role: '제어',
+      hp: 520, atk: 60, range: 54, speed: 0.4, interval: 84, anim: { hit: 14, total: 26 },
+      cost: 440, cooldown: 320, kb: 3, ranged: 'star', freeze: { chance: 0.3, frames: 70 },
+      abilities: [{ vs: 'dark', type: 'massive' }, { vs: 'ghost', type: 'strong' }],
+      blurb: '당신의 다음 괴담은 오늘 밤에 끝난다.',
+      look: { hair: '#4a2a5a', style: 'long', top: '#4a2a7a', trim: '#f2d450', pants: '#2a1a4a', prop: 'crystal', hat: 'kerchief' },
+    },
+    {
+      id: 'air', name: '항공부', grade: 2, role: '저격',
+      hp: 380, atk: 74, range: 86, speed: 0.4, interval: 90, anim: { hit: 15, total: 28 },
+      cost: 430, cooldown: 310, kb: 3, ranged: 'plane', abilities: [{ vs: 'metal', type: 'massive' }],
+      blurb: '종이비행기의 날개가 철제를 가른다.',
+      look: { hair: '#3a2a1f', style: 'short', top: '#9fb4c9', trim: '#efe9dc', pants: '#2a3a5a', prop: 'plane', hat: 'goggles' },
+    },
+
+    /* 1등급 */
+    {
+      id: 'english', name: '영어 선생님', grade: 1, role: '광역',
+      hp: 1500, atk: 100, range: 62, speed: 0.4, interval: 88, anim: { hit: 15, total: 28 },
+      cost: 670, cooldown: 510, kb: 2, area: true, ranged: 'chalk', slow: { chance: 0.5, frames: 120 },
+      abilities: [{ vs: 'specimen', type: 'massive' }, { vs: 'dark', type: 'strong' }],
+      blurb: '받아쓰기 시간이다. 표본도 예외는 없다.',
+      look: { hair: '#c9a24a', style: 'curly', top: '#d9483b', trim: '#efe9dc', pants: '#2a2a33', prop: 'paper', face: 'glasses' },
+    },
+    {
+      id: 'counselor', name: '상담 선생님', grade: 1, role: '제어',
+      hp: 1900, atk: 80, range: 26, speed: 0.44, interval: 78, anim: { hit: 13, total: 26 },
+      cost: 680, cooldown: 530, kb: 2, freeze: { chance: 0.5, frames: 100 },
+      abilities: [{ vs: 'ghost', type: 'massive' }, { vs: 'dark', type: 'tough' }],
+      blurb: '상담실로 오라는 말에 귀신도 얌전해진다.',
+      look: { hair: '#6a4a3a', style: 'bob', top: '#9fb4c9', trim: '#efe9dc', pants: '#3a4a6a', prop: 'sheet', wear: ['coat:#efe9dc'] },
+    },
+    {
+      id: 'librarian', name: '사서 선생님', grade: 1, role: '저격',
+      hp: 1400, atk: 128, range: 92, speed: 0.4, interval: 100, anim: { hit: 17, total: 30 },
+      cost: 690, cooldown: 520, kb: 2, ranged: 'book', abilities: [{ vs: 'specimen', type: 'massive' }, { vs: 'ghost', type: 'strong' }],
+      blurb: '정숙. 소리 낸 쪽에 책이 날아간다.',
+      look: { hair: '#4a3a3a', style: 'bun', top: '#5a6a4a', trim: '#efe9dc', pants: '#3a3a2a', prop: 'book', face: 'glasses', wear: ['vest:#3a4a2a'] },
+    },
+
+    /* 만점 */
+    {
+      id: 'founder', name: '설립자', grade: 0, role: '전설', limited: true,
+      hp: 3200, atk: 150, range: 58, speed: 0.38, interval: 100, anim: { hit: 17, total: 32 },
+      cost: 940, cooldown: 700, kb: 2, area: true, ranged: 'wave', freeze: { chance: 0.2, frames: 70 },
+      abilities: [{ vs: '*', type: 'strong' }, { vs: 'metal', type: 'massive' }, { vs: 'specimen', type: 'massive' }],
+      blurb: '학교가 세워지던 날부터 이 복도를 걸었다.',
+      look: { hair: '#efe9dc', style: 'bald', top: '#2a2230', trim: '#f2d450', pants: '#1c1a22', prop: 'scroll', face: 'mustache', hat: 'fedora', wear: ['cape:#4a2a5a'], legend: true },
+    },
+    {
+      id: 'prodigy', name: '천재 신입생', grade: 0, role: '전설', limited: true,
+      hp: 1700, atk: 150, range: 22, speed: 0.8, interval: 60, anim: { hit: 10, total: 20 },
+      cost: 820, cooldown: 600, kb: 3, crit: 0.4, survive: 0.5, abilities: [{ vs: '*', type: 'strong' }],
+      blurb: '입학한 지 사흘, 이미 전교 1등을 넘었다.',
+      look: { hair: '#2a2a3a', style: 'spiky', top: '#2a3a5a', trim: '#f2d450', pants: '#1f2a44', prop: 'trophy', hat: 'visor', wear: ['stripe:#f2d450'], legend: true },
+    },
   ];
 
   YG.UNITS.push(...MORE);
