@@ -183,6 +183,48 @@ function testRoster() {
   console.log(`roster ok (유닛 ${YG.UNITS.length}종)`);
 }
 
+function testSpecials() {
+  const stage = { startMoney: 0, allyBaseHp: 1e6, enemyBaseHp: 1e6, waves: [] };
+  const mk = (extra) => {
+    const def = { ...YG.unitById('basic'), ...extra };
+    const b = new YG.Battle(stage, [{ def, lv: 1, plus: 0 }], seeded(1));
+    const ally = b.spawnUnit('ally', def, { lv: 1, plus: 0 });
+    const foe = b.spawnUnit('enemy', YG.enemyById('dust'), { mult: 1 });
+    ally.x = 100;
+    foe.x = 108;
+    return { b, ally, foe };
+  };
+  /* 치명타: 100%면 한 방에 평소의 2배 */
+  const base = mk({});
+  base.b.doHit(base.ally);
+  const crit = mk({ crit: 1 });
+  crit.b.doHit(crit.ally);
+  assert.strictEqual(crit.foe.maxHp - crit.foe.hp, 2 * (base.foe.maxHp - base.foe.hp), '치명타는 2배');
+  /* 버티기: 100%면 치명타를 한 번 버티고 1 남는다. 두 번째는 죽는다 */
+  const sv = mk({ survive: 1 });
+  sv.b.applyDamage(sv.ally, 99999, { from: sv.foe });
+  assert.strictEqual(sv.ally.hp, 1);
+  assert(!sv.ally.dying, '한 번은 버틴다');
+  sv.b.applyDamage(sv.ally, 99999, { from: sv.foe });
+  assert(sv.ally.dying, '두 번째는 죽는다');
+  /* 약탈: 처치 용돈 배율 */
+  const lo = mk({ loot: 2 });
+  lo.foe.drop = 50;
+  lo.b.money = 0;
+  lo.b.applyDamage(lo.foe, 99999, { from: lo.ally });
+  assert.strictEqual(lo.b.money, 100, '처치 용돈 x2');
+  const no = mk({});
+  no.foe.drop = 50;
+  no.b.money = 0;
+  no.b.applyDamage(no.foe, 99999, { from: no.ally });
+  assert.strictEqual(no.b.money, 50);
+  for (const u of YG.UNITS) {
+    for (const k of ['crit', 'survive']) assert(!u[k] || (u[k] > 0 && u[k] <= 1), `${u.id} ${k}`);
+    assert(!u.loot || u.loot >= 1, `${u.id} loot`);
+  }
+  console.log('specials ok');
+}
+
 function testBalance() {
   const { power } = require('./power.js');
   const med = (a) => [...a].sort((x, y) => x - y)[a.length >> 1];
@@ -346,6 +388,7 @@ if (require.main === module) {
   testSlots();
   testRoster();
   testBalance();
+  testSpecials();
   testWorld();
   testGacha();
   testProgression();
