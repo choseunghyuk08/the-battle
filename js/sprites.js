@@ -1374,7 +1374,9 @@
     let img;
     sizeNow = (def.fit || 1) * (def.scale || 1);
     try {
-      if (typeof def.look === 'string') img = renderEnemy(def.look, q);
+      const hdFn = YG.hdFor && YG.hdFor(def);
+      if (hdFn) img = YG.hdRender(hdFn, def, q);
+      else if (typeof def.look === 'string') img = renderEnemy(def.look, q);
       else if (def.look.arch && def.look.arch !== 'human') img = YG.archRender(def.look, q);
       else img = drawStudent(def.look, q);
     } finally {

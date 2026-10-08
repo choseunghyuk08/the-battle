@@ -24,6 +24,7 @@
 | `js/bestiary.js` | 잡몹 23종 + 보스 14종 정의, 색 변종 생성 (`rat:red` 같은 id) |
 | `js/bestiary2.js` | 해외편 적: 잡몹 28종 + 보스 11종 (일본, 중국, 동남아, 유럽, 아메리카), 새 적마다 `region`. 해외 장의 보스, 엘리트, 색 변종 규칙(`YG.WORLD`)도 여기 |
 | `js/bestiary3.js` | SCP 재단편 적: 잡몹 14종 + 보스 9종 (`region: '재단'`). SCP 문서에서 가져온 적에는 `scp`, `cls`, `source`, 특수 행동이 있으면 `perk`. 71~78장의 보스와 색 변종 규칙(`YG.WORLD3`)도 여기 |
+| `js/hd.js`, `js/hd_*.js` | 고해상도(HD) 적 그림. `hd.js` 가 그리기 도구, `hd_*.js` 가 적 묶음별 그림이다. 작업 안내는 `docs/hd_guide.md` |
 | `js/sizes.js` | 크기 규칙. 적 110종과 동료 81종의 현실 크기(cm), 그림을 줄이거나 키우는 배율(`fit`, 자동 계산 구간)과 동료 등급별 키(`look.tall`) |
 | `js/world.js` | 3~50장 표와 스테이지 생성기, 난이도 곡선 |
 | `js/lore.js` | 괴담 도감에 나오는 적별 이야기(자막 3줄, 설명, 배경, 등장 방식). 적을 추가하면 여기에 같은 모양으로 적는다 |
@@ -53,6 +54,7 @@
 | `tests/preview.html` | 스프라이트 시트 미리보기 (`?set=units`, `?set=evo`, `?set=enemies`, `?set=abroad&region=일본`, `?set=abroadboss`, `?set=scp`, `?set=scpboss`) |
 | `tests/backgrounds.html` | 배경 미리보기 (`?set=abroad`: 해외 20장, `?set=foundation`: 재단 8장, `?only=diner:desert`) |
 | `tests/spritecheck.js` | 해외와 재단 적 56프레임을 전부 그려서 예외가 나거나 거의 빈 그림을 찾는다 |
+| `tests/strips.js` | 프레임을 한 줄로 늘어놓은 그림을 만든다 (`node tests/strips.js e:rat 6 name atk` → `tests/out/name.png`) |
 | `tests/sizecheck.js` | 실제로 그려서 키를 재고, 현실 크기와 화면 크기 순서가 맞는지 검사한다 (`--write`로 `fit` 표를 다시 계산) |
 
 ## 테스트

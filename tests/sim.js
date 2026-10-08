@@ -1,7 +1,7 @@
 const path = require('path');
 const assert = require('assert');
 const root = path.join(__dirname, '..', 'js');
-['data.js', 'units2.js', 'units3.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'bestiary3.js', 'sizes.js', 'world.js', 'world2.js', 'world3.js', 'engine.js', 'game.js', 'lore.js', 'lore_world.js', 'lore_scp.js', 'dex.js', 'unitdex.js', 'missions.js', 'cutscene.js', 'scenery.js', 'scenery2.js', 'scenery3.js', 'poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js', 'sprites4.js'].forEach((f) => require(path.join(root, f)));
+['data.js', 'units2.js', 'units3.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'bestiary3.js', 'sizes.js', 'world.js', 'world2.js', 'world3.js', 'engine.js', 'game.js', 'lore.js', 'lore_world.js', 'lore_scp.js', 'dex.js', 'unitdex.js', 'missions.js', 'cutscene.js', 'scenery.js', 'scenery2.js', 'scenery3.js', 'poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js', 'sprites4.js', 'hd.js', ...require('./hdfiles').map((n) => `${n}.js`)].forEach((f) => require(path.join(root, f)));
 const YG = globalThis.YG;
 
 function seeded(seed) {

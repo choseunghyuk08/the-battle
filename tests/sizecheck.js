@@ -18,7 +18,7 @@ function load() {
   if (!had) globalThis.document = { createElement: () => fakeCanvas() };
   try {
     if (!globalThis.YG || !globalThis.YG.ENEMIES) ['data.js', 'units2.js', 'units3.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'bestiary3.js', 'sizes.js'].forEach((f) => require(path.join(root, f)));
-    for (const f of ['poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js', 'sprites4.js']) require(path.join(root, f));
+    for (const f of ['poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js', 'sprites4.js', 'hd.js', ...require('./hdfiles').map((n) => `${n}.js`)]) require(path.join(root, f));
   } finally {
     if (!had) delete globalThis.document;
   }
@@ -63,10 +63,12 @@ function enemyRows(YG) {
   return YG.ENEMIES.filter((e) => S.ENEMY_CM[e.id] !== undefined).map((e) => {
     const raw = box(YG, { ...e, fit: 1, scale: 1 });
     const axis = axisOf(raw);
-    const scale = e.scale || 1;
+    /* HD 그림은 이미 화면 크기대로 그려서 fit/scale 을 쓰지 않는다 */
+    const hd = !!YG.hdFor(e);
+    const scale = hd ? 1 : e.scale || 1;
     const want = S.enemyPx(e);
-    const fit = round2(want / scale / natOf(raw, axis));
-    return { e, raw, axis, scale, want, fit };
+    const fit = hd ? 1 : round2(want / scale / natOf(raw, axis));
+    return { e, raw, axis, scale, want, fit, hd };
   });
 }
 
@@ -102,8 +104,9 @@ function check() {
     const got = box(YG, e);
     const px = got[axis];
     const want = S.enemyPx(e);
-    if (e.fit === undefined) problems.push(`${e.id}: fit 없음 (node tests/sizecheck.js --write)`);
-    else if (Math.abs(px - want) > tol(want)) problems.push(`${e.id}: 화면 크기 ${px.toFixed(1)}px, 현실 ${S.cmText(e.cm)} 이면 ${want.toFixed(1)}px`);
+    const hd = !!YG.hdFor(e);
+    if (e.fit === undefined && !hd) problems.push(`${e.id}: fit 없음 (node tests/sizecheck.js --write)`);
+    else if (Math.abs(px - want) > (hd ? Math.max(2, want * 0.08) : tol(want))) problems.push(`${e.id}: 화면 크기 ${px.toFixed(1)}px, 현실 ${S.cmText(e.cm)} 이면 ${want.toFixed(1)}px${hd ? ' (HD: 그림을 직접 맞춰야 한다)' : ''}`);
     if (got.w > 170 || got.h > 150) problems.push(`${e.id}: 그림이 너무 큼 ${got.w.toFixed(0)}x${got.h.toFixed(0)}`);
     foes.push({ id: e.id, cm: e.cm, px, boss: !!e.boss });
   }
@@ -190,7 +193,7 @@ if (require.main === module) {
     write();
   } else if (mode === '--table') {
     const YG = load();
-    for (const r of enemyRows(YG)) console.log([r.e.id, r.e.name, r.e.boss ? 'B' : '-', r.scale, `${r.raw.nw}x${r.raw.nh}`, r.axis, r.e.cm, r.want.toFixed(1), r.fit].join('\t'));
+    for (const r of enemyRows(YG)) console.log([r.e.id, r.e.name, r.e.boss ? 'B' : '-', r.hd ? 'HD' : r.scale, `${r.raw.nw.toFixed(0)}x${r.raw.nh.toFixed(0)}`, r.axis, r.e.cm, r.want.toFixed(1), r.fit].join('\t'));
     for (const r of allyRows(YG)) console.log([r.u.id, r.u.name, r.u.grade, r.lvl, `${r.raw.nw}x${r.raw.nh}`, r.u.cm, r.want.toFixed(1), r.fit].join('\t'));
   } else {
     const r = check();

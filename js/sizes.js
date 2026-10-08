@@ -9,10 +9,10 @@
      - 동료는 현실 키(cm)에 더해 "좋은 동료일수록 크게 보이는" 보너스가 붙는다 (등급 + 진화 단계).
      - fit 은 그림을 얼마나 줄이거나 키울지의 배율이다. 그림이 바뀌면 `node tests/sizecheck.js --write` 로 다시 계산한다. */
   const REF = 35;
-  const EXP = 0.4;
+  const EXP = 0.3;
   const MIN_PX = 10;
   /* 보스는 크기 표(cm)가 워낙 커서 그대로 쓰면 화면을 덮는다. 같은 식에 이 배율을 곱한다 */
-  const BOSS_K = 0.88;
+  const BOSS_K = 1.1;
 
   const px = (cm) => Math.max(MIN_PX, REF * Math.pow(cm / 170, EXP));
 
@@ -78,36 +78,36 @@
 
   /* FIT:begin (node tests/sizecheck.js --write 로 만든 값. 손으로 고치지 않는다) */
   const ENEMY_FIT = {
-    dust: 0.75, ghost: 1.18, mannequin: 1.02, shadow: 1.13, locker: 1.16, portrait: 1.05, tray: 0.8, skeleton: 0.97,
-    mirror: 1.02, principal: 0.89, megamirror: 0.9, slime: 0.98, rat: 0.69, cat: 0.74, dog: 0.8, bat: 0.76, crow: 0.91,
-    drone: 0.98, spider: 0.79, roach: 0.57, centipede: 0.76, eyeball: 0.98, balloon: 1.06, zombie: 1.25, teacher: 1.26,
-    lunch: 1.04, desk: 1.42, chair: 1.36, board: 1.43, vending: 1.2, tv: 1.12, piano: 1.39, bookmimic: 0.89,
-    cleaner: 1.18, librarian: 1.05, ratking: 0.95, pezombie: 1.24, megaeye: 1.14, mecha: 1.05, grandpiano: 1.16,
-    spiderqueen: 1.3, blackboard: 1.23, album: 1.02, supervisor: 1.2, uniformgiant: 1.18, vendingking: 0.97,
-    catking: 1.02, slimeking: 1.24, hanako: 1.09, kuchisake: 1.25, tekete: 0.99, kasa: 0.95, kappa: 0.94,
-    jinmenken: 0.92, jiangshi: 1.09, nvgui: 1.06, kumiho: 0.83, dokkaebibul: 0.77, shishi: 1.01, krasue: 0.91,
-    manananggal: 1.01, pontianak: 1.24, pocong: 1.15, tuktuk: 1.28, mada: 1.13, banshee: 1.13, blackshuck: 0.9,
-    gargoyle: 1.04, werewolf: 1.2, mummy: 1.26, bloodymary: 1.24, faceless: 1.2, mothman: 1.26, chupacabra: 0.98,
-    lorona: 1.12, jukebox: 1.07, oni: 0.99, tengu: 1.02, jiangshilord: 1.11, nian: 1.11, naga: 1.01, tikbalang: 0.97,
-    dracula: 1.05, babayaga: 1.05, horseman: 0.91, wendigo: 1.11, globeking: 1.13, hazmat: 1.26, sentry: 1.07,
-    camera: 0.74, scp999: 1.01, scp173: 1.13, scp294: 1.16, scp049_2: 1.06, scp035: 1.25, scp087_1: 1.09,
-    blastdoor: 1.28, rack: 1.17, agent: 1.26, redacted: 1.31, ooze: 1.21, guardmech: 0.97, scp914: 0.92, scp049: 0.93,
-    scp096: 1.11, scp106: 1.05, scp939: 0.97, scp079: 0.99, scp682: 1.01, redactlord: 1.13,
+    dust: 0.87, ghost: 1.19, mannequin: 1.01, shadow: 1.11, locker: 1.15, portrait: 1.11, tray: 0.88, skeleton: 0.97,
+    mirror: 1.01, principal: 0.91, megamirror: 0.94, slime: 1.1, rat: 1, cat: 0.83, dog: 0.85, bat: 0.87, crow: 0.99,
+    drone: 1.12, spider: 0.95, roach: 0.71, centipede: 0.82, eyeball: 1.09, balloon: 1.13, zombie: 1, teacher: 1.26,
+    lunch: 1.04, desk: 1.49, chair: 1.45, board: 1.47, vending: 1.19, tv: 1.22, piano: 1.4, bookmimic: 1.03,
+    cleaner: 1.26, librarian: 1.08, ratking: 0.99, pezombie: 1.27, megaeye: 1.18, mecha: 1.08, grandpiano: 1.18,
+    spiderqueen: 1.36, blackboard: 1.25, album: 1.05, supervisor: 1.22, uniformgiant: 1.15, vendingking: 0.97,
+    catking: 1.04, slimeking: 1.27, hanako: 1.13, kuchisake: 1.25, tekete: 1.05, kasa: 0.99, kappa: 0.99,
+    jinmenken: 0.96, jiangshi: 1.09, nvgui: 1.07, kumiho: 0.84, dokkaebibul: 0.85, shishi: 1.02, krasue: 0.96,
+    manananggal: 1.02, pontianak: 1.24, pocong: 1.16, tuktuk: 1.22, mada: 1.13, banshee: 1.13, blackshuck: 0.92,
+    gargoyle: 1.02, werewolf: 1.19, mummy: 1.26, bloodymary: 1.24, faceless: 1.16, mothman: 1.23, chupacabra: 1.02,
+    lorona: 1.12, jukebox: 1.09, oni: 1.01, tengu: 1.05, jiangshilord: 1.12, nian: 1.1, naga: 0.99, tikbalang: 0.98,
+    dracula: 1.09, babayaga: 1.06, horseman: 0.93, wendigo: 1.1, globeking: 1.12, hazmat: 1.26, sentry: 1.05,
+    camera: 0.84, scp999: 1.05, scp173: 1.12, scp294: 1.15, scp049_2: 1.06, scp035: 1.25, scp087_1: 1.09,
+    blastdoor: 1.23, rack: 1.15, agent: 1.26, redacted: 1.29, ooze: 1.24, guardmech: 0.98, scp914: 0.92, scp049: 0.96,
+    scp096: 1.12, scp106: 1.07, scp939: 0.96, scp079: 0.98, scp682: 0.97, redactlord: 1.09,
   };
   const ENEMY_HT = {
-    dust: 20, ghost: 34, mannequin: 36, shadow: 37, locker: 36, portrait: 28, tray: 16, skeleton: 35, mirror: 37,
-    principal: 69, megamirror: 65, slime: 17, rat: 13, cat: 16, dog: 19, bat: 11, crow: 12, drone: 13, spider: 14,
-    roach: 10, centipede: 11, eyeball: 23, balloon: 27, zombie: 35, teacher: 35, lunch: 34, desk: 28, chair: 27,
-    board: 31, vending: 36, tv: 25, piano: 33, bookmimic: 20, cleaner: 27, librarian: 67, ratking: 57, pezombie: 69,
-    megaeye: 65, mecha: 67, grandpiano: 70, spiderqueen: 62, blackboard: 71, album: 65, supervisor: 70, uniformgiant: 83,
-    vendingking: 74, catking: 57, slimeking: 67, hanako: 31, kuchisake: 35, tekete: 28, kasa: 29, kappa: 28,
-    jinmenken: 22, jiangshi: 35, nvgui: 34, kumiho: 23, dokkaebibul: 21, shishi: 24, krasue: 27, manananggal: 33,
-    pontianak: 35, pocong: 35, tuktuk: 35, mada: 35, banshee: 35, blackshuck: 23, gargoyle: 37, werewolf: 37, mummy: 35,
-    bloodymary: 35, faceless: 40, mothman: 38, chupacabra: 22, lorona: 35, jukebox: 33, oni: 71, tengu: 65,
-    jiangshilord: 73, nian: 64, naga: 67, tikbalang: 70, dracula: 65, babayaga: 73, horseman: 64, wendigo: 78,
-    globeking: 79, hazmat: 35, sentry: 37, camera: 21, scp999: 21, scp173: 36, scp294: 36, scp049_2: 35, scp035: 35,
-    scp087_1: 35, blastdoor: 41, rack: 37, agent: 35, redacted: 37, ooze: 27, guardmech: 70, scp914: 64, scp049: 67,
-    scp096: 73, scp106: 67, scp939: 52, scp079: 63, scp682: 51, redactlord: 79,
+    dust: 23, ghost: 35, mannequin: 35, shadow: 37, locker: 36, portrait: 30, tray: 18, skeleton: 35, mirror: 36,
+    principal: 71, megamirror: 68, slime: 19, rat: 11, cat: 18, dog: 20, bat: 13, crow: 13, drone: 15, spider: 17,
+    roach: 13, centipede: 12, eyeball: 26, balloon: 29, zombie: 36, teacher: 35, lunch: 34, desk: 30, chair: 29,
+    board: 32, vending: 36, tv: 27, piano: 34, bookmimic: 23, cleaner: 29, librarian: 69, ratking: 59, pezombie: 71,
+    megaeye: 67, mecha: 69, grandpiano: 71, spiderqueen: 65, blackboard: 73, album: 67, supervisor: 71, uniformgiant: 80,
+    vendingking: 74, catking: 58, slimeking: 69, hanako: 32, kuchisake: 35, tekete: 30, kasa: 31, kappa: 30,
+    jinmenken: 23, jiangshi: 35, nvgui: 35, kumiho: 23, dokkaebibul: 23, shishi: 24, krasue: 29, manananggal: 34,
+    pontianak: 35, pocong: 35, tuktuk: 33, mada: 35, banshee: 35, blackshuck: 23, gargoyle: 37, werewolf: 37, mummy: 35,
+    bloodymary: 35, faceless: 38, mothman: 37, chupacabra: 22, lorona: 35, jukebox: 34, oni: 73, tengu: 67,
+    jiangshilord: 74, nian: 64, naga: 65, tikbalang: 71, dracula: 68, babayaga: 74, horseman: 65, wendigo: 77,
+    globeking: 78, hazmat: 35, sentry: 37, camera: 24, scp999: 22, scp173: 36, scp294: 36, scp049_2: 35, scp035: 35,
+    scp087_1: 35, blastdoor: 39, rack: 37, agent: 35, redacted: 36, ooze: 27, guardmech: 71, scp914: 64, scp049: 69,
+    scp096: 74, scp106: 68, scp939: 52, scp079: 63, scp682: 49, redactlord: 76,
   };
   const ALLY_FIT = {
     basic: [1.21, 1.25, 1.16], bag: [1.2, 1.23, 1.15], runner: [1.24, 1.28, 1.19], reader: [1.2, 1.11, 1.15],

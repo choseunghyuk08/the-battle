@@ -69,8 +69,10 @@
 
   function add(key, p) {
     const m = key.match(/^([a-z]+)(\d+)$/);
+    const N = { idle: IDLE_N, walk: WALK_N, atk: ATK_N, hurt: HURT_N }[m[1]];
     YG.POSES[key] = {
-      key, kind: m[1], i: Number(m[2]), n: Number(m[2]), step: 0, bob: 0, lunge: 0, rise: 0, wind: 0, atk: 0, hurt: false, ...p,
+      /* n: 그 동작 안에서 몇 번째 장, ph: 동작 한 바퀴(공격은 처음~끝) 중 어디쯤인지 0..1 */
+      key, kind: m[1], i: Number(m[2]), n: Number(m[2]), ph: Number(m[2]) / (m[1] === 'idle' || m[1] === 'walk' ? N : Math.max(1, N - 1)), step: 0, bob: 0, lunge: 0, rise: 0, wind: 0, atk: 0, hurt: false, ...p,
     };
     YG.FRAME_KEYS.push(key);
   }

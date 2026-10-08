@@ -306,7 +306,8 @@
 
   /* 그림자 폭: 그림에서 몸통 쪽 크기를 따라간다 */
   function shadowWidth(def, img, k) {
-    const size = (def.fit || 1) * (def.scale || 1);
+    /* HD 그림은 이미 화면 크기대로 그려져서 fit/scale 을 곱하지 않는다 */
+    const size = img.hd ? 1 : (def.fit || 1) * (def.scale || 1);
     const body = img.nat ? Math.min(img.nat.w, img.nat.h * 1.2) * size : img.width / k;
     return Math.max(6, Math.round(body * 0.9));
   }
