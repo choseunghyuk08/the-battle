@@ -325,8 +325,9 @@
     const open = YG.isUnlocked(app.save, st);
     const done = !!app.save.cleared[st.id];
     const r = done ? st.reward.repeat : st.reward.first;
-    const bossRef = (st.bosses && st.bosses[0]) || st.boss;
-    const boss = bossRef ? YG.enemyById(bossRef.id) : null;
+    /* 보스가 둘 나오는 스테이지는 나오는 차례대로 모두 적는다 (마지막에 나오는 쪽이 진짜 보스인 경우가 많다) */
+    const bosses = (st.bosses || (st.boss ? [st.boss] : [])).map((b) => YG.enemyById(b.id)).filter(Boolean);
+    const boss = bosses.length > 0;
     return el('article', { class: `stage-card${open ? '' : ' locked'}${boss ? ' boss' : ''}` }, [
       el('div', { class: 'stage-top' }, [
         el('span', { class: 'stage-sub', text: st.sub }),
@@ -340,7 +341,7 @@
       el('div', { class: 'chips' }, YG.stageTraits(st).map(traitChip)),
       el('div', { class: 'stage-meta' }, [
         '적 근원', el('b', { text: fmt(st.enemyBaseHp) }),
-        boss ? '보스' : null, boss ? el('b', { text: boss.name }) : null,
+        boss ? '보스' : null, boss ? el('b', { text: bosses.map((b) => b.name).join(' → ') }) : null,
         done ? '반복 보상' : '첫 클리어',
         el('b', { text: `동전 ${fmt(r.coins)} · 경험치 ${fmt(r.xp)} · 형광펜 ${r.pens}` }),
       ]),
@@ -1499,8 +1500,35 @@
     $('#bgmHint').textContent = `배경음 파일은 ${YG.audio.BGM_DIR} 폴더에 넣으면 된다.`;
   }
 
+  /* 도현체는 영문 O 와 숫자 0 이 똑같이 생겨서 "O5 평의회"가 "05 평의회"로 읽힌다. 화면에 들어오는 글자 중 O5 만 본문 글꼴로 바꾼다 */
+  function markO5(root) {
+    const hits = [];
+    if (root.nodeType === 3) hits.push(root);
+    else for (const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT); w.nextNode();) hits.push(w.currentNode);
+    for (const n of hits) {
+      if (!n.nodeValue.includes('O5') || (n.parentNode && n.parentNode.classList && n.parentNode.classList.contains('lat'))) continue;
+      const frag = document.createDocumentFragment();
+      n.nodeValue.split(/(O5)/).forEach((part) => {
+        if (part === 'O5') frag.append(el('em', { class: 'lat', text: part }));
+        else if (part) frag.append(part);
+      });
+      n.replaceWith(frag);
+    }
+  }
+
+  function watchO5() {
+    markO5(document.body);
+    new MutationObserver((list) => {
+      for (const m of list) {
+        if (m.type === 'characterData') markO5(m.target);
+        else for (const a of m.addedNodes) if ((a.nodeType === 3 || a.nodeType === 1) && a.textContent.includes('O5')) markO5(a);
+      }
+    }).observe(document.body, { childList: true, subtree: true, characterData: true });
+  }
+
   /* 연결 */
   function init() {
+    watchO5();
     app.save = YG.loadSave();
     app.lastSeen = app.save.lastPlayed;
     const bonus = YG.claimDaily(app.save);

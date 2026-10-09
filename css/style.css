@@ -185,6 +185,7 @@ canvas { image-rendering: pixelated; }
 .stage-card:not(.locked):hover { border-color: var(--line-2); background: var(--s2); }
 .stage-card.locked { opacity: 0.5; }
 .stage-top { display: flex; justify-content: space-between; align-items: baseline; }
+.lat { font-style: normal; font-family: var(--body); font-weight: 700; letter-spacing: 0; }
 .stage-sub { font-family: var(--display); color: var(--ink-3); font-size: 15px; }
 .stage-card h4 { margin: 0; font-family: var(--display); font-weight: 400; font-size: 30px; letter-spacing: -0.02em; line-height: 1.2; }
 .stage-tags { display: flex; gap: 6px; }

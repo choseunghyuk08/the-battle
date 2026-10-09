@@ -21,7 +21,7 @@
   const lerp2 = (a, b, t) => [lerp(a[0], b[0], t), lerp(a[1], b[1], t)];
 
   /* 공격의 기준 자세. K0..K5 는 처음 그린 여섯 장이고, REST 는 가만히 선 자세다 */
-  const REST = { wind: 0, atk: 0, lunge: 0, rise: 0, bob: 0, armF: [5, -6], armB: [-5, -6], dir: [0.35, -1], l: [0, 0], r: [0, 0] };
+  const REST = { wind: 0, atk: 0, lunge: 0, rise: 0, bob: 0, armF: [5, -6], armB: [-5, -6], dir: [0.62, -0.95], l: [0, 0], r: [0, 0] };
   const KEYS = [
     { wind: 0.4, atk: 0, lunge: -1, rise: 0, armF: [3, -12], armB: [-6, -8], dir: [0.15, -1], l: [-1, 0], r: [1, 0] },
     { wind: 1, atk: 0, lunge: -3, rise: -1, armF: [1, -21], armB: [-7, -9], dir: [-0.95, -0.45], l: [-2, 0], r: [2, 0] },
@@ -85,7 +85,8 @@
       bob: 0.5 - 0.5 * Math.cos(TAU * ph),
       armF: [5, -6 + Math.sin(TAU * ph)],
       armB: [-5, -6 + Math.max(0, Math.cos(TAU * (ph - 0.5)))],
-      dir: [0.35, -1],
+      /* 든 물건은 곧게 서지 않고 앞으로 33도쯤 기울어 있고, 숨 쉴 때 조금 흔들린다 */
+      dir: [0.62 + 0.06 * Math.sin(TAU * ph), -0.95],
       l: [0, 0],
       r: [0, 0],
     });
@@ -105,7 +106,7 @@
       bob: clamp(1.6 * (1 - Math.abs(step)), 0, 1),
       armF: [5 - sway, -6 - lowArm],
       armB: [-5 + sway, -6 - lowArm],
-      dir: [0.5 - step * 0.3, -1],
+      dir: [0.62 - step * 0.25, -0.95],
       l: [sway, -liftL],
       r: [-sway, -liftR],
     });
