@@ -13,7 +13,7 @@ function fakeCanvas() {
 
 function load() {
   if (!globalThis.document) globalThis.document = { createElement: fakeCanvas };
-  if (!globalThis.YG || !globalThis.YG.ENEMIES) ['data.js', 'units2.js', 'units3.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'bestiary3.js', 'sizes.js'].forEach((f) => require(path.join(root, f)));
+  if (!globalThis.YG || !globalThis.YG.ENEMIES) ['data.js', 'units2.js', 'units3.js', 'units4a.js', 'units4b.js', 'units4c.js', 'units4d.js', 'units4e.js', 'units4f.js', 'evolutions.js', 'bestiary.js', 'bestiary2.js', 'bestiary3.js', 'sizes.js'].forEach((f) => require(path.join(root, f)));
   for (const f of ['poses.js', 'sprites.js', 'sprites2.js', 'sprites3.js', 'sprites4.js', 'hd.js', ...require('./hdfiles').map((n) => `${n}.js`)]) require(path.join(root, f));
   return globalThis.YG;
 }

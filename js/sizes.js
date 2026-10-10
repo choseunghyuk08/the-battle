@@ -138,6 +138,8 @@
     if (BOSS_SCALE[e.id]) e.scale = BOSS_SCALE[e.id];
     if (ENEMY_FIT[e.id] !== undefined) e.fit = ENEMY_FIT[e.id];
   }
+  /* 새 동료는 유닛 정의에 cm 을 직접 적는다 */
+  for (const u of YG.UNITS) if (ALLY_CM[u.id] === undefined && u.cm) ALLY_CM[u.id] = u.cm;
   for (const u of YG.UNITS) {
     u.cm = ALLY_CM[u.id];
     u.ht = Math.round(allyPx(u, 0));
