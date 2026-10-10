@@ -572,7 +572,8 @@ function testScp() {
   const newUnlocks = new Set(YG.UNITS.filter((u) => u.unlockStage).map((u) => u.id));
   const withoutNewUnlock = (st) => {
     if (!newUnlocks.has(st.unlock)) return st;
-    const { unlock, ...rest } = st;
+    const rest = { ...st };
+    delete rest.unlock;
     return rest;
   };
   assert.strictEqual(sha(YG.STAGES.slice(0, 347).map(withoutNewUnlock)), '7b43c25d4050845e', '스테이지 1~347 데이터');

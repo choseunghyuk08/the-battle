@@ -7,7 +7,7 @@
   const NEW = [
     /* ---- 2등급 (담당 D): 학교 밖에서 온 전문가와 동아리 ---- */
     {
-      id: 'exorcist', name: '퇴마 동아리', grade: 2, role: '제어', cm: 172, fit: 0.98,
+      id: 'exorcist', name: '퇴마 동아리', grade: 2, role: '제어', cm: 172,
       hp: 540, atk: 67, range: 56, speed: 0.4, interval: 86, anim: { hit: 15, total: 28 },
       cost: 430, cooldown: 310, kb: 3, ranged: 'card', freeze: { chance: 0.35, frames: 70 },
       abilities: [{ vs: 'ghost', type: 'massive' }, { vs: 'ghost', type: 'tough' }],
@@ -23,7 +23,7 @@
       },
     },
     {
-      id: 'monk', name: '절 앞 스님', grade: 2, role: '탱커', cm: 175, fit: 0.98,
+      id: 'monk', name: '절 앞 스님', grade: 2, role: '탱커', cm: 175,
       hp: 1180, atk: 58, range: 18, speed: 0.3, interval: 96, anim: { hit: 17, total: 32 },
       cost: 430, cooldown: 310, kb: 2, survive: 0.3,
       abilities: [{ vs: 'dark', type: 'massive' }, { vs: 'dark', type: 'tough' }],
@@ -39,7 +39,7 @@
       },
     },
     {
-      id: 'priest', name: '성당 신부님', grade: 2, role: '광역', cm: 180, fit: 0.96,
+      id: 'priest', name: '성당 신부님', grade: 2, role: '광역', cm: 180,
       hp: 600, atk: 52, range: 56, speed: 0.4, interval: 84, anim: { hit: 14, total: 26 },
       cost: 420, cooldown: 300, kb: 3, area: true, ranged: 'wave',
       abilities: [{ vs: 'dark', type: 'massive' }, { vs: 'ghost', type: 'strong' }],
@@ -55,7 +55,7 @@
       },
     },
     {
-      id: 'forensic', name: '과학수사부', grade: 2, role: '원거리', cm: 168, fit: 0.97,
+      id: 'forensic', name: '과학수사부', grade: 2, role: '원거리', cm: 168,
       hp: 460, atk: 84, range: 76, speed: 0.4, interval: 82, anim: { hit: 14, total: 26 },
       cost: 430, cooldown: 300, kb: 3, ranged: 'flash', loot: 1.3,
       abilities: [{ vs: 'specimen', type: 'massive' }, { vs: 'specimen', type: 'tough' }],
@@ -71,7 +71,7 @@
       },
     },
     {
-      id: 'hacker', name: '정보보안부', grade: 2, role: '제어', cm: 172, fit: 0.96,
+      id: 'hacker', name: '정보보안부', grade: 2, role: '제어', cm: 172,
       hp: 520, atk: 70, range: 60, speed: 0.4, interval: 84, anim: { hit: 14, total: 26 },
       cost: 440, cooldown: 320, kb: 3, ranged: 'bolt', freeze: { chance: 0.3, frames: 75 },
       abilities: [{ vs: 'metal', type: 'massive' }, { vs: 'metal', type: 'tough' }],
@@ -87,7 +87,7 @@
       },
     },
     {
-      id: 'kungfu', name: '쿵푸부', grade: 2, role: '속공', cm: 170, fit: 0.96,
+      id: 'kungfu', name: '쿵푸부', grade: 2, role: '속공', cm: 170,
       hp: 470, atk: 46, range: 22, speed: 0.85, interval: 36, anim: { hit: 7, total: 14 },
       cost: 400, cooldown: 280, kb: 3, crit: 0.3,
       abilities: [{ vs: 'specimen', type: 'massive' }, { vs: 'ghost', type: 'strong' }],

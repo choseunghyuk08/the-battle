@@ -7,7 +7,7 @@
   const NEW = [
     /* ---- 2등급 (동아리, 괴담 대응반) ---- */
     {
-      id: 'parkour', name: '파쿠르부', grade: 2, role: '돌격', cm: 176, fit: 1,
+      id: 'parkour', name: '파쿠르부', grade: 2, role: '돌격', cm: 176,
       hp: 580, atk: 62, range: 19, speed: 0.88, interval: 44, anim: { hit: 8, total: 16 },
       cost: 400, cooldown: 280, kb: 4, abilities: [{ vs: 'ghost', type: 'strong' }, { vs: 'metal', type: 'strong' }],
       blurb: '귀신이 쫓아오면 벽을 타고 올라가 버린다.',
@@ -22,7 +22,7 @@
       },
     },
     {
-      id: 'circus', name: '서커스부', grade: 2, role: '광역', cm: 168, fit: 1,
+      id: 'circus', name: '서커스부', grade: 2, role: '광역', cm: 168,
       hp: 520, atk: 46, range: 54, speed: 0.4, interval: 82, anim: { hit: 14, total: 26 },
       cost: 410, cooldown: 290, kb: 3, area: true, ranged: 'ball', slow: { chance: 0.3, frames: 80 }, abilities: [{ vs: 'ghost', type: 'massive' }],
       blurb: '핀이 돌아가면 귀신 눈도 같이 돈다.',
@@ -37,7 +37,7 @@
       },
     },
     {
-      id: 'opera', name: '성악부', grade: 2, role: '제어', cm: 165, fit: 1,
+      id: 'opera', name: '성악부', grade: 2, role: '제어', cm: 165,
       hp: 470, atk: 40, range: 60, speed: 0.4, interval: 88, anim: { hit: 15, total: 28 },
       cost: 430, cooldown: 300, kb: 3, area: true, ranged: 'note', freeze: { chance: 0.25, frames: 60 }, abilities: [{ vs: 'specimen', type: 'massive' }],
       blurb: '고음 한 번에 창문과 괴담이 같이 금 간다.',
@@ -52,7 +52,7 @@
       },
     },
     {
-      id: 'knight', name: '중세사 동아리 기사', grade: 2, role: '탱커', cm: 185, fit: 1,
+      id: 'knight', name: '중세사 동아리 기사', grade: 2, role: '탱커', cm: 185,
       hp: 1300, atk: 66, range: 18, speed: 0.3, interval: 96, anim: { hit: 16, total: 30 },
       cost: 430, cooldown: 310, kb: 2, abilities: [{ vs: 'metal', type: 'strong' }, { vs: 'ghost', type: 'tough' }],
       blurb: '야자 시간에도 갑옷은 벗지 않는다.',
@@ -67,7 +67,7 @@
       },
     },
     {
-      id: 'survival', name: '서바이벌게임부', grade: 2, role: '저격', cm: 172, fit: 1,
+      id: 'survival', name: '서바이벌게임부', grade: 2, role: '저격', cm: 172,
       hp: 420, atk: 92, range: 92, speed: 0.38, interval: 96, anim: { hit: 16, total: 30 },
       cost: 440, cooldown: 320, kb: 3, ranged: 'pellet', crit: 0.2, abilities: [{ vs: 'dark', type: 'massive' }],
       blurb: '얼굴에 칠한 건 위장이고 눈빛은 진심이다.',
@@ -82,7 +82,7 @@
       },
     },
     {
-      id: 'welder', name: '용접부', grade: 2, role: '근접', cm: 175, fit: 1,
+      id: 'welder', name: '용접부', grade: 2, role: '근접', cm: 175,
       hp: 800, atk: 82, range: 20, speed: 0.36, interval: 88, anim: { hit: 15, total: 28 },
       cost: 420, cooldown: 300, kb: 2, abilities: [{ vs: 'metal', type: 'massive' }, { vs: 'dark', type: 'strong' }],
       blurb: '용접 불꽃 앞에서는 철제 괴담도 녹는다.',
