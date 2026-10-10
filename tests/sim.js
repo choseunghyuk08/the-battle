@@ -156,8 +156,7 @@ function testGacha() {
 function testRoster() {
   const by = {};
   for (const u of YG.UNITS) (by[u.grade] = by[u.grade] || []).push(u);
-  /* 새 동료를 만드는 동안은 최소 수만 확인한다. 다 합친 뒤 정확한 수로 조인다 */
-  [4, 3, 2, 1, 0].forEach((g, i) => assert(by[g].length >= [14, 23, 21, 14, 9][i], `${g}등급 유닛 수 ${by[g].length}`));
+  assert.deepStrictEqual([4, 3, 2, 1, 0].map((g) => by[g].length), [20, 37, 33, 22, 12], '등급별 유닛 수');
   const ids = new Set(YG.UNITS.map((u) => u.id));
   assert.strictEqual(ids.size, YG.UNITS.length, 'id 중복 없음');
   for (const u of YG.UNITS) {
@@ -175,7 +174,7 @@ function testRoster() {
     }
   }
   const s = YG.newSave();
-  for (const [id, unit] of [[2, 'cleaner'], [4, 'basket'], [6, 'pingpong'], [9, 'calli'], [11, 'shuttle'], [15, 'garden'], [19, 'photo'], [25, 'soccer'], [29, 'cheer'], [348, 'dclass']]) {
+  for (const [id, unit] of [[2, 'cleaner'], [4, 'basket'], [6, 'pingpong'], [9, 'calli'], [11, 'shuttle'], [15, 'garden'], [19, 'photo'], [25, 'soccer'], [29, 'cheer'], [255, 'jpex'], [275, 'cnex'], [295, 'seaex'], [315, 'euex'], [335, 'amex'], [348, 'dclass'], [360, 'intern']]) {
     const r = YG.applyReward(s, YG.STAGES[id - 1]);
     assert.strictEqual(r.unit, unit, `${id}번 스테이지 첫 클리어 보상`);
     assert(s.owned[unit]);

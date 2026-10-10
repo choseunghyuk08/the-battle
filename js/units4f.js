@@ -136,8 +136,5 @@
     },
   ];
 
-  /* HD 그림은 fit 을 쓰지 않지만 크기 점검(tests/sim.js)이 fit > 0 을 요구하고, 새 동료는 js/sizes.js 의 FIT 표에 아직 없다. 중립값 1 을 둔다 */
-  for (const u of NEW) if (!u.fit) u.fit = 1;
-
   YG.UNITS.push(...NEW);
 })(globalThis);
