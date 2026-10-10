@@ -7,7 +7,7 @@
   const NEW = [
     /* ---- 3등급 ---- */
     {
-      id: 'go', name: '바둑부', grade: 3, role: '제어', cm: 172, fit: 1,
+      id: 'go', name: '바둑부', grade: 3, role: '제어', cm: 172,
       hp: 330, atk: 40, range: 60, speed: 0.4, interval: 80, anim: { hit: 14, total: 26 },
       cost: 220, cooldown: 170, kb: 3, ranged: 'card', slow: { chance: 0.4, frames: 90 },
       abilities: [{ vs: 'dark', type: 'strong' }],
@@ -23,7 +23,7 @@
       },
     },
     {
-      id: 'debate', name: '토론부', grade: 3, role: '원거리', cm: 168, fit: 1,
+      id: 'debate', name: '토론부', grade: 3, role: '원거리', cm: 168,
       hp: 300, atk: 52, range: 70, speed: 0.4, interval: 72, anim: { hit: 12, total: 24 },
       cost: 230, cooldown: 180, kb: 3, ranged: 'wave',
       abilities: [{ vs: 'specimen', type: 'strong' }],
@@ -39,7 +39,7 @@
       },
     },
     {
-      id: 'news', name: '신문부', grade: 3, role: '저격', cm: 170, fit: 1,
+      id: 'news', name: '신문부', grade: 3, role: '저격', cm: 170,
       hp: 280, atk: 62, range: 80, speed: 0.4, interval: 84, anim: { hit: 14, total: 26 },
       cost: 240, cooldown: 190, kb: 3, ranged: 'ink', crit: 0.25,
       abilities: [{ vs: 'ghost', type: 'strong' }],
@@ -55,7 +55,7 @@
       },
     },
     {
-      id: 'bake', name: '제과제빵부', grade: 3, role: '광역', cm: 162, fit: 1,
+      id: 'bake', name: '제과제빵부', grade: 3, role: '광역', cm: 162,
       hp: 360, atk: 32, range: 50, speed: 0.4, interval: 76, anim: { hit: 13, total: 26 },
       cost: 230, cooldown: 180, kb: 3, area: true, ranged: 'foam',
       abilities: [{ vs: 'metal', type: 'strong' }],
@@ -71,7 +71,7 @@
       },
     },
     {
-      id: 'box', name: '복싱부', grade: 3, role: '속공', cm: 178, fit: 1,
+      id: 'box', name: '복싱부', grade: 3, role: '속공', cm: 178,
       hp: 400, atk: 34, range: 18, speed: 0.8, interval: 34, anim: { hit: 6, total: 12 },
       cost: 230, cooldown: 160, kb: 3, crit: 0.3,
       abilities: [{ vs: 'dark', type: 'strong' }],
@@ -87,7 +87,7 @@
       },
     },
     {
-      id: 'wrestle', name: '레슬링부', grade: 3, role: '탱커', cm: 175, fit: 1,
+      id: 'wrestle', name: '레슬링부', grade: 3, role: '탱커', cm: 175,
       hp: 780, atk: 44, range: 17, speed: 0.34, interval: 76, anim: { hit: 14, total: 28 },
       cost: 220, cooldown: 175, kb: 2,
       abilities: [{ vs: 'specimen', type: 'strong' }, { vs: 'specimen', type: 'tough' }],
@@ -103,7 +103,7 @@
       },
     },
     {
-      id: 'orchestra', name: '관현악부', grade: 3, role: '광역', cm: 174, fit: 1,
+      id: 'orchestra', name: '관현악부', grade: 3, role: '광역', cm: 174,
       hp: 380, atk: 34, range: 62, speed: 0.4, interval: 78, anim: { hit: 13, total: 26 },
       cost: 240, cooldown: 190, kb: 3, area: true, ranged: 'note',
       abilities: [{ vs: 'ghost', type: 'strong' }],
