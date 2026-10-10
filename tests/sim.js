@@ -568,7 +568,14 @@ function testScp() {
 
   /* 앞의 347개와 해외 70장은 한 값도 달라지지 않았다 (이 값은 재단편을 넣기 전 코드에서 구했다) */
   const sha = (x) => crypto.createHash('sha1').update(JSON.stringify(x)).digest('hex').slice(0, 16);
-  assert.strictEqual(sha(YG.STAGES.slice(0, 347)), '7b43c25d4050845e', '스테이지 1~347 데이터');
+  /* 새 4등급 동료의 첫 클리어 보상(unlockStage)으로 붙은 unlock 만 빼고 센다 */
+  const newUnlocks = new Set(YG.UNITS.filter((u) => u.unlockStage).map((u) => u.id));
+  const withoutNewUnlock = (st) => {
+    if (!newUnlocks.has(st.unlock)) return st;
+    const { unlock, ...rest } = st;
+    return rest;
+  };
+  assert.strictEqual(sha(YG.STAGES.slice(0, 347).map(withoutNewUnlock)), '7b43c25d4050845e', '스테이지 1~347 데이터');
   assert.strictEqual(sha(YG.CHAPTERS.slice(0, 70)), '805aa0c3199a06c4', '장 1~70');
   /* 크기 점검(cm, fit, scale, ht)은 그림과 이펙트 높이에만 쓰이는 값이라 빼고 센다 */
   const noLook = (e) => {
