@@ -57,6 +57,16 @@
     return { fr: c.frames[i], c };
   }
 
+  /* 반복 이펙트 (오라 같은 것): 그림이 있으면 시간에 맞춰 그린다 */
+  function loopFx(name, x, y, t, fps = 10) {
+    const def = TG.SPR.fx[name];
+    if (!def) return false;
+    const clip = def.clips.loop ? 'loop' : Object.keys(def.clips)[0];
+    const r = frame(def, clip, 0, 1, { time: t, fps });
+    put(r.fr, r.c, x, y, false);
+    return true;
+  }
+
   /* 맞았을 때 하얗게 번쩍 */
   const whiteCache = new WeakMap();
   function white(canvas) {
@@ -175,6 +185,18 @@
       case 'throw':
         addFx('throwfx', P.heroX + 8, GROUND - 24, 0.2);
         break;
+      case 'drop':
+        addFx('rainHit', e.x, GROUND - 2, 0.35);
+        shake = Math.max(shake, 0.06);
+        break;
+      case 'ruby':
+        addFx('rubyPop', e.x, GROUND - 4, 0.8);
+        addText('+1', e.x, GROUND - 30, '#ff7a8a', true);
+        break;
+      case 'boss-start':
+        addFx('bossWarn', W / 2, H / 2 - 10, 1.0);
+        shake = 0.25;
+        break;
       default:
     }
   }
@@ -199,6 +221,12 @@
     for (const m of mobs) {
       const def = mobDef(m.kind);
       const S = m.giant ? 2 : 1;
+      if (m.boss && !loopFx('bossAura', m.x, GROUND, clock)) {
+        ctx.fillStyle = 'rgba(160,80,255,0.18)';
+        ctx.beginPath();
+        ctx.ellipse(m.x, GROUND - def.h * 0.8, def.w * 0.9, def.h * 0.95, 0, 0, Math.PI * 2);
+        ctx.fill();
+      }
       let r;
       if (m.state === 'attack') r = frame(def, 'attack', m.pal, S, { progress: m.atkT / P.mobAtkDur });
       else if (m.hurt > 0) r = frame(def, 'hurt', m.pal, S, { progress: 1 - m.hurt / 0.16 });
@@ -219,7 +247,11 @@
       }
     }
 
-    /* 주인공 */
+    /* 주인공 (분노 중이면 뒤에 불꽃 오라) */
+    if (game.raging && !loopFx('rage', P.heroX, GROUND, clock, 12)) {
+      ctx.fillStyle = 'rgba(255,90,40,0.25)';
+      ctx.fillRect(P.heroX - 12, GROUND - 38, 24, 38);
+    }
     const hero = TG.SPR.hero.main;
     const a = game.hero.act;
     const loops = { idle: 6, reload: 9, win: 11, run: 13 };
@@ -242,6 +274,19 @@
       ctx.translate(Math.round(x), Math.round(y));
       ctx.rotate(((p.spin + k * 900) * Math.PI) / 180);
       ctx.drawImage(c.frames[0].canvas, -c.ax * 0.75, -c.ay * 0.75, c.w * 0.75, c.h * 0.75);
+      ctx.restore();
+    }
+
+    /* 쏟아지기: 하늘에서 떨어지는 물건 */
+    for (const d of game.drops) {
+      const k = 1 - d.t / d.dur;
+      const y = -12 + (GROUND - 6 + 12) * k * k;
+      const def = itemDef(d.tier);
+      const c = TG.clip(def, 'icon', def.palettes ? def.palettes[0] : {}, 1, 'p0');
+      ctx.save();
+      ctx.translate(Math.round(d.x), Math.round(y));
+      ctx.rotate(((d.spin + k * 540) * Math.PI) / 180);
+      ctx.drawImage(c.frames[0].canvas, -c.ax, -c.ay);
       ctx.restore();
     }
 

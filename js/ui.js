@@ -238,14 +238,30 @@
     const game = ui.game;
     const th = game.theme();
     $('#stageNum').textContent = `스테이지 ${game.s.stage}`;
-    $('#stageSub').textContent = game.phase === 'run' ? `${th.name} · 다음 스테이지로` : `${th.name} · 웨이브 ${Math.max(1, game.wave)}/${P.waves}`;
+    $('#stageSub').textContent = game.mode === 'boss' ? `보스전 ${game.s.boss} · 남은 시간 ${Math.ceil(game.bossT)}초` : game.phase === 'run' ? `${th.name} · 다음 스테이지로` : `${th.name} · 웨이브 ${Math.max(1, game.wave)}/${P.waves}`;
     $('#goldNum').textContent = TG.fmt(game.s.gold);
+    $('#rubyNum').textContent = TG.fmt(game.s.ruby);
+    /* 스킬과 보스 버튼: 남은 대기 시간만큼 어둡게 덮는다 */
+    const cdView = (btn, left, total, ready) => {
+      const cd = btn.querySelector('.cd');
+      const k = total ? Math.max(0, Math.min(1, left / total)) : 0;
+      cd.style.transform = `scaleY(${k})`;
+      if (left > 0) cd.dataset.t = left >= 60 ? `${Math.ceil(left / 60)}분` : `${Math.ceil(left)}`;
+      else delete cd.dataset.t;
+      btn.classList.toggle('ready', ready);
+    };
+    cdView($('#skRain'), game.s.skillCd.rain, P.rainCd, game.skillReady('rain'));
+    cdView($('#skRage'), game.raging ? 0 : game.s.skillCd.rage, P.rageCd, game.skillReady('rage'));
+    $('#skRage').classList.toggle('on', game.raging);
+    cdView($('#bossBtn'), game.s.bossCd, game.s.bossCd > P.bossFailCd ? P.bossCd : P.bossFailCd, game.canBoss());
+    $('#bossLabel').textContent = game.mode === 'boss' ? `${Math.ceil(game.bossT)}초` : `보스 ${game.s.boss}`;
+    $('#autoTag').textContent = [game.s.lv.autoCraft ? '자동 제작' : '', game.s.lv.autoMerge ? '자동 합성' : '', game.s.lv.autoSkill && game.s.autoSkillOn ? '자동 스킬' : ''].filter(Boolean).join(' · ');
+    $('#shopDot').hidden = !game.s.shop.offers.some((o) => !o.sold && game.s.shards >= game.shopPrice(o.tier));
+    if (ui.sheet === 'shop') refreshShop();
     const ch = Math.floor(game.s.charges);
     $('#craftCount').textContent = `${ch}/${P.craftMax}`;
     $('#craftFill').style.width = `${(game.s.charges / P.craftMax) * 100}%`;
     $('#craft').classList.toggle('empty', ch < 1);
-    $('#chipCraft').classList.toggle('on', game.s.lv.autoCraft > 0);
-    $('#chipMerge').classList.toggle('on', game.s.lv.autoMerge > 0);
     $('#countNum').textContent = `${game.s.board.slice(0, game.slots).filter(Boolean).length}/${game.slots}`;
     /* 전투 정보 줄: 내 체력과 공격력, 앞에 있는 적의 이름, 체력, 공격력 */
     let volley = 0;
@@ -256,7 +272,7 @@
     const f = game.front() || game.mobs[0];
     if (f) {
       const def = TG.SPR.mob[f.kind] || TG.SPR.mob.slime;
-      $('#foeName').textContent = `${f.giant ? '거대 ' : ''}${def.name || f.kind} Lv.${game.s.stage}`;
+      $('#foeName').textContent = f.boss ? `보스 ${game.s.boss}: ${def.name || f.kind}` : `${f.giant ? '거대 ' : ''}${def.name || f.kind} Lv.${game.s.stage}`;
       $('#foeHp').textContent = `${TG.fmt(Math.max(0, f.hp))}/${TG.fmt(f.max)}`;
       $('#foeHpBar').style.width = `${Math.max(0, Math.min(100, (f.hp / f.max) * 100))}%`;
       $('#foeAtk').textContent = TG.fmt(f.atk);
@@ -274,12 +290,18 @@
   }
 
   /* ---- 강화 판 ---- */
-  const UP_ICON = { atk: 'atk', hp: 'hp', craft: 'craftLv', climb: 'climb', slots: 'slots', autoCraft: 'autoCraft', autoMerge: 'autoMerge' };
+  const UP_ICON = { atk: 'atk', hp: 'hp', craft: 'craftLv', climb: 'climb', slots: 'slots', autoCraft: 'autoCraft', autoMerge: 'autoMerge', rAtk: 'atk', rGold: 'coin', skRain: 'skillRain', skRage: 'skillRage', autoSkill: 'autoSkill' };
   function buildUpgrades() {
     const body = $('#sheetBody');
     body.replaceChildren();
+    let section = null;
     for (const u of TG.UPGRADES) {
-      const btn = el('button', { type: 'button', 'data-id': u.id, onclick: () => buy(u.id) });
+      const cur = u.cur || 'gold';
+      if (cur !== section) {
+        section = cur;
+        body.append(el('p', { class: 'sec' }, [uiIcon(cur === 'ruby' ? 'ruby' : 'coin'), cur === 'ruby' ? '루비 강화 (보스전과 거대 몬스터에게서 얻는다)' : '골드 강화']));
+      }
+      const btn = el('button', { type: 'button', 'data-id': u.id, class: cur === 'ruby' ? 'ruby' : '', onclick: () => buy(u.id) });
       body.append(
         el('div', { class: 'up', 'data-row': u.id }, [
           uiIcon(UP_ICON[u.id], 'icon x2'),
@@ -304,7 +326,7 @@
       const label = cost === null ? '최대' : TG.fmt(cost);
       if (btn.dataset.label !== label) {
         btn.dataset.label = label;
-        btn.replaceChildren(cost === null ? '' : uiIcon('coin'), label);
+        btn.replaceChildren(cost === null ? '' : uiIcon(u.cur === 'ruby' ? 'ruby' : 'coin'), label);
       }
     }
   }
@@ -313,6 +335,59 @@
       sfx.coin();
       refreshUpgrades();
       updateHud();
+      save();
+    }
+  }
+
+  /* ---- 조각 상점 ---- */
+  function buildShop() {
+    const game = ui.game;
+    const body = $('#sheetBody');
+    const list = el('div', { class: 'offers' });
+    game.s.shop.offers.forEach((o, k) => {
+      const it = TG.ITEMS[o.tier - 1];
+      const btn = el('button', { type: 'button', 'data-k': k, onclick: () => shopBuy(k) });
+      list.append(el('div', { class: 'offer', 'data-offer': k }, [spriteCanvas(TG.itemDef(o.tier), 'icon'), el('div', {}, [el('div', { class: 'nm' }, [it.name, el('small', { text: `${o.tier}단계` })]), el('div', { class: 'ln', text: it.line })]), btn]));
+    });
+    body.replaceChildren(
+      el('p', { class: 'note' }, ['합칠 때마다 결과 단계만큼 조각을 얻는다. 지금 조각 ', el('b', { id: 'shardNum', text: TG.fmt(game.s.shards) }), '개']),
+      list,
+      el('div', { class: 'row' }, [el('span', { id: 'shopTimer' }), el('button', { type: 'button', id: 'shopReroll', onclick: shopReroll }, [uiIcon('ruby'), `${P.shopRefreshRuby} 새로고침`])]),
+    );
+    refreshShop();
+  }
+  function refreshShop() {
+    const game = ui.game;
+    if (!$('#shardNum')) return;
+    $('#shardNum').textContent = TG.fmt(game.s.shards);
+    game.s.shop.offers.forEach((o, k) => {
+      const row = document.querySelector(`[data-offer="${k}"]`);
+      if (!row) return;
+      row.classList.toggle('sold', o.sold);
+      const btn = row.querySelector('button');
+      const price = game.shopPrice(o.tier);
+      btn.disabled = o.sold || game.s.shards < price;
+      const label = o.sold ? '샀음' : TG.fmt(price);
+      if (btn.dataset.label !== label) {
+        btn.dataset.label = label;
+        btn.replaceChildren(o.sold ? '' : uiIcon('shard'), label);
+      }
+    });
+    $('#shopTimer').textContent = `${TG.fmtTime(game.s.shop.t)} 뒤 새 물건`;
+    $('#shopReroll').disabled = game.s.ruby < P.shopRefreshRuby;
+  }
+  function shopBuy(k) {
+    const r = ui.game.shopBuy(k);
+    if (r === 'full') toast(null, '필드가 꽉 찼다', '합치거나 보유 개수를 늘리자.');
+    else if (r === 'ok') sfx.coin();
+    handleEvents();
+    refreshShop();
+    save();
+  }
+  function shopReroll() {
+    if (ui.game.shopRefresh()) {
+      sfx.coin();
+      buildShop();
       save();
     }
   }
@@ -344,6 +419,7 @@
     const body = $('#sheetBody');
     body.replaceChildren(
       el('div', { class: 'row' }, ['소리', el('button', { type: 'button', text: ui.muted ? '켜기' : '끄기', onclick: () => { ui.muted = !ui.muted; save(); buildSettings(); } })]),
+      game.s.lv.autoSkill ? el('div', { class: 'row' }, ['자동 스킬', el('button', { type: 'button', text: game.s.autoSkillOn ? '끄기' : '켜기', onclick: () => { game.s.autoSkillOn = !game.s.autoSkillOn; save(); buildSettings(); } })]) : null,
       el('div', { class: 'row' }, [`최고 스테이지 ${game.s.best} · 쓰러짐 ${game.s.stats.deaths}회 · 합성 ${TG.fmt(game.s.stats.merges)}회`]),
       el('div', { class: 'row' }, ['처음부터 다시', el('button', { type: 'button', class: 'danger', text: ui.resetArm ? '정말 지우기' : '세이브 지우기', onclick: resetSave })]),
       el('p', { class: 'note', text: '진행은 이 브라우저에 자동 저장된다. 보드에서 같은 물건을 끌어다 겹치면 합쳐진다. 칸이 꽉 차면 새로 만든 물건이 가장 낮은 칸으로 들어간다.' }),
@@ -371,7 +447,7 @@
   }
 
   /* ---- 판 열고 닫기 ---- */
-  const TITLES = { up: '강화', dex: '도감', set: '설정' };
+  const TITLES = { up: '강화', shop: '조각 상점', dex: '도감', set: '설정' };
   function openSheet(kind) {
     if (ui.sheet === kind) {
       closeSheet();
@@ -380,6 +456,7 @@
     ui.sheet = kind;
     $('#sheetTitle').textContent = TITLES[kind];
     if (kind === 'up') buildUpgrades();
+    else if (kind === 'shop') buildShop();
     else if (kind === 'dex') buildDex();
     else buildSettings();
     $('#sheet').classList.add('open');
@@ -435,6 +512,28 @@
         case 'hurt':
           sfx.hurt();
           break;
+        case 'ruby':
+          sfx.coin();
+          break;
+        case 'boss-start': {
+          const def = TG.SPR.mob[e.kind] || TG.SPR.mob.slime;
+          toast(null, `보스전 ${e.boss}: ${def.name}`, `${P.bossTime}초 안에 쓰러뜨리자.`);
+          sfx.discover();
+          break;
+        }
+        case 'boss-win':
+          toast(null, `보스 ${e.boss} 격파!`, `루비 ${e.ruby}개를 얻었다.`);
+          sfx.clear();
+          break;
+        case 'boss-lose':
+          toast(null, '보스를 놓쳤다', '조금 더 키운 뒤 다시 도전하자.');
+          break;
+        case 'skill':
+          sfx.discover();
+          break;
+        case 'shop':
+          if (ui.sheet === 'shop') buildShop();
+          break;
         case 'clear':
           sfx.clear();
           if (e.skipped) toast(null, `등반술! ${e.skipped}스테이지 건너뜀`, `스테이지 ${e.next}로 간다.`);
@@ -455,6 +554,7 @@
       if (!raw) return null;
       const data = JSON.parse(raw);
       ui.muted = !!data.muted;
+      ui.away = Math.max(0, (Date.now() - (Number(data.at) || Date.now())) / 1000);
       return data.game;
     } catch {
       return null;
@@ -487,6 +587,20 @@
   /* ---- 시작 ---- */
   function init() {
     ui.game = new TG.Game(load());
+    /* 자리 비운 동안 번 골드 (1분 넘게 비웠을 때) */
+    if (ui.away > 60) {
+      const gold = ui.game.offlineGold(ui.away);
+      if (gold > 0) {
+        $('#offText').replaceChildren(`${TG.fmtTime(Math.min(ui.away, P.offlineMax))} 동안 `, el('b', { text: `골드 ${TG.fmt(gold)}` }), '를 벌었다.', ui.away > P.offlineMax ? el('br') : '', ui.away > P.offlineMax ? '(최대 8시간까지 쌓인다)' : '');
+        $('#offline').hidden = false;
+        $('#offOk').addEventListener('click', () => {
+          ui.game.s.gold += gold;
+          $('#offline').hidden = true;
+          sfx.clear();
+          save();
+        }, { once: true });
+      }
+    }
     TG.render.init($('#battle'));
     field.cv = $('#fieldCv');
     field.ctx = field.cv.getContext('2d');
@@ -501,6 +615,12 @@
       save();
     });
     $('#tabUp').addEventListener('click', () => openSheet('up'));
+    $('#tabShop').addEventListener('click', () => openSheet('shop'));
+    $('#skRain').addEventListener('click', () => ui.game.useSkill('rain'));
+    $('#skRage').addEventListener('click', () => ui.game.useSkill('rage'));
+    $('#bossBtn').addEventListener('click', () => {
+      if (!ui.game.startBoss() && ui.game.s.bossCd > 0) toast(null, '보스 준비 중', `${TG.fmtTime(ui.game.s.bossCd)} 뒤에 다시 도전할 수 있다.`);
+    });
     $('#tabDex').addEventListener('click', () => openSheet('dex'));
     $('#tabSet').addEventListener('click', () => openSheet('set'));
     $('#sheetClose').addEventListener('click', closeSheet);
@@ -518,7 +638,7 @@
     document.addEventListener('visibilitychange', save);
     setInterval(save, 4000);
 
-    for (const [id, name] of [['goldIcon', 'coin'], ['craftIcon', 'craft'], ['upIcon', 'atk'], ['dexIcon', 'dex'], ['setIcon', 'stage'], ['chipCraftIcon', 'autoCraft'], ['chipMergeIcon', 'autoMerge'], ['countIcon', 'slots'], ['meAtkIcon', 'atk']]) {
+    for (const [id, name] of [['goldIcon', 'coin'], ['craftIcon', 'craft'], ['upIcon', 'atk'], ['dexIcon', 'dex'], ['setIcon', 'stage'], ['countIcon', 'slots'], ['meAtkIcon', 'atk'], ['rubyIcon', 'ruby'], ['skRainIcon', 'skillRain'], ['skRageIcon', 'skillRage'], ['bossIcon', 'boss'], ['shopIcon', 'shop'], ['offIcon', 'offline']]) {
       const slot = document.getElementById(id);
       if (slot) slot.replaceWith(Object.assign(uiIcon(name), { id }));
     }

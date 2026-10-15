@@ -94,6 +94,86 @@ function testBattle() {
   console.log('battle ok');
 }
 
+
+function testV02() {
+  /* 루비 강화는 루비로 산다 */
+  const g = new TG.Game(null, seeded(5));
+  g.s.gold = 1e9;
+  assert.strictEqual(g.buy('rAtk'), false, '골드로는 루비 강화를 못 산다');
+  g.s.ruby = 100;
+  const before = g.atkMult;
+  assert(g.buy('rAtk'));
+  assert(g.atkMult > before);
+  assert(g.s.ruby < 100);
+
+  /* 조각: 합치면 결과 단계만큼 쌓인다. 상점에서 산 물건은 필드에 들어간다 */
+  g.s.board.fill(0);
+  g.s.board[0] = 3;
+  g.s.board[1] = 3;
+  const sh = g.s.shards;
+  g.merge(0, 1);
+  assert.strictEqual(g.s.shards - sh, 4);
+  g.s.seen[10] = true;
+  g.shopRoll();
+  assert.strictEqual(g.s.shop.offers.length, TG.P.shopSize);
+  for (const o of g.s.shop.offers) assert(o.tier >= 5 && o.tier <= 9, `상점 단계 ${o.tier}`);
+  g.s.shards = 0;
+  assert.strictEqual(g.shopBuy(0), 'poor');
+  g.s.shards = 1e9;
+  assert.strictEqual(g.shopBuy(0), 'ok');
+  assert.strictEqual(g.shopBuy(0), 'sold');
+  assert(g.s.board.includes(g.s.shop.offers[0].tier));
+
+  /* 보스전: 이기면 루비와 다음 보스, 진 뒤에는 스테이지가 안 떨어진다 */
+  const b = new TG.Game(null, seeded(6));
+  b.s.stage = 5;
+  b.startStage();
+  assert(b.startBoss());
+  assert.strictEqual(b.mode, 'boss');
+  assert.strictEqual(b.mobs.length, 1);
+  assert(b.mobs[0].boss);
+  b.mobs[0].hp = 1;
+  b.s.board[0] = 5;
+  const ruby = b.s.ruby;
+  for (let t = 0; t < 10 && b.s.boss === 1; t += 0.05) b.tick(0.05);
+  assert.strictEqual(b.s.boss, 2, '보스를 이기면 다음 보스');
+  assert(b.s.ruby > ruby);
+  assert(b.s.bossCd > 0);
+  assert.strictEqual(b.startBoss(), false, '대기 시간 동안은 못 한다');
+  for (let t = 0; t < 5; t += 0.05) b.tick(0.05);
+  assert.strictEqual(b.s.stage, 5, '보스전 뒤 같은 스테이지');
+  b.s.bossCd = 0;
+  b.s.board.fill(0);
+  assert(b.startBoss());
+  for (let t = 0; t < TG.P.bossTime + 5; t += 0.05) b.tick(0.05);
+  assert.strictEqual(b.mode, 'stage');
+  assert.strictEqual(b.s.boss, 2, '지면 같은 보스');
+  assert.strictEqual(b.s.stage, 5, '보스전에서 져도 스테이지는 그대로');
+
+  /* 스킬 */
+  const k = new TG.Game(null, seeded(8));
+  k.s.board[0] = 6;
+  for (let t = 0; t < 3; t += 0.05) k.tick(0.05);
+  assert(k.useSkill('rain'));
+  assert.strictEqual(k.useSkill('rain'), false, '쿨타임');
+  let drops = 0;
+  for (let t = 0; t < 3; t += 0.05) {
+    k.tick(0.05);
+    drops += k.events.filter((e) => e.type === 'drop').length;
+    k.events.length = 0;
+  }
+  assert(drops >= 6, `쏟아진 수 ${drops}`);
+  assert(k.useSkill('rage'));
+  assert(k.raging);
+
+  /* 자리 비운 동안 골드: 시간에 비례하고 8시간에서 멈춘다 */
+  const o = new TG.Game(null, seeded(9));
+  o.s.stage = 30;
+  assert(o.offlineGold(3600) > 0);
+  assert.strictEqual(o.offlineGold(20 * 3600), o.offlineGold(8 * 3600));
+  console.log('v0.2 ok');
+}
+
 /* ---- 속도 ---- */
 function bot(kind, minutes, seed = 7) {
   const g = new TG.Game(null, seeded(seed));
@@ -120,7 +200,18 @@ function bot(kind, minutes, seed = 7) {
         if (g.craft() < 0) break;
       }
     }
-    /* 자동 기능 첫 레벨을 먼저, 그다음은 가장 싼 강화 */
+    /* 보스전은 열리면 바로, 상점은 살 수 있으면 산다, 스킬은 자동 스킬을 사기 전엔 손으로 */
+    if (g.canBoss() && g.highest >= 6) g.startBoss();
+    if (kind === 'active') {
+      for (let k = 0; k < g.s.shop.offers.length; k++) g.shopBuy(k);
+      if (!g.s.lv.autoSkill) for (const id of ['rain', 'rage']) g.useSkill(id);
+    }
+    for (const id of ['autoSkill', 'rAtk', 'rGold', 'skRain', 'skRage']) {
+      if (id === 'autoSkill') {
+        if (g.buy(id)) continue;
+      } else if (g.s.lv.autoSkill || g.s.ruby > 200) g.buy(id);
+    }
+    /* 자동 기능 첫 레벨을 먼저, 그다음은 가장 싼 골드 강화 */
     let bought = true;
     while (bought) {
       bought = false;
@@ -129,11 +220,11 @@ function bot(kind, minutes, seed = 7) {
         if (g.buy(first)) bought = true;
         continue;
       }
-      const ids = TG.UPGRADES.map((u) => u.id).filter((id) => g.cost(id) !== null);
+      const ids = TG.UPGRADES.filter((u) => !u.cur).map((u) => u.id).filter((id) => g.cost(id) !== null);
       ids.sort((a, b) => g.cost(a) - g.cost(b));
       if (g.buy(ids[0])) bought = true;
     }
-    for (const m of marks) if (!out[m] && t >= m * 60 - dt * 1.5) out[m] = { stage: g.s.stage, best: g.s.best, top: g.highest, deaths: g.s.stats.deaths, lv: { ...g.s.lv } };
+    for (const m of marks) if (!out[m] && t >= m * 60 - dt * 1.5) out[m] = { stage: g.s.stage, best: g.s.best, top: g.highest, deaths: g.s.stats.deaths, lv: { ...g.s.lv }, ruby: g.s.ruby, boss: g.s.boss };
   }
   return out;
 }
@@ -143,7 +234,7 @@ if (process.argv.includes('--pace')) {
   for (const kind of ['idle', 'active']) {
     const r = bot(kind, minutes);
     console.log(`\n[${kind}]`);
-    for (const [m, v] of Object.entries(r)) console.log(`${String(m).padStart(4)}분  스테이지 ${v.stage} (최고 ${v.best})  최고 단계 ${v.top}  쓰러짐 ${v.deaths}  강화 ${JSON.stringify(v.lv)}`);
+    for (const [m, v] of Object.entries(r)) console.log(`${String(m).padStart(4)}분  스테이지 ${v.stage} (최고 ${v.best})  최고 단계 ${v.top}  쓰러짐 ${v.deaths}  보스 ${v.boss - 1}승  루비 ${v.ruby}`);
   }
 } else {
   testBoard();
@@ -151,6 +242,7 @@ if (process.argv.includes('--pace')) {
   testSave();
   testFormat();
   testBattle();
+  testV02();
   console.log('\nall tests passed');
 }
 

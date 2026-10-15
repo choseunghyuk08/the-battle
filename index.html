@@ -15,6 +15,7 @@
     <header class="hud">
       <div class="stage" id="stageBox"><b id="stageNum">스테이지 1</b><span id="stageSub">들판</span></div>
       <div class="gold" aria-label="골드"><span id="goldIcon" class="icon"></span><span id="goldNum">0</span></div>
+      <div class="gold ruby" aria-label="루비"><span id="rubyIcon" class="icon"></span><span id="rubyNum">0</span></div>
     </header>
 
     <div class="info" aria-label="전투 정보">
@@ -33,20 +34,19 @@
     <section class="battle" aria-label="전투 화면"><canvas id="battle"></canvas></section>
 
     <div class="bar">
-      <div class="chips">
-        <span class="chip" id="chipCraft"><span id="chipCraftIcon" class="icon"></span>자동 제작</span>
-        <span class="chip" id="chipMerge"><span id="chipMergeIcon" class="icon"></span>자동 합성</span>
-        <span class="chip count"><span id="countIcon" class="icon"></span><b id="countNum">0/8</b></span>
-      </div>
+      <button class="skill" id="skRain" type="button" aria-label="쏟아지기 스킬"><span id="skRainIcon" class="icon x2"></span><span class="cd"></span><small>쏟아지기</small></button>
+      <button class="skill" id="skRage" type="button" aria-label="분노 스킬"><span id="skRageIcon" class="icon x2"></span><span class="cd"></span><small>분노</small></button>
+      <button class="skill boss" id="bossBtn" type="button" aria-label="보스전"><span id="bossIcon" class="icon x2"></span><span class="cd"></span><small id="bossLabel">보스 1</small></button>
       <button class="craft" id="craft" type="button" aria-label="던질 것 만들기">
         <span class="face"><span id="craftIcon" class="icon"></span>만들기 <span id="craftCount">5/5</span><span class="fill" id="craftFill"></span></span>
       </button>
     </div>
 
-    <section class="field" id="field" aria-label="합성 필드. 같은 물건을 끌어다 겹치면 합쳐진다"><canvas id="fieldCv"></canvas></section>
+    <section class="field" id="field" aria-label="합성 필드. 같은 물건을 끌어다 겹치면 합쳐진다"><canvas id="fieldCv"></canvas><div class="fieldtag"><span id="countIcon" class="icon"></span><b id="countNum">0/8</b><span class="auto" id="autoTag"></span></div></section>
 
     <nav class="dock">
       <button class="tab" id="tabUp" type="button"><span id="upIcon" class="icon"></span>강화<span class="dot" id="upDot" hidden></span></button>
+      <button class="tab" id="tabShop" type="button"><span id="shopIcon" class="icon"></span>상점<span class="dot" id="shopDot" hidden></span></button>
       <button class="tab" id="tabDex" type="button"><span id="dexIcon" class="icon"></span>도감</button>
       <button class="tab" id="tabSet" type="button"><span id="setIcon" class="icon"></span>설정</button>
     </nav>
@@ -57,6 +57,15 @@
     </section>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <div class="modal" id="offline" hidden>
+      <div class="card">
+        <span id="offIcon" class="icon x2"></span>
+        <h2>자리 비운 동안</h2>
+        <p id="offText">-</p>
+        <button type="button" id="offOk" class="primary">받기</button>
+      </div>
+    </div>
   </main>
 
   <script src="js/format.js"></script>

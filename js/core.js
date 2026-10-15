@@ -57,6 +57,23 @@
     upCostGrow: 1.09, // 공격력/체력 강화 값이 오르는 배율
     craftCostGrow: 1.17,
     climbCostGrow: 1.15,
+
+    /* v0.2 */
+    rubyDrop: 0.15, // 거대 몬스터가 루비를 떨굴 확률
+    bossTime: 30, // 보스전 제한 시간
+    bossCd: 180, // 보스전 다시 하기까지 (이기면)
+    bossFailCd: 60, // 지면
+    bossBase: 8, // 첫 보스의 세기 (스테이지 몇 수준인지)
+    bossStep: 7, // 보스 하나 이길 때마다 이만큼 세진다
+    bossHpK: 18, // 보스 체력 = 그 수준 몬스터 체력 x 이만큼
+    rainCd: 45,
+    rageCd: 60,
+    rageTime: 8,
+    shopRefresh: 120, // 상점이 저절로 바뀌는 시간
+    shopSize: 3,
+    shopRefreshRuby: 5,
+    offlineMax: 8 * 3600,
+    offlineRate: 0.5, // 자리 비운 동안은 켜 둔 것의 이만큼 번다
   });
 
   P.mobHp = (n) => Math.round(P.mobHp0 * P.mobHpGrow ** (n - 1));
@@ -92,6 +109,12 @@
     { id: 'slots', name: '보유 개수', max: 52, cost: (L) => Math.ceil(P.slotCost0 * P.slotCostGrow ** L), desc: (L) => `필드에 ${P.slotsStart + L}개까지` },
     { id: 'autoCraft', name: '자동 제작', max: AUTO_COST.length, cost: (L) => (L < AUTO_COST.length ? AUTO_COST[L] : null), desc: (L) => (L ? `${AUTO_GAP[L]}초마다 제작` : '꺼짐') },
     { id: 'autoMerge', name: '자동 합성', max: AUTO_COST2.length, cost: (L) => (L < AUTO_COST2.length ? AUTO_COST2[L] : null), desc: (L) => (L ? `${AUTO_GAP[L]}초마다 합성` : '꺼짐') },
+    /* 루비로 사는 강화 */
+    { id: 'rAtk', cur: 'ruby', name: '루비 공격력', max: 999, cost: (L) => Math.ceil(10 * 1.5 ** L), desc: (L) => `모든 공격 x${TG.fmtMult(1.15 ** L)}` },
+    { id: 'rGold', cur: 'ruby', name: '루비 골드', max: 999, cost: (L) => Math.ceil(10 * 1.5 ** L), desc: (L) => `얻는 골드 +${L * 15}%` },
+    { id: 'skRain', cur: 'ruby', name: '쏟아지기', max: 50, cost: (L) => Math.ceil(15 * 1.45 ** L), desc: (L) => `최고 물건 ${6 + 2 * L}개가 쏟아진다 (x${TG.fmtMult(1 + 0.25 * L)})` },
+    { id: 'skRage', cur: 'ruby', name: '분노', max: 50, cost: (L) => Math.ceil(15 * 1.45 ** L), desc: (L) => `${P.rageTime + L}초 동안 2배 빠르게, 피해 x${TG.fmtMult(1.5 + 0.1 * L)}` },
+    { id: 'autoSkill', cur: 'ruby', name: '자동 스킬', max: 1, cost: (L) => (L < 1 ? 50 : null), desc: (L) => (L ? '스킬을 알아서 쓴다' : '꺼짐') },
   ];
   const UPBY = Object.fromEntries(TG.UPGRADES.map((u) => [u.id, u]));
   TG.upgradeCost = (id, L) => {
@@ -118,7 +141,14 @@
     best: 1,
     board: new Array(P.maxSlots).fill(0),
     pos: [], // 물건마다 필드 안 위치 [x, y] (0..1). 화면만 쓴다
-    lv: { atk: 0, hp: 0, craft: 0, climb: 0, slots: 0, autoCraft: 0, autoMerge: 0 },
+    lv: { atk: 0, hp: 0, craft: 0, climb: 0, slots: 0, autoCraft: 0, autoMerge: 0, rAtk: 0, rGold: 0, skRain: 0, skRage: 0, autoSkill: 0 },
+    ruby: 0,
+    shards: 0,
+    boss: 1, // 다음에 싸울 보스 번호
+    bossCd: 0,
+    skillCd: { rain: 0, rage: 0 },
+    autoSkillOn: true,
+    shop: { offers: [], t: 0 },
     charges: P.craftMax,
     seen: new Array(P.tiers + 1).fill(false),
     stats: { kills: 0, deaths: 0, merges: 0, crafts: 0, play: 0 },
@@ -143,13 +173,23 @@
         this.s.best = Math.max(this.s.stage, Math.floor(this.s.best) || 1);
         this.s.gold = Math.max(0, Number(this.s.gold) || 0);
         this.s.charges = Math.max(0, Math.min(P.craftMax, Number(this.s.charges) || 0));
+        for (const k of ['ruby', 'shards', 'bossCd']) this.s[k] = Math.max(0, Number(this.s[k]) || 0);
+        this.s.boss = Math.max(1, Math.floor(this.s.boss) || 1);
+        this.s.skillCd = { rain: Math.max(0, Number((save.skillCd || {}).rain) || 0), rage: Math.max(0, Number((save.skillCd || {}).rage) || 0) };
+        const shop = save.shop && Array.isArray(save.shop.offers) ? save.shop : { offers: [], t: 0 };
+        this.s.shop = { offers: shop.offers.filter((o) => o && o.tier >= 1 && o.tier <= P.tiers).map((o) => ({ tier: Math.floor(o.tier), sold: !!o.sold })), t: Number(shop.t) || 0 };
       } else {
         this.s = s;
       }
       for (let i = 0; i < P.maxSlots; i++) if (!this.s.pos[i]) this.s.pos[i] = this.freeSpot(i);
       this.autoCraftT = 0;
       this.autoMergeT = 0;
+      this.mode = 'stage';
+      this.rageT = 0;
+      this.rain = null;
+      this.drops = [];
       this.events = []; // 화면이 가져가서 보여줄 일들
+      if (!this.s.shop.offers.length) this.shopRoll();
       this.proj = [];
       this.mobs = [];
       this.startStage();
@@ -160,7 +200,10 @@
       return P.slotsStart + this.s.lv.slots;
     }
     get atkMult() {
-      return P.atkUp ** this.s.lv.atk;
+      return P.atkUp ** this.s.lv.atk * 1.15 ** this.s.lv.rAtk;
+    }
+    get goldMult() {
+      return 1 + 0.15 * this.s.lv.rGold;
     }
     get maxHp() {
       return Math.round(P.hpBase * P.hpUp ** this.s.lv.hp);
@@ -248,8 +291,9 @@
     mergeReward(slot) {
       const tier = this.s.board[slot];
       this.s.stats.merges++;
-      const gold = Math.ceil(P.mobGold(this.s.stage) * P.mergeGold);
+      const gold = Math.ceil(P.mobGold(this.s.stage) * P.mergeGold * this.goldMult);
       this.s.gold += gold;
+      this.s.shards += tier;
       this.see(tier);
       this.events.push({ type: 'merge', slot, tier, gold });
     }
@@ -292,11 +336,11 @@
     }
     canBuy(id) {
       const c = this.cost(id);
-      return c !== null && this.s.gold >= c;
+      return c !== null && this.s[UPBY[id].cur || 'gold'] >= c;
     }
     buy(id) {
       if (!this.canBuy(id)) return false;
-      this.s.gold -= this.cost(id);
+      this.s[UPBY[id].cur || 'gold'] -= this.cost(id);
       this.s.lv[id]++;
       if (id === 'hp') this.hero.hp = Math.min(this.maxHp, this.hero.hp * P.hpUp);
       return true;
@@ -334,7 +378,161 @@
       this.spawnT = 0;
       this.phase = 'fight';
       this.phaseT = 0;
+      this.drops = [];
+      this.rain = null;
+      if (this.mode === 'boss') {
+        this.wave = P.waves;
+        this.bossT = P.bossTime;
+        this.spawnBoss();
+        return;
+      }
       this.events.push({ type: 'stage', stage: n });
+    }
+
+    /* ---- 보스전 ---- */
+    bossLevel(k = this.s.boss) {
+      return P.bossBase + (k - 1) * P.bossStep;
+    }
+    bossInfo(k = this.s.boss) {
+      const th = TG.THEMES[(k - 1) % TG.THEMES.length];
+      const n = this.bossLevel(k);
+      return { kind: th.mobs[Math.floor((k - 1) / TG.THEMES.length) % th.mobs.length], n, hp: P.mobHp(n) * P.bossHpK, atk: P.mobAtk(n) * 3, ruby: 5 + 3 * k, theme: th };
+    }
+    spawnBoss() {
+      const b = this.bossInfo();
+      this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind: b.kind, pal: 2 + Math.floor(this.s.boss / TG.THEMES.length), x: P.spawnX + 6, hp: b.hp, max: b.hp, atk: b.atk, giant: true, boss: true, state: 'walk', t: 0, atkT: 0, cd: 0, hurt: 0 });
+      this.events.push({ type: 'boss-start', boss: this.s.boss, kind: b.kind });
+    }
+    canBoss() {
+      return this.mode === 'stage' && this.phase === 'fight' && this.s.bossCd <= 0;
+    }
+    startBoss() {
+      if (!this.canBoss()) return false;
+      this.mode = 'boss';
+      this.startStage();
+      return true;
+    }
+    bossEnd(win) {
+      const k = this.s.boss;
+      this.proj = [];
+      this.queue = [];
+      this.pending = [];
+      if (win) {
+        const r = this.bossInfo(k).ruby;
+        this.s.ruby += r;
+        this.s.boss++;
+        this.s.bossCd = P.bossCd;
+        this.events.push({ type: 'boss-win', boss: k, ruby: r });
+        this.mobs = [];
+        this.nextStage = this.s.stage;
+        this.phase = 'win';
+        this.phaseT = P.winTime;
+        this.act('win', P.winTime);
+      } else {
+        this.s.bossCd = P.bossFailCd;
+        this.events.push({ type: 'boss-lose', boss: k });
+        this.noPenalty = true;
+        this.phase = 'dead';
+        this.phaseT = P.deadTime;
+        this.act('die', P.deadTime * 0.6);
+      }
+      this.mode = 'stage';
+    }
+
+    /* ---- 스킬 ---- */
+    skillReady(id) {
+      return this.phase === 'fight' && this.s.skillCd[id] <= 0 && this.mobs.length > 0;
+    }
+    useSkill(id) {
+      if (!this.skillReady(id)) return false;
+      const top = this.highest || 1;
+      if (id === 'rain') {
+        const n = 6 + 2 * this.s.lv.skRain;
+        this.rain = { left: n, t: 0, gap: 1.2 / n, tier: top, dmg: TG.tierAtk(top) * this.atkMult * (1 + 0.25 * this.s.lv.skRain) };
+        this.s.skillCd.rain = P.rainCd;
+      } else if (id === 'rage') {
+        this.rageT = P.rageTime + this.s.lv.skRage;
+        this.s.skillCd.rage = P.rageCd;
+      } else return false;
+      this.events.push({ type: 'skill', id });
+      return true;
+    }
+    get raging() {
+      return this.rageT > 0;
+    }
+    tickSkills(dt) {
+      for (const k of ['rain', 'rage']) if (this.s.skillCd[k] > 0) this.s.skillCd[k] = Math.max(0, this.s.skillCd[k] - dt);
+      if (this.rageT > 0) this.rageT -= dt;
+      if (this.s.lv.autoSkill && this.s.autoSkillOn && this.phase === 'fight') for (const k of ['rain', 'rage']) if (this.skillReady(k)) this.useSkill(k);
+      /* 쏟아지기: 하늘에서 하나씩 떨어져서 떨어진 자리 근처 적을 모두 때린다 */
+      if (this.rain) {
+        this.rain.t -= dt;
+        while (this.rain && this.rain.t <= 0) {
+          const pick = this.mobs.length ? this.mobs[Math.floor(this.rng() * this.mobs.length)] : null;
+          const x = pick ? pick.x + (this.rng() - 0.5) * 10 : P.heroX + 40 + this.rng() * 120;
+          this.drops.push({ x, t: 0.35, dur: 0.35, tier: this.rain.tier, dmg: this.rain.dmg, spin: this.rng() * 360 });
+          this.rain.left--;
+          this.rain.t += this.rain.gap;
+          if (this.rain.left <= 0) this.rain = null;
+        }
+      }
+      for (let i = this.drops.length - 1; i >= 0; i--) {
+        const d = this.drops[i];
+        d.t -= dt;
+        if (d.t > 0) continue;
+        this.drops.splice(i, 1);
+        this.events.push({ type: 'drop', x: d.x, tier: d.tier });
+        for (const m of [...this.mobs]) {
+          if (Math.abs(m.x - d.x) > (m.giant ? 22 : 14)) continue;
+          m.hp -= d.dmg;
+          m.hurt = 0.16;
+          this.events.push({ type: 'hit', id: m.id, x: m.x, giant: m.giant, dmg: d.dmg, tier: d.tier });
+          if (m.hp <= 0) this.killMob(m);
+        }
+      }
+    }
+
+    /* ---- 조각 상점 ---- */
+    shopPrice(t) {
+      return Math.round(2 * 2 ** (t - 1));
+    }
+    shopRoll() {
+      let top = 1;
+      for (let t = 1; t <= P.tiers; t++) if (this.s.seen[t]) top = t;
+      const hi = Math.max(1, top - 1);
+      const lo = Math.max(1, top - 5);
+      this.s.shop = { offers: [], t: P.shopRefresh };
+      for (let k = 0; k < P.shopSize; k++) this.s.shop.offers.push({ tier: lo + Math.floor(this.rng() * (hi - lo + 1)), sold: false });
+      this.s.shop.offers.sort((a, b) => a.tier - b.tier);
+      this.events.push({ type: 'shop' });
+    }
+    shopRefresh() {
+      if (this.s.ruby < P.shopRefreshRuby) return false;
+      this.s.ruby -= P.shopRefreshRuby;
+      this.shopRoll();
+      return true;
+    }
+    shopBuy(k) {
+      const o = this.s.shop.offers[k];
+      if (!o || o.sold) return 'sold';
+      const price = this.shopPrice(o.tier);
+      if (this.s.shards < price) return 'poor';
+      const i = this.emptySlot();
+      if (i < 0) return 'full';
+      this.s.shards -= price;
+      o.sold = true;
+      this.s.board[i] = o.tier;
+      this.s.pos[i] = this.freeSpot(i);
+      this.see(o.tier);
+      this.events.push({ type: 'craft', slot: i, tier: o.tier, bought: true });
+      return 'ok';
+    }
+
+    /* ---- 자리 비운 동안 ---- */
+    offlineGold(sec) {
+      const t = Math.min(P.offlineMax, Math.max(0, sec));
+      const perStage = P.mobGold(this.s.stage) * (P.waves * P.mobsPerWave + P.giantGold) * this.goldMult;
+      return Math.floor((perStage / 32) * t * P.offlineRate);
     }
 
     nextWave() {
@@ -384,17 +582,26 @@
     launch(tier) {
       const f = this.front();
       if (!f) return;
-      this.proj.push({ tier, t: P.flight, dur: P.flight, target: f, dmg: TG.tierAtk(tier) * this.atkMult, spin: this.rng() * 360 });
+      const rage = this.raging ? 1.5 + 0.1 * this.s.lv.skRage : 1;
+      this.proj.push({ tier, t: P.flight, dur: P.flight, target: f, dmg: TG.tierAtk(tier) * this.atkMult * rage, spin: this.rng() * 360 });
     }
 
     killMob(m) {
       const n = this.s.stage;
       this.mobs.splice(this.mobs.indexOf(m), 1);
       this.dying.push({ m, t: 0 });
-      const gold = P.mobGold(n) * (m.giant ? P.giantGold : 1);
+      const gold = Math.ceil(P.mobGold(n) * (m.giant ? P.giantGold : 1) * this.goldMult);
       this.s.gold += gold;
       this.s.stats.kills++;
       this.events.push({ type: 'kill', x: m.x, giant: m.giant, gold });
+      if (m.boss) {
+        this.bossEnd(true);
+        return;
+      }
+      if (m.giant && this.rng() < P.rubyDrop) {
+        this.s.ruby += 1;
+        this.events.push({ type: 'ruby', x: m.x, n: 1 });
+      }
     }
 
     stageClear() {
@@ -414,6 +621,10 @@
     }
 
     die() {
+      if (this.mode === 'boss') {
+        this.bossEnd(false);
+        return;
+      }
       this.s.stats.deaths++;
       this.events.push({ type: 'die', stage: Math.max(1, this.s.stage - 1) });
       this.phase = 'dead';
@@ -446,6 +657,11 @@
         else if (this.autoMergeT > AUTO_GAP[s.lv.autoMerge]) this.autoMergeT = AUTO_GAP[s.lv.autoMerge];
       }
 
+      if (s.bossCd > 0) s.bossCd = Math.max(0, s.bossCd - dt);
+      s.shop.t -= dt;
+      if (s.shop.t <= 0) this.shopRoll();
+      if (this.phase === 'fight') this.tickSkills(dt);
+
       for (let i = this.dying.length - 1; i >= 0; i--) {
         this.dying[i].t += dt;
         if (this.dying[i].t > P.dieTime) this.dying.splice(i, 1);
@@ -459,7 +675,8 @@
         for (const m of this.mobs) m.t += dt;
         if (this.phaseT > 0) return;
         if (this.phase === 'dead') {
-          this.s.stage = Math.max(1, this.s.stage - 1);
+          if (!this.noPenalty) this.s.stage = Math.max(1, this.s.stage - 1);
+          this.noPenalty = false;
           this.startStage();
         } else if (this.phase === 'win') {
           this.phase = 'run';
@@ -473,8 +690,19 @@
         return;
       }
 
-      /* 웨이브 진행 */
-      if (this.gapT > 0) {
+      /* 보스전 제한 시간 */
+      if (this.mode === 'boss') {
+        this.bossT -= dt;
+        if (this.bossT <= 0) {
+          this.bossEnd(false);
+          return;
+        }
+      }
+
+      /* 웨이브 진행 (보스전에서는 보스 하나뿐이다) */
+      if (this.mode === 'boss') {
+        /* 아무것도 안 한다 */
+      } else if (this.gapT > 0) {
         this.gapT -= dt;
         if (this.gapT <= 0) {
           if (this.wave >= P.waves) {
@@ -550,7 +778,8 @@
           }
           if (this.reloadT <= 0) {
             this.queue = this.boardTiers();
-            this.gap = Math.min(P.throwGap, P.volley / Math.max(1, this.queue.length));
+            const rage = this.raging ? 0.5 : 1;
+            this.gap = Math.min(P.throwGap * rage, (P.volley * rage) / Math.max(1, this.queue.length));
             this.throwT = 0;
           }
         }
@@ -562,7 +791,7 @@
             if (hero.act.kind !== 'throw' || hero.act.t >= hero.act.dur * 0.999) this.act('throw', anim);
             this.pending.push({ tier, t: anim * P.release });
             this.throwT += this.gap;
-            if (!this.queue.length) this.reloadT = P.reload;
+            if (!this.queue.length) this.reloadT = P.reload * (this.raging ? 0.5 : 1);
           }
         }
       } else if (hero.act.kind === 'reload' || (hero.act.kind === 'throw' && hero.act.t >= hero.act.dur)) {
@@ -572,6 +801,7 @@
       /* 날아가는 것 */
       for (let i = this.proj.length - 1; i >= 0; i--) {
         const p = this.proj[i];
+        if (!p) continue; /* 보스를 잡으면 날아가던 것이 비워진다 */
         p.t -= dt;
         if (p.t > 0) continue;
         this.proj.splice(i, 1);
