@@ -27,7 +27,7 @@
     giantHp: 5,
     giantGold: 5,
 
-    heroX: 46, // v0.3 부터 뒤에 동료 둘이 서서 오른쪽으로 옮겼다
+    heroX: 54, // 뒤에 동료가 서고, 동료와 거리를 둔다
     spawnX: 196,
     mobSpeed: 15,
     mobRange: 22, // 주인공에 이만큼 가까워지면 때린다
@@ -76,8 +76,8 @@
     offlineRate: 0.5, // 자리 비운 동안은 켜 둔 것의 이만큼 번다
 
     /* v0.3 */
-    monkeyX: 29,
-    hippoX: 12,
+    monkeyX: 28,
+    hippoX: 10,
     monkeyAnim: 0.5, // 원숭이 던지기 동작 길이
     monkeyRelease: 0.5, // 그중 바나나가 손을 떠나는 순간
     monkeyGap: 0.9, // 한 번 던지고 다시 던질 수 있을 때까지
