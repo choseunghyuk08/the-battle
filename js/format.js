@@ -19,6 +19,9 @@
     return (s.includes('.') ? s.replace(/\.?0+$/, '') : s) + UNITS[k];
   };
 
+  /* 배율 표시: 1.06 -> 1.06, 12.3 -> 12.3, 12345 -> 1.23만 */
+  TG.fmtMult = (m) => (m < 10 ? m.toFixed(2) : m < 10000 ? m.toFixed(1).replace(/\.0$/, '') : TG.fmt(m));
+
   /* 시간 표시: 75 -> 1분 15초 */
   TG.fmtTime = (sec) => {
     sec = Math.max(0, Math.floor(sec));

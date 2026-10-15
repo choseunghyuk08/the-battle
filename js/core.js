@@ -9,13 +9,14 @@
     slotsStart: 8,
 
     atk0: 20, // 1단계 공격력
-    atkGrow: 1.48, // 한 단계 오를 때 배율
+    atkGrow: 1.8, // 한 단계 오를 때 배율 (합치면 2개가 1개가 되니 전체 화력은 0.9배지만 칸이 빈다)
 
-    throwGap: 0.25, // 보드의 던질 것을 하나씩 던지는 간격(초)
+    throwGap: 0.3, // 보드의 던질 것을 하나씩 던지는 간격(초). 많으면 volley 안에 다 던지도록 빨라진다
+    volley: 2.0, // 한 바퀴(보드의 물건 전부)를 던지는 데 쓰는 최대 시간
     reload: 1.0, // 다 던지고 쉬는 시간
     flight: 0.2, // 날아가는 시간
 
-    craftCd: 2, // 제작 충전 1개가 차는 시간
+    craftCd: 1, // 제작 충전 1개가 차는 시간
     craftMax: 5,
 
     waves: 5,
@@ -32,27 +33,50 @@
     mobSpace: 11, // 몬스터끼리 간격
     mobHitGap: 1.0,
 
+    mobAtkDur: 0.6, // 몬스터 공격 동작 길이
+    mobHitAt: 0.6, // 그중 때리는 순간
+    release: 0.4, // 던지기 동작에서 손이 떠나는 순간
+    dieTime: 0.55, // 몬스터 쓰러지는 동작
+    winTime: 0.9,
+    runTime: 1.1,
+    deadTime: 1.6,
+    themeLen: 10, // 테마 하나가 이어지는 스테이지 수
+
     hpBase: 100,
-    mobHp: (n) => 25 * n * n,
-    mobAtk: (n) => Math.max(1, Math.round(n * 1.2)),
-    mobGold: (n) => Math.ceil(2 + n * 0.9),
+    /* 몬스터와 보상은 스테이지마다 일정 배율로 커진다. 강화도 레벨마다 배율로 커져서 서로 쫓아간다 */
+    mobHp0: 30,
+    mobHpGrow: 1.096,
+    mobAtk0: 3,
+    mobAtkGrow: 1.07,
+    gold0: 2,
+    mergeGold: 0.5, // 합칠 때마다 이 스테이지 몬스터 한 마리 골드의 이만큼
+    goldGrow: 1.072,
+    atkUp: 1.03, // 공격력 강화 1레벨 배율
+    hpUp: 1.06,
+    upCostGrow: 1.09, // 공격력/체력 강화 값이 오르는 배율
+    craftCostGrow: 1.17,
+    climbCostGrow: 1.15,
   });
+
+  P.mobHp = (n) => Math.round(P.mobHp0 * P.mobHpGrow ** (n - 1));
+  P.mobAtk = (n) => Math.max(1, Math.round(P.mobAtk0 * P.mobAtkGrow ** (n - 1)));
+  P.mobGold = (n) => Math.ceil(P.gold0 * P.goldGrow ** (n - 1));
 
   const roundFix = (x) => Math.round(x * 1e6) / 1e6;
 
   /* 강화 목록. cost(L) 은 L 레벨에서 L+1 레벨로 올리는 값이고, 끝이면 null */
   const AUTO_COST = [100, 300, 900, 2700, 8100];
   const AUTO_COST2 = [200, 600, 1800, 5400, 16200];
-  const AUTO_GAP = [0, 5, 4.1, 3.2, 2.3, 1.4];
+  const AUTO_GAP = [0, 5, 4, 3.2, 2.6, 2];
   const SLOT_COST = [150, 600, 2500, 10000];
   TG.UPGRADES = [
-    { id: 'atk', name: '공격력', max: 9999, cost: (L) => Math.ceil(10 * 1.15 ** L), desc: (L) => `던질 것의 공격력 +${L * 10}%` },
-    { id: 'hp', name: '체력', max: 9999, cost: (L) => Math.ceil(10 * 1.15 ** L), desc: (L) => `체력 ${Math.round(P.hpBase * (1 + L * 0.1))}` },
+    { id: 'atk', name: '공격력', max: 9999, cost: (L) => Math.ceil(10 * P.upCostGrow ** L), desc: (L) => `던질 것의 공격력 x${TG.fmtMult(P.atkUp ** L)}` },
+    { id: 'hp', name: '체력', max: 9999, cost: (L) => Math.ceil(10 * P.upCostGrow ** L), desc: (L) => `체력 ${TG.fmt(Math.round(P.hpBase * P.hpUp ** L))}` },
     {
       id: 'craft',
       name: '제작술',
       max: 9999,
-      cost: (L) => Math.ceil(25 * 1.22 ** L),
+      cost: (L) => Math.ceil(25 * P.craftCostGrow ** L),
       desc: (L) => {
         const base = 1 + Math.floor(L / 10);
         return `${base}단계 제작, ${(L % 10) * 10}%로 ${base + 1}단계`;
@@ -62,7 +86,7 @@
       id: 'climb',
       name: '등반술',
       max: 9999,
-      cost: (L) => Math.ceil(40 * 1.22 ** L),
+      cost: (L) => Math.ceil(40 * P.climbCostGrow ** L),
       desc: (L) => `클리어 때 ${Math.round(Math.min(0.5, 0.05 + 0.005 * L) * 100)}%로 최대 ${1 + Math.floor(L / 10)}스테이지 건너뜀`,
     },
     { id: 'slots', name: '보드 칸', max: SLOT_COST.length, cost: (L) => (L < SLOT_COST.length ? SLOT_COST[L] : null), desc: (L) => `${P.slotsStart + L}칸 사용 중` },
@@ -74,6 +98,16 @@
     const u = UPBY[id];
     return L >= u.max ? null : u.cost(L);
   };
+
+  /* 테마 (10스테이지마다 바뀌고 돌고 돈다). mobs 는 TG.SPR.mob 의 이름. 그림이 없으면 화면이 슬라임으로 대신 그린다 */
+  TG.THEMES = [
+    { id: 'field', name: '들판', mobs: ['slime', 'mushroom', 'bee', 'snail'] },
+    { id: 'forest', name: '숲', mobs: ['boar', 'stump', 'owl'] },
+    { id: 'cave', name: '동굴', mobs: ['bat', 'skeleton', 'golem'] },
+    { id: 'volcano', name: '화산', mobs: ['salamander', 'magma', 'imp'] },
+    { id: 'ice', name: '빙하', mobs: ['penguin', 'snowman', 'wisp'] },
+    { id: 'space', name: '우주', mobs: ['alien', 'meteor', 'jelly'] },
+  ];
 
   TG.tierAtk = (n) => Math.round(P.atk0 * P.atkGrow ** (n - 1));
 
@@ -120,10 +154,10 @@
       return P.slotsStart + this.s.lv.slots;
     }
     get atkMult() {
-      return 1 + 0.1 * this.s.lv.atk;
+      return P.atkUp ** this.s.lv.atk;
     }
     get maxHp() {
-      return Math.round(P.hpBase * (1 + 0.1 * this.s.lv.hp));
+      return Math.round(P.hpBase * P.hpUp ** this.s.lv.hp);
     }
     get highest() {
       return Math.max(0, ...this.s.board);
@@ -148,17 +182,44 @@
       return -1;
     }
 
+    /* 제작. 칸이 꽉 차고 합칠 쌍이 없어도 막히지 않게, 새 물건은 가장 낮은 칸으로 간다:
+       같은 단계면 바로 합쳐지고, 더 낮은 물건이면 밀어낸다 */
     craft() {
       if (this.s.charges < 1) return -1;
-      const i = this.emptySlot();
-      if (i < 0) return -1;
-      this.s.charges -= 1;
+      const b = this.s.board;
       const t = this.rollTier();
-      this.s.board[i] = t;
+      let i = this.emptySlot();
+      if (i < 0) {
+        let lo = 0;
+        for (let k = 1; k < this.slots; k++) if (b[k] < b[lo]) lo = k;
+        if (b[lo] > t) return -1;
+        this.s.charges -= 1;
+        this.s.stats.crafts++;
+        this.see(t);
+        if (b[lo] === t && t < P.tiers) {
+          b[lo] = t + 1;
+          this.mergeReward(lo);
+        } else {
+          b[lo] = t;
+          this.events.push({ type: 'craft', slot: lo, tier: t, replaced: true });
+        }
+        return lo;
+      }
+      this.s.charges -= 1;
+      b[i] = t;
       this.s.stats.crafts++;
       this.see(t);
       this.events.push({ type: 'craft', slot: i, tier: t });
       return i;
+    }
+
+    mergeReward(slot) {
+      const tier = this.s.board[slot];
+      this.s.stats.merges++;
+      const gold = Math.ceil(P.mobGold(this.s.stage) * P.mergeGold);
+      this.s.gold += gold;
+      this.see(tier);
+      this.events.push({ type: 'merge', slot, tier, gold });
     }
 
     /* 같은 단계 2개 합치기. 결과는 to 칸에 둔다 */
@@ -168,9 +229,7 @@
       if (!b[from] || b[from] !== b[to] || b[to] >= P.tiers) return false;
       b[to] += 1;
       b[from] = 0;
-      this.s.stats.merges++;
-      this.see(b[to]);
-      this.events.push({ type: 'merge', slot: to, tier: b[to] });
+      this.mergeReward(to);
       return true;
     }
 
@@ -221,24 +280,41 @@
       if (!this.canBuy(id)) return false;
       this.s.gold -= this.cost(id);
       this.s.lv[id]++;
-      if (id === 'hp') this.hero.hp += P.hpBase * 0.1;
+      if (id === 'hp') this.hero.hp = Math.min(this.maxHp, this.hero.hp * P.hpUp);
       return true;
     }
 
-    /* ---- 전투 ---- */
+    /* ---- 전투 ----
+       화면 연출과 맞물리는 시간도 여기서 센다 (던지는 손이 떠나는 순간, 몬스터가 때리는 순간, 쓰러짐, 승리, 달려가기).
+       hero.act: { kind: 'idle'|'throw'|'reload'|'hurt'|'die'|'win'|'run', t, dur } -> 화면이 동작 프레임을 고른다 */
+    theme() {
+      const th = TG.THEMES[Math.floor((this.s.stage - 1) / P.themeLen) % TG.THEMES.length];
+      return th;
+    }
+
+    variant() {
+      return Math.floor((this.s.stage - 1) / (P.themeLen * TG.THEMES.length));
+    }
+
+    act(kind, dur) {
+      this.hero.act = { kind, t: 0, dur };
+    }
+
     startStage() {
       const n = this.s.stage;
-      this.hero = { hp: this.maxHp, hurt: 0 };
+      this.hero = { hp: this.maxHp, act: { kind: 'idle', t: 0, dur: 1 } };
       this.wave = 0;
       this.mobs = [];
+      this.dying = [];
       this.proj = [];
       this.queue = [];
-      this.throwT = 0;
+      this.pending = null;
       this.reloadT = 0;
-      this.gapT = 0.5;
+      this.gapT = 0.4;
       this.spawnList = [];
       this.spawnT = 0;
-      this.nextWaveAfterGap = true;
+      this.phase = 'fight';
+      this.phaseT = 0;
       this.events.push({ type: 'stage', stage: n });
     }
 
@@ -253,8 +329,25 @@
 
     spawnMob(giant) {
       const n = this.s.stage;
+      const th = this.theme();
+      const kinds = th.mobs;
+      const kind = giant ? kinds[(Math.floor(n / P.themeLen) + this.variant()) % kinds.length] : kinds[Math.floor(this.rng() * kinds.length)];
       const hp = P.mobHp(n) * (giant ? P.giantHp : 1);
-      this.mobs.push({ x: P.spawnX, hp, max: hp, atk: P.mobAtk(n) * (giant ? 2 : 1), giant, hitT: 0, hurt: 0, id: (this.mobId = (this.mobId || 0) + 1), kind: this.wave % 5 });
+      this.mobs.push({
+        id: (this.mobId = (this.mobId || 0) + 1),
+        kind,
+        pal: this.variant() + (giant ? 1 : 0),
+        x: P.spawnX + (giant ? 10 : 0),
+        hp,
+        max: hp,
+        atk: P.mobAtk(n) * (giant ? 2 : 1),
+        giant,
+        state: 'walk',
+        t: this.rng(),
+        atkT: 0,
+        cd: 0,
+        hurt: 0,
+      });
     }
 
     front() {
@@ -272,13 +365,13 @@
     launch(tier) {
       const f = this.front();
       if (!f) return;
-      this.proj.push({ tier, t: P.flight, dur: P.flight, target: f, dmg: TG.tierAtk(tier) * this.atkMult });
-      this.hero.throwing = 0.18;
+      this.proj.push({ tier, t: P.flight, dur: P.flight, target: f, dmg: TG.tierAtk(tier) * this.atkMult, spin: this.rng() * 360 });
     }
 
     killMob(m) {
       const n = this.s.stage;
       this.mobs.splice(this.mobs.indexOf(m), 1);
+      this.dying.push({ m, t: 0 });
       const gold = P.mobGold(n) * (m.giant ? P.giantGold : 1);
       this.s.gold += gold;
       this.s.stats.kills++;
@@ -294,17 +387,28 @@
         skipped = 1 + Math.floor(this.rng() * (1 + Math.floor(L / 10)));
         step += skipped;
       }
-      s.stage += step;
-      s.best = Math.max(s.best, s.stage);
-      this.events.push({ type: 'clear', stage: s.stage, skipped });
-      this.startStage();
+      this.events.push({ type: 'clear', stage: s.stage, next: s.stage + step, skipped });
+      this.nextStage = s.stage + step;
+      this.phase = 'win';
+      this.phaseT = P.winTime;
+      this.act('win', P.winTime);
     }
 
     die() {
       this.s.stats.deaths++;
-      this.s.stage = Math.max(1, this.s.stage - 1);
-      this.events.push({ type: 'die', stage: this.s.stage });
-      this.startStage();
+      this.events.push({ type: 'die', stage: Math.max(1, this.s.stage - 1) });
+      this.phase = 'dead';
+      this.phaseT = P.deadTime;
+      this.act('die', P.deadTime * 0.6);
+      this.proj = [];
+      this.queue = [];
+      this.pending = null;
+    }
+
+    tickHero(dt) {
+      const a = this.hero.act;
+      a.t += dt;
+      if (a.t >= a.dur && (a.kind === 'throw' || a.kind === 'hurt') && !(a.kind === 'throw' && this.queue.length)) this.act(this.reloadT > 0 ? 'reload' : 'idle', 1);
     }
 
     tick(dt) {
@@ -323,9 +427,32 @@
         else if (this.autoMergeT > AUTO_GAP[s.lv.autoMerge]) this.autoMergeT = AUTO_GAP[s.lv.autoMerge];
       }
 
+      for (let i = this.dying.length - 1; i >= 0; i--) {
+        this.dying[i].t += dt;
+        if (this.dying[i].t > P.dieTime) this.dying.splice(i, 1);
+      }
+      this.tickHero(dt);
       const hero = this.hero;
-      if (hero.hurt > 0) hero.hurt -= dt;
-      if (hero.throwing > 0) hero.throwing -= dt;
+
+      /* 쓰러짐, 승리, 다음 스테이지로 달려가기 */
+      if (this.phase !== 'fight') {
+        this.phaseT -= dt;
+        for (const m of this.mobs) m.t += dt;
+        if (this.phaseT > 0) return;
+        if (this.phase === 'dead') {
+          this.s.stage = Math.max(1, this.s.stage - 1);
+          this.startStage();
+        } else if (this.phase === 'win') {
+          this.phase = 'run';
+          this.phaseT = P.runTime;
+          this.act('run', P.runTime);
+        } else if (this.phase === 'run') {
+          s.stage = this.nextStage;
+          s.best = Math.max(s.best, s.stage);
+          this.startStage();
+        }
+        return;
+      }
 
       /* 웨이브 진행 */
       if (this.gapT > 0) {
@@ -347,46 +474,73 @@
         this.gapT = P.waveGap;
       }
 
-      /* 몬스터 이동과 공격 */
+      /* 몬스터: 걷다가 주인공 앞에 서면 예비 동작 후 때린다 */
       this.mobs.sort((a, b) => a.x - b.x);
       let prev = null;
       for (const m of this.mobs) {
+        m.t += dt;
         if (m.hurt > 0) m.hurt -= dt;
-        const stop = prev ? prev.x + P.mobSpace + (m.giant || prev.giant ? 5 : 0) : P.heroX + P.mobRange;
-        if (m.x > stop) m.x = Math.max(stop, m.x - P.mobSpeed * dt);
-        if (m.x <= P.heroX + P.mobRange + 0.5) {
-          m.hitT += dt;
-          if (m.hitT >= P.mobHitGap) {
-            m.hitT -= P.mobHitGap;
+        const stop = prev ? prev.x + P.mobSpace + (m.giant || prev.giant ? 6 : 0) : P.heroX + P.mobRange + (m.giant ? 6 : 0);
+        if (m.state === 'attack') {
+          m.atkT += dt;
+          if (!m.struck && m.atkT >= P.mobAtkDur * P.mobHitAt) {
+            m.struck = true;
             hero.hp -= m.atk;
-            hero.hurt = 0.2;
             this.events.push({ type: 'hurt', dmg: m.atk });
+            if (hero.act.kind !== 'throw') this.act('hurt', 0.3);
+          }
+          if (m.atkT >= P.mobAtkDur) {
+            m.state = 'walk';
+            m.cd = P.mobHitGap - P.mobAtkDur;
+          }
+        } else if (m.x > stop + 0.01) {
+          m.state = 'walk';
+          m.x = Math.max(stop, m.x - P.mobSpeed * dt);
+        } else {
+          m.state = 'idle';
+          if (m.cd > 0) m.cd -= dt;
+          if (!prev && m.cd <= 0) {
+            m.state = 'attack';
+            m.atkT = 0;
+            m.struck = false;
           }
         }
         prev = m;
       }
       if (hero.hp <= 0) {
+        hero.hp = 0;
         this.die();
         return;
       }
 
-      /* 던지기 */
-      if (this.mobs.length) {
+      /* 던지기: 던지는 동작이 시작되고 손이 떠나는 순간에 날아간다 */
+      if (this.pending) {
+        this.pending.t -= dt;
+        if (this.pending.t <= 0) {
+          this.launch(this.pending.tier);
+          this.events.push({ type: 'throw', tier: this.pending.tier });
+          this.pending = null;
+        }
+      }
+      if (this.mobs.length && !this.pending) {
         if (!this.queue.length) {
-          if (this.reloadT > 0) this.reloadT -= dt;
+          if (this.reloadT > 0) {
+            this.reloadT -= dt;
+            if (hero.act.kind === 'idle') this.act('reload', 1);
+          }
           if (this.reloadT <= 0) {
             this.queue = this.boardTiers();
-            this.throwT = 0;
+            this.gap = Math.min(P.throwGap, P.volley / Math.max(1, this.queue.length));
           }
         }
-        if (this.queue.length) {
-          this.throwT -= dt;
-          if (this.throwT <= 0) {
-            this.launch(this.queue.shift());
-            this.throwT += P.throwGap;
-            if (!this.queue.length) this.reloadT = P.reload;
-          }
+        if (this.queue.length && (hero.act.kind !== 'throw' || hero.act.t >= hero.act.dur * 0.999)) {
+          const tier = this.queue.shift();
+          this.act('throw', this.gap);
+          this.pending = { tier, t: this.gap * P.release };
+          if (!this.queue.length) this.reloadT = P.reload;
         }
+      } else if (!this.mobs.length && (hero.act.kind === 'reload' || (hero.act.kind === 'throw' && hero.act.t >= hero.act.dur))) {
+        this.act('idle', 1);
       }
 
       /* 날아가는 것 */
@@ -398,8 +552,8 @@
         const m = this.mobs.includes(p.target) ? p.target : this.front();
         if (!m) continue;
         m.hp -= p.dmg;
-        m.hurt = 0.12;
-        this.events.push({ type: 'hit', x: m.x, giant: m.giant, dmg: p.dmg, tier: p.tier });
+        m.hurt = 0.16;
+        this.events.push({ type: 'hit', id: m.id, x: m.x, giant: m.giant, dmg: p.dmg, tier: p.tier });
         if (m.hp <= 0) this.killMob(m);
       }
     }

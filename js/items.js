@@ -2,7 +2,7 @@
   const TG = (g.TG = g.TG || {});
 
   /* 던지는 것들. 단계가 오를수록 일상 물건에서 신화를 거쳐 우주로 간다.
-     공격력은 단계마다 약 1.48배 (js/core.js 의 P.atkGrow) */
+     공격력은 단계마다 약 1.8배 (js/core.js 의 P.atkGrow) */
   TG.ITEMS = [
     { name: '연필', line: '깎으면 던질 만하다.' },
     { name: '젓가락', line: '한 짝만 던지는 게 포인트.' },
