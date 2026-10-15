@@ -102,9 +102,9 @@
     mineTime: 30, // 광산 한 번
     mineCd: 600, // 다시 들어가기까지
     mineOpen: 20, // 최고 스테이지가 이만큼 되면 열린다
-    oreSlots: 5, // 화면에 늘어선 바위 수
+    oreSlots: 4, // 화면에 늘어선 바위 수
     oreX0: 100,
-    oreGap: 20,
+    oreGap: 26,
     oreHpK: 3, // 첫 바위 체력 = (최고 스테이지 - oreBack) 몬스터 체력 x 이만큼
     oreBack: 15,
     oreHpGrow: 1.18, // 하나 부술 때마다 다음 바위가 이만큼 단단해진다
