@@ -136,23 +136,6 @@
     (1 - t) * (1 - t) * p0[0] + 2 * (1 - t) * t * p1[0] + t * t * p2[0],
     (1 - t) * (1 - t) * p0[1] + 2 * (1 - t) * t * p1[1] + t * t * p2[1],
   ];
-  /* 굽은 띠: 등뼈 spine(t) 양옆으로 w(t) 만큼 */
-  const bentPoly = (spine, wl, wr, t0 = 0, t1 = 1, k = 40) => {
-    const L = [];
-    const R = [];
-    for (let j = 0; j <= k; j++) {
-      const t = lerp(t0, t1, j / k);
-      const p = spine(t);
-      const q = spine(Math.min(1, t + 0.01));
-      const o = spine(Math.max(0, t - 0.01));
-      const dx = q[0] - o[0];
-      const dy = q[1] - o[1];
-      const len = Math.hypot(dx, dy) || 1;
-      L.push([p[0] - (dy / len) * wl(t), p[1] + (dx / len) * wl(t)]);
-      R.push([p[0] + (dy / len) * wr(t), p[1] - (dx / len) * wr(t)]);
-    }
-    return [...L, ...R.reverse()];
-  };
   const inPoly = (pts, px, py) => {
     let inside = false;
     for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
@@ -636,7 +619,7 @@
     }
     /* 면마다 다른 우주 */
     const SKY = [
-      (s, t, x, y) => {
+      (s, t) => {
         /* 위: 돌아가는 보라 은하 */
         const u = s - 0.5;
         const v = t - 0.5;
@@ -646,11 +629,11 @@
         if (r < 0.12) return '#fff4d0';
         return arm > 0.5 - r ? (r < 0.3 ? '#e8b8ff' : '#a070f0') : r < 0.25 ? '#7a48d0' : '#3a1c88';
       },
-      (s, t, x, y) => {
+      (s, t) => {
         const n = Math.sin(s * 7 + t * 3 - t0 * TAU) + Math.sin(t * 6 - s * 2 + t0 * TAU);
         return n > 1 ? '#7affc8' : n > 0 ? '#28b0a0' : n > -1 ? '#18607a' : '#0e2e52';
       },
-      (s, t, x, y) => {
+      (s, t) => {
         const n = Math.sin(s * 6 - t * 4 + t0 * TAU) + Math.sin(t * 7 + s * 3 - t0 * TAU);
         return n > 1 ? '#ffe08a' : n > 0 ? '#ff8a5a' : n > -1 ? '#d0407a' : '#6a1a5a';
       },
