@@ -213,11 +213,17 @@
         const Y = Math.floor(M[1] * x + M[3] * y + M[5]);
         if (X < 0 || Y < 0 || X >= W || Y >= H) return;
         const [r, gg, bl] = rgbOf(color);
-        const i = (Y * W + X) * 4;
-        cur[i] = r;
-        cur[i + 1] = gg;
-        cur[i + 2] = bl;
-        cur[i + 3] = Math.max(cur[i + 3], Math.round(alpha * 255));
+        /* 배율이 2 이상이면 점도 그만큼 크게 찍는다 */
+        const sz = Math.max(1, Math.round(Math.hypot(M[0], M[1])));
+        for (let yy = Y; yy < Math.min(H, Y + sz); yy++) {
+          for (let xx = X; xx < Math.min(W, X + sz); xx++) {
+            const i = (yy * W + xx) * 4;
+            cur[i] = r;
+            cur[i + 1] = gg;
+            cur[i + 2] = bl;
+            cur[i + 3] = Math.max(cur[i + 3], Math.round(alpha * 255));
+          }
+        }
       },
       /* 한 덩어리로 묶는다. outline 을 주면 그 덩어리 둘레에 한 점 외곽선이 생겨서 팔다리가 몸에서 구분된다 */
       part(fn, outlineColor) {
