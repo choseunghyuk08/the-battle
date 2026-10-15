@@ -166,7 +166,21 @@
     /* 폭에 맞춰 정수 배율로 키우되, 화면 높이의 38%를 넘지 않게 한다 */
     const box = cv.parentElement.getBoundingClientRect();
     const dpr = g.devicePixelRatio || 1;
-    const maxH = g.innerHeight * 0.38;
+    /* 다른 줄(위 정보, 버튼, 아래 탭)과 필드 최소 높이를 빼고 남는 만큼만 쓴다 (작은 폰에서 잘리지 않게) */
+    const app = cv.closest('#app');
+    let maxH = g.innerHeight * 0.38;
+    if (app) {
+      const cs = g.getComputedStyle(app);
+      let used = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom) + 170;
+      let rows = 0;
+      for (const el of app.children) {
+        if (el === cv.parentElement || el.id === 'field' || getComputedStyle(el).position === 'absolute' || el.hidden) continue;
+        used += el.getBoundingClientRect().height;
+        rows++;
+      }
+      used += parseFloat(cs.rowGap || 0) * (rows + 1);
+      maxH = Math.min(maxH, app.clientHeight - used - 4);
+    }
     const k = Math.max(1, Math.floor(Math.min((box.width - 4) * dpr / W, (maxH * dpr) / H)));
     cv.style.width = `${(W * k) / dpr}px`;
     cv.style.height = `${(H * k) / dpr}px`;
