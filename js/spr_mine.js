@@ -1,6 +1,6 @@
 (function (g) {
   const TG = g.TG;
-  const { TAU, clamp, lerp, mix, tone, ease } = TG.anim;
+  const { TAU, clamp, lerp, mix, ease } = TG.anim;
 
   /* v0.4 광산 그림 (담당 R). docs/art_guide.md 의 v0.4 절 참고
      배경 TG.SPR.bg.mine   sky / far / near / anim(6), 200 x 120, 가로로 이음매 없음.
