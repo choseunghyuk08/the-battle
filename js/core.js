@@ -27,7 +27,7 @@
     giantHp: 5,
     giantGold: 5,
 
-    heroX: 26,
+    heroX: 46, // v0.3 부터 뒤에 동료 둘이 서서 오른쪽으로 옮겼다
     spawnX: 196,
     mobSpeed: 15,
     mobRange: 22, // 주인공에 이만큼 가까워지면 때린다
@@ -74,6 +74,17 @@
     shopRefreshRuby: 5,
     offlineMax: 8 * 3600,
     offlineRate: 0.5, // 자리 비운 동안은 켜 둔 것의 이만큼 번다
+
+    /* v0.3 */
+    monkeyX: 29,
+    hippoX: 12,
+    monkeyAnim: 0.5, // 원숭이 던지기 동작 길이
+    monkeyRelease: 0.5, // 그중 바나나가 손을 떠나는 순간
+    monkeyGap: 0.9, // 한 번 던지고 다시 던질 수 있을 때까지
+    bananaSpeed: 230, // 바나나가 날아가는 빠르기 (점/초)
+    healAnim: 0.9, // 하마 회복 동작 길이
+    healAt: 0.6, // 그중 회복이 들어가는 순간
+    doubleDelay: 0.08, // 더블샷 두 번째가 뒤따르는 시간
   });
 
   P.mobHp = (n) => Math.round(P.mobHp0 * P.mobHpGrow ** (n - 1));
@@ -81,6 +92,18 @@
   P.mobGold = (n) => Math.ceil(P.gold0 * P.goldGrow ** (n - 1));
 
   const roundFix = (x) => Math.round(x * 1e6) / 1e6;
+
+  /* 동료와 각성 (L = 레벨, 동료는 0 이면 아직 없음) */
+  TG.PET = {
+    monkeyChance: (L) => Math.min(0.65, 0.15 + 0.01 * (L - 1)),
+    monkeyMult: (L) => 1 + 0.1 * (L - 1),
+    hippoGap: (L) => 6 - 0.06 * (L - 1),
+    hippoHeal: (L) => 0.04 + 0.002 * (L - 1),
+    powerChance: (L) => Math.ceil(L / 2) / 100,
+    doubleChance: (L) => Math.floor(L / 2) / 100,
+  };
+  const PET = TG.PET;
+  const pct = (x) => `${Math.round(x * 1000) / 10}%`;
 
   /* 강화 목록. cost(L) 은 L 레벨에서 L+1 레벨로 올리는 값이고, 끝이면 null */
   const AUTO_COST = [100, 300, 900, 2700, 8100];
@@ -115,6 +138,9 @@
     { id: 'skRain', cur: 'ruby', name: '쏟아지기', max: 50, cost: (L) => Math.ceil(15 * 1.45 ** L), desc: (L) => `최고 물건 ${6 + 2 * L}개가 쏟아진다 (x${TG.fmtMult(1 + 0.25 * L)})` },
     { id: 'skRage', cur: 'ruby', name: '분노', max: 50, cost: (L) => Math.ceil(15 * 1.45 ** L), desc: (L) => `${P.rageTime + L}초 동안 2배 빠르게, 피해 x${TG.fmtMult(1.5 + 0.1 * L)}` },
     { id: 'autoSkill', cur: 'ruby', name: '자동 스킬', max: 1, cost: (L) => (L < 1 ? 50 : null), desc: (L) => (L ? '스킬을 알아서 쓴다' : '꺼짐') },
+    { id: 'monkey', cur: 'ruby', tab: 'pet', name: '바나나 원숭이', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 30 : Math.ceil(8 * 1.3 ** L)), desc: (L) => (L ? `내가 던질 때 ${pct(PET.monkeyChance(L))}로 바나나를 던진다. 관통, 최고 물건 공격력 x${TG.fmtMult(PET.monkeyMult(L))}` : '루비로 데려온다. 내가 던질 때 가끔 바나나를 같이 던진다 (관통)') },
+    { id: 'hippo', cur: 'ruby', tab: 'pet', name: '간호 하마', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 60 : Math.ceil(8 * 1.3 ** L)), desc: (L) => (L ? `${Math.round(PET.hippoGap(L) * 10) / 10}초마다 체력 ${pct(PET.hippoHeal(L))} 회복` : '루비로 데려온다. 몇 초마다 체력을 채워 준다') },
+    { id: 'awaken', cur: 'shards', name: '각성', max: 200, cost: (L) => (L >= 200 ? null : Math.ceil(40 * 1.09 ** L)), desc: (L) => `던질 때 ${pct(PET.powerChance(L))}로 파워샷(2배), ${pct(PET.doubleChance(L))}로 더블샷(한 번 더)` },
   ];
   const UPBY = Object.fromEntries(TG.UPGRADES.map((u) => [u.id, u]));
   TG.upgradeCost = (id, L) => {
@@ -141,7 +167,7 @@
     best: 1,
     board: new Array(P.maxSlots).fill(0),
     pos: [], // 물건마다 필드 안 위치 [x, y] (0..1). 화면만 쓴다
-    lv: { atk: 0, hp: 0, craft: 0, climb: 0, slots: 0, autoCraft: 0, autoMerge: 0, rAtk: 0, rGold: 0, skRain: 0, skRage: 0, autoSkill: 0 },
+    lv: { atk: 0, hp: 0, craft: 0, climb: 0, slots: 0, autoCraft: 0, autoMerge: 0, rAtk: 0, rGold: 0, skRain: 0, skRage: 0, autoSkill: 0, monkey: 0, hippo: 0, awaken: 0 },
     ruby: 0,
     shards: 0,
     boss: 1, // 다음에 싸울 보스 번호
@@ -192,6 +218,7 @@
       if (!this.s.shop.offers.length) this.shopRoll();
       this.proj = [];
       this.mobs = [];
+      this.pets = { monkey: { cd: 0, act: { kind: 'idle', t: 0, dur: 1 } }, hippo: { t: 0, act: { kind: 'idle', t: 0, dur: 1 } } };
       this.startStage();
     }
 
@@ -380,6 +407,8 @@
       this.phaseT = 0;
       this.drops = [];
       this.rain = null;
+      this.bananas = [];
+      this.petQ = [];
       if (this.mode === 'boss') {
         this.wave = P.waves;
         this.bossT = P.bossTime;
@@ -417,6 +446,8 @@
       this.proj = [];
       this.queue = [];
       this.pending = [];
+      this.bananas = [];
+      this.petQ = [];
       if (win) {
         const r = this.bossInfo(k).ruby;
         this.s.ruby += r;
@@ -579,11 +610,82 @@
       return out.sort((a, b) => b - a);
     }
 
-    launch(tier) {
+    /* extra: 더블샷으로 한 번 더 던진 것 (거기서 또 더블샷이나 원숭이가 나오지 않는다) */
+    launch(tier, extra = false) {
       const f = this.front();
       if (!f) return;
+      const aw = this.s.lv.awaken;
       const rage = this.raging ? 1.5 + 0.1 * this.s.lv.skRage : 1;
-      this.proj.push({ tier, t: P.flight, dur: P.flight, target: f, dmg: TG.tierAtk(tier) * this.atkMult * rage, spin: this.rng() * 360 });
+      const power = aw > 0 && this.rng() < PET.powerChance(aw);
+      this.proj.push({ tier, t: P.flight, dur: P.flight, target: f, dmg: TG.tierAtk(tier) * this.atkMult * rage * (power ? 2 : 1), spin: this.rng() * 360, power, extra });
+      if (extra) return;
+      if (aw > 0 && this.rng() < PET.doubleChance(aw)) this.pending.push({ tier, t: P.doubleDelay, extra: true });
+      this.monkeyTry();
+    }
+
+    /* ---- 동료 ---- */
+    petAct(name, kind, dur) {
+      this.pets[name].act = { kind, t: 0, dur };
+    }
+    monkeyTry() {
+      const L = this.s.lv.monkey;
+      const pm = this.pets.monkey;
+      if (!L || pm.cd > 0 || this.rng() >= PET.monkeyChance(L)) return;
+      pm.cd = P.monkeyGap;
+      this.petAct('monkey', 'throw', P.monkeyAnim);
+      this.petQ.push({ kind: 'banana', t: P.monkeyAnim * P.monkeyRelease });
+    }
+    bananaDmg() {
+      const rage = this.raging ? 1.5 + 0.1 * this.s.lv.skRage : 1;
+      return TG.tierAtk(Math.max(1, this.highest)) * this.atkMult * rage * PET.monkeyMult(this.s.lv.monkey);
+    }
+    tickPets(dt) {
+      const pm = this.pets.monkey;
+      const ph = this.pets.hippo;
+      for (const p of [pm, ph]) {
+        p.act.t += dt;
+        if (p.act.t >= p.act.dur && p.act.kind !== 'idle') p.act = { kind: 'idle', t: 0, dur: 1 };
+      }
+      if (pm.cd > 0) pm.cd -= dt;
+      const L = this.s.lv.hippo;
+      if (L) {
+        ph.t = Math.min(PET.hippoGap(L), ph.t + dt);
+        if (ph.t >= PET.hippoGap(L) && this.hero.hp < this.maxHp && ph.act.kind === 'idle') {
+          ph.t = 0;
+          this.petAct('hippo', 'heal', P.healAnim);
+          this.petQ.push({ kind: 'heal', t: P.healAnim * P.healAt });
+        }
+      }
+      for (let i = this.petQ.length - 1; i >= 0; i--) {
+        const q = this.petQ[i];
+        q.t -= dt;
+        if (q.t > 0) continue;
+        this.petQ.splice(i, 1);
+        if (q.kind === 'banana') {
+          this.bananas.push({ x: P.monkeyX + 6, dmg: this.bananaDmg(), hit: [], spin: this.rng() * 360 });
+          this.events.push({ type: 'banana' });
+        } else if (q.kind === 'heal') {
+          const amt = Math.round(this.maxHp * PET.hippoHeal(L));
+          this.hero.hp = Math.min(this.maxHp, this.hero.hp + amt);
+          this.events.push({ type: 'heal', amount: amt });
+        }
+      }
+      /* 바나나는 화면 끝까지 날아가며 지나는 몬스터를 모두 맞힌다 */
+      for (let i = this.bananas.length - 1; i >= 0; i--) {
+        const b = this.bananas[i];
+        if (!b) continue;
+        b.x += P.bananaSpeed * dt;
+        for (const m of this.mobs.slice()) {
+          if (b.hit.includes(m.id) || m.x - (m.giant ? 8 : 4) > b.x) continue;
+          b.hit.push(m.id);
+          m.hp -= b.dmg;
+          m.hurt = 0.16;
+          this.events.push({ type: 'hit', id: m.id, x: m.x, giant: m.giant, dmg: b.dmg, banana: true });
+          if (m.hp <= 0) this.killMob(m);
+          if (this.phase !== 'fight') return;
+        }
+        if (b.x > 210) this.bananas.splice(i, 1);
+      }
     }
 
     killMob(m) {
@@ -633,6 +735,8 @@
       this.proj = [];
       this.queue = [];
       this.pending = [];
+      this.bananas = [];
+      this.petQ = [];
     }
 
     tickHero(dt) {
@@ -667,6 +771,7 @@
         if (this.dying[i].t > P.dieTime) this.dying.splice(i, 1);
       }
       this.tickHero(dt);
+      for (const p of [this.pets.monkey, this.pets.hippo]) if (this.phase !== 'fight') p.act.t += dt;
       const hero = this.hero;
 
       /* 쓰러짐, 승리, 다음 스테이지로 달려가기 */
@@ -759,6 +864,8 @@
         this.die();
         return;
       }
+      this.tickPets(dt);
+      if (this.phase !== 'fight') return;
 
       /* 던지기: 물건마다 던지는 순간을 잡고, 손이 떠나는 시간만큼 뒤에 날아간다.
          물건이 많으면 한 바퀴를 volley 초 안에 끝내도록 간격이 줄어서 여러 개가 겹쳐 날아간다 */
@@ -767,8 +874,8 @@
         pd.t -= dt;
         if (pd.t > 0) continue;
         this.pending.splice(i, 1);
-        this.launch(pd.tier);
-        this.events.push({ type: 'throw', tier: pd.tier });
+        this.launch(pd.tier, pd.extra);
+        this.events.push({ type: 'throw', tier: pd.tier, extra: !!pd.extra });
       }
       if (this.mobs.length) {
         if (!this.queue.length) {
@@ -809,7 +916,7 @@
         if (!m) continue;
         m.hp -= p.dmg;
         m.hurt = 0.16;
-        this.events.push({ type: 'hit', id: m.id, x: m.x, giant: m.giant, dmg: p.dmg, tier: p.tier });
+        this.events.push({ type: 'hit', id: m.id, x: m.x, giant: m.giant, dmg: p.dmg, tier: p.tier, power: p.power });
         if (m.hp <= 0) this.killMob(m);
       }
     }

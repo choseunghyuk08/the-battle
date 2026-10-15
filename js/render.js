@@ -169,7 +169,8 @@
         const m = game.mobs.find((mm) => mm.id === e.id) || { x: e.x, kind: 'slime', giant: e.giant };
         const y = GROUND - heightOf(m);
         addFx(e.giant ? 'bighit' : 'hit', e.x - 2, y, 0.25);
-        addText(TG.fmt(e.dmg), e.x, y - 6, '#ffffff', false);
+        if (e.power) addFx('powerShot', e.x - 2, y, 0.35);
+        addText(TG.fmt(e.dmg), e.x, y - 6, e.power ? '#ffb13a' : e.banana ? '#ffe45a' : '#ffffff', e.power);
         if (e.giant) shake = Math.max(shake, 0.12);
         break;
       }
@@ -192,6 +193,10 @@
       case 'ruby':
         addFx('rubyPop', e.x, GROUND - 4, 0.8);
         addText('+1', e.x, GROUND - 30, '#ff7a8a', true);
+        break;
+      case 'heal':
+        addFx('heal', P.heroX, GROUND, 1.0);
+        addText(`+${TG.fmt(e.amount)}`, P.heroX, GROUND - 44, '#7dff8a', true);
         break;
       case 'boss-start':
         addFx('bossWarn', W / 2, H / 2 - 10, 1.0);
@@ -247,6 +252,26 @@
       }
     }
 
+    /* 동료: 주인공 뒤에 서서 같은 장면을 함께 한다 (이기면 기뻐하고, 달리고, 쓰러지면 주저앉는다) */
+    for (const [name, x] of [['hippo', P.hippoX], ['monkey', P.monkeyX]]) {
+      if (!game.s.lv[name]) continue;
+      const def = TG.SPR.pet[name];
+      const pa = game.pets[name].act;
+      if (!def) {
+        ctx.fillStyle = name === 'monkey' ? '#8a5a34' : '#b49ad8';
+        ctx.fillRect(x - 6, GROUND - 16, 12, 16);
+        continue;
+      }
+      const off = name === 'monkey' ? 0.37 : 0;
+      let r;
+      if (game.phase === 'win') r = frame(def, 'cheer', 0, 1, { time: clock + off, fps: 10 });
+      else if (game.phase === 'run') r = frame(def, 'run', 0, 1, { time: clock + off, fps: 13 });
+      else if (game.phase === 'dead') r = frame(def, 'sad', 0, 1, { progress: Math.min(0.999, (P.deadTime - game.phaseT) / (P.deadTime * 0.6)) });
+      else if (pa.kind !== 'idle' && pa.t < pa.dur) r = frame(def, pa.kind, 0, 1, { progress: Math.min(0.999, pa.t / pa.dur) });
+      else r = frame(def, 'idle', 0, 1, { time: clock + off, fps: 8 });
+      put(r.fr, r.c, x, GROUND, false);
+    }
+
     /* 주인공 (분노 중이면 뒤에 불꽃 오라) */
     if (game.raging && !loopFx('rage', P.heroX, GROUND, clock, 12)) {
       ctx.fillStyle = 'rgba(255,90,40,0.25)';
@@ -257,6 +282,23 @@
     const loops = { idle: 6, reload: 9, win: 11, run: 13 };
     const hr = loops[a.kind] ? frame(hero, a.kind, 0, 1, { time: a.t, fps: loops[a.kind] }) : frame(hero, a.kind, 0, 1, { progress: Math.min(0.999, a.t / a.dur) });
     put(hr.fr, hr.c, P.heroX, GROUND, a.kind === 'hurt' && a.t < 0.08);
+
+    /* 바나나: 원숭이 손에서 화면 끝까지 빙글빙글 */
+    for (const b of game.bananas) {
+      const y = GROUND - 16 - Math.sin(Math.min(1, (b.x - P.monkeyX) / 40) * Math.PI * 0.5) * 3;
+      const def = TG.SPR.pet.banana;
+      ctx.save();
+      ctx.translate(Math.round(b.x), Math.round(y));
+      ctx.rotate(((b.spin + b.x * 9) * Math.PI) / 180);
+      if (def) {
+        const c = TG.clip(def, 'icon', (def.palettes || [{}])[0], 1, 'p0');
+        ctx.drawImage(c.frames[0].canvas, -c.ax, -c.ay);
+      } else {
+        ctx.fillStyle = '#ffe45a';
+        ctx.fillRect(-4, -1, 8, 3);
+      }
+      ctx.restore();
+    }
 
     /* 날아가는 물건: 손에서 목표까지 포물선을 그리며 돈다 */
     for (const p of game.proj) {
@@ -356,6 +398,10 @@
     warmQ.length = 0;
     const bg = TG.SPR.bg[th.id];
     if (bg) for (const c of Object.keys(bg.clips)) warmQ.push(() => TG.clip(bg, c, (bg.palettes || [{}])[0], 1, 'p0'));
+    for (const name of ['monkey', 'hippo']) {
+      const def = TG.SPR.pet[name];
+      if (def && game.s.lv[name]) for (const c of Object.keys(def.clips)) warmQ.push(() => TG.clip(def, c, (def.palettes || [{}])[0], 1, 'p0'));
+    }
     for (const kind of th.mobs) {
       const def = mobDef(kind);
       for (const [palIdx, S] of [[v, 1], [v + 1, 2]]) {

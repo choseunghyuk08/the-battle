@@ -174,6 +174,62 @@ function testV02() {
   console.log('v0.2 ok');
 }
 
+function testV03() {
+  /* 동료는 루비로 데려오고, 각성은 조각으로 올린다 */
+  const g = new TG.Game(null, seeded(11));
+  assert.strictEqual(g.buy('monkey'), false, '루비가 없으면 못 데려온다');
+  g.s.ruby = 1000;
+  assert(g.buy('monkey'));
+  assert(g.buy('hippo'));
+  assert.strictEqual(g.s.lv.monkey, 1);
+  g.s.shards = 1000;
+  assert(g.buy('awaken'));
+  assert(g.s.shards < 1000);
+  const re = new TG.Game(JSON.parse(JSON.stringify(g.snapshot())), seeded(1));
+  assert.strictEqual(re.s.lv.hippo, 1, '저장했다 불러와도 동료가 남는다');
+
+  /* 원숭이: 바나나가 줄 선 몬스터를 모두 꿰뚫는다 */
+  const m = new TG.Game(null, seeded(12));
+  m.s.lv.monkey = 50;
+  m.s.board[0] = 3;
+  for (let i = 0; i < 4; i++) m.spawnMob(false);
+  m.mobs.forEach((mob, i) => (mob.x = 90 + i * 12));
+  m.gapT = 99;
+  const hitBy = new Set();
+  for (let t = 0; t < 4; t += 0.02) {
+    m.tick(0.02);
+    for (const e of m.events) if (e.type === 'hit' && e.banana) hitBy.add(e.id);
+    m.events.length = 0;
+  }
+  assert(hitBy.size >= 2, `바나나가 꿰뚫은 몬스터 ${hitBy.size}`);
+
+  /* 하마: 다친 주인공을 채운다 */
+  const h = new TG.Game(null, seeded(13));
+  h.s.lv.hippo = 1;
+  h.hero.hp = 10;
+  let healed = 0;
+  for (let t = 0; t < 8; t += 0.05) {
+    h.tick(0.05);
+    healed += h.events.filter((e) => e.type === 'heal').length;
+    h.events.length = 0;
+  }
+  assert(healed >= 1 && h.hero.hp > 10, '하마가 회복');
+
+  /* 각성 200: 모두 파워샷, 모두 더블샷 */
+  const a = new TG.Game(null, seeded(14));
+  a.s.lv.awaken = 200;
+  a.spawnMob(true);
+  a.mobs[0].hp = 1e12;
+  a.launch(1);
+  assert(a.proj[0].power && a.proj[0].dmg === TG.tierAtk(1) * a.atkMult * 2);
+  assert.strictEqual(a.pending.length, 1, '더블샷이 하나 더 대기');
+  a.launch(1, true);
+  assert.strictEqual(a.pending.length, 1, '더블샷에서 또 더블샷은 없다');
+  assert.strictEqual(TG.upgradeCost('awaken', 200), null);
+  assert.strictEqual(TG.upgradeCost('monkey', 50), null);
+  console.log('v0.3 ok');
+}
+
 /* ---- 속도 ---- */
 function bot(kind, minutes, seed = 7) {
   const g = new TG.Game(null, seeded(seed));
@@ -206,11 +262,13 @@ function bot(kind, minutes, seed = 7) {
       for (let k = 0; k < g.s.shop.offers.length; k++) g.shopBuy(k);
       if (!g.s.lv.autoSkill) for (const id of ['rain', 'rage']) g.useSkill(id);
     }
-    for (const id of ['autoSkill', 'rAtk', 'rGold', 'skRain', 'skRage']) {
-      if (id === 'autoSkill') {
-        if (g.buy(id)) continue;
-      } else if (g.s.lv.autoSkill || g.s.ruby > 200) g.buy(id);
+    for (const id of ['autoSkill', 'monkey', 'hippo', 'rAtk', 'rGold', 'skRain', 'skRage']) {
+      if (id === 'autoSkill' || id === 'monkey' || id === 'hippo') {
+        if (g.s.lv[id] === 0 && g.buy(id)) continue;
+      }
+      if (g.s.lv.autoSkill || g.s.ruby > 200) g.buy(id);
     }
+    while (g.buy('awaken'));
     /* 자동 기능 첫 레벨을 먼저, 그다음은 가장 싼 골드 강화 */
     let bought = true;
     while (bought) {
@@ -224,7 +282,7 @@ function bot(kind, minutes, seed = 7) {
       ids.sort((a, b) => g.cost(a) - g.cost(b));
       if (g.buy(ids[0])) bought = true;
     }
-    for (const m of marks) if (!out[m] && t >= m * 60 - dt * 1.5) out[m] = { stage: g.s.stage, best: g.s.best, top: g.highest, deaths: g.s.stats.deaths, lv: { ...g.s.lv }, ruby: g.s.ruby, boss: g.s.boss };
+    for (const m of marks) if (!out[m] && t >= m * 60 - dt * 1.5) out[m] = { stage: g.s.stage, best: g.s.best, top: g.highest, deaths: g.s.stats.deaths, lv: { ...g.s.lv }, ruby: g.s.ruby, boss: g.s.boss, shards: g.s.shards };
   }
   return out;
 }
@@ -234,7 +292,7 @@ if (process.argv.includes('--pace')) {
   for (const kind of ['idle', 'active']) {
     const r = bot(kind, minutes);
     console.log(`\n[${kind}]`);
-    for (const [m, v] of Object.entries(r)) console.log(`${String(m).padStart(4)}분  스테이지 ${v.stage} (최고 ${v.best})  최고 단계 ${v.top}  쓰러짐 ${v.deaths}  보스 ${v.boss - 1}승  루비 ${v.ruby}`);
+    for (const [m, v] of Object.entries(r)) console.log(`${String(m).padStart(4)}분  스테이지 ${v.stage} (최고 ${v.best})  최고 단계 ${v.top}  쓰러짐 ${v.deaths}  보스 ${v.boss - 1}승  루비 ${v.ruby}  원숭이 ${v.lv.monkey} 하마 ${v.lv.hippo} 각성 ${v.lv.awaken}`);
   }
 } else {
   testBoard();
@@ -243,6 +301,7 @@ if (process.argv.includes('--pace')) {
   testFormat();
   testBattle();
   testV02();
+  testV03();
   console.log('\nall tests passed');
 }
 

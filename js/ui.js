@@ -266,6 +266,7 @@
     /* 전투 정보 줄: 내 체력과 공격력, 앞에 있는 적의 이름, 체력, 공격력 */
     let volley = 0;
     for (let i = 0; i < game.slots; i++) if (game.s.board[i]) volley += TG.tierAtk(game.s.board[i]) * game.atkMult;
+    volley *= (1 + TG.PET.powerChance(game.s.lv.awaken)) * (1 + TG.PET.doubleChance(game.s.lv.awaken)); /* 각성 기대값 */
     $('#meHp').textContent = `${TG.fmt(Math.max(0, game.hero.hp))}/${TG.fmt(game.maxHp)}`;
     $('#meHpBar').style.width = `${Math.max(0, Math.min(100, (game.hero.hp / game.maxHp) * 100))}%`;
     $('#meAtk').textContent = TG.fmt(volley);
@@ -284,24 +285,34 @@
       $('#foeAtk').textContent = '-';
       $('#foe').classList.remove('giant');
     }
-    const canAny = TG.UPGRADES.some((u) => game.canBuy(u.id));
-    $('#upDot').hidden = !canAny;
+    $('#upDot').hidden = !TG.UPGRADES.some((u) => u.tab !== 'pet' && game.canBuy(u.id));
+    $('#petDot').hidden = !PETS.some((id) => game.canBuy(id));
     if (ui.sheet === 'up') refreshUpgrades();
+    if (ui.sheet === 'pet') {
+      refreshUpgrades();
+      refreshPets();
+    }
   }
 
   /* ---- 강화 판 ---- */
-  const UP_ICON = { atk: 'atk', hp: 'hp', craft: 'craftLv', climb: 'climb', slots: 'slots', autoCraft: 'autoCraft', autoMerge: 'autoMerge', rAtk: 'atk', rGold: 'coin', skRain: 'skillRain', skRage: 'skillRage', autoSkill: 'autoSkill' };
+  const UP_ICON = { atk: 'atk', hp: 'hp', craft: 'craftLv', climb: 'climb', slots: 'slots', autoCraft: 'autoCraft', autoMerge: 'autoMerge', rAtk: 'atk', rGold: 'coin', skRain: 'skillRain', skRage: 'skillRage', autoSkill: 'autoSkill', monkey: 'monkey', hippo: 'hippo', awaken: 'awaken' };
+  const CUR = {
+    gold: { icon: 'coin', cls: '', title: '골드 강화' },
+    ruby: { icon: 'ruby', cls: 'ruby', title: '루비 강화 (보스전과 거대 몬스터에게서 얻는다)' },
+    shards: { icon: 'shard', cls: 'shard', title: '각성 (합칠 때 얻는 조각으로 올린다. 상점과 같은 조각)' },
+  };
   function buildUpgrades() {
     const body = $('#sheetBody');
     body.replaceChildren();
     let section = null;
     for (const u of TG.UPGRADES) {
+      if (u.tab === 'pet') continue;
       const cur = u.cur || 'gold';
       if (cur !== section) {
         section = cur;
-        body.append(el('p', { class: 'sec' }, [uiIcon(cur === 'ruby' ? 'ruby' : 'coin'), cur === 'ruby' ? '루비 강화 (보스전과 거대 몬스터에게서 얻는다)' : '골드 강화']));
+        body.append(el('p', { class: 'sec' }, [uiIcon(CUR[cur].icon), CUR[cur].title]));
       }
-      const btn = el('button', { type: 'button', 'data-id': u.id, class: cur === 'ruby' ? 'ruby' : '', onclick: () => buy(u.id) });
+      const btn = el('button', { type: 'button', 'data-id': u.id, class: CUR[cur].cls, onclick: () => buy(u.id) });
       body.append(
         el('div', { class: 'up', 'data-row': u.id }, [
           uiIcon(UP_ICON[u.id], 'icon x2'),
@@ -323,19 +334,68 @@
       const btn = row.querySelector('button');
       const cost = game.cost(u.id);
       btn.disabled = !game.canBuy(u.id);
-      const label = cost === null ? '최대' : TG.fmt(cost);
+      const label = cost === null ? '최대' : u.tab === 'pet' && !L ? `${TG.fmt(cost)} 데려오기` : TG.fmt(cost);
       if (btn.dataset.label !== label) {
         btn.dataset.label = label;
-        btn.replaceChildren(cost === null ? '' : uiIcon(u.cur === 'ruby' ? 'ruby' : 'coin'), label);
+        btn.replaceChildren(cost === null ? '' : uiIcon(CUR[u.cur || 'gold'].icon), label);
       }
     }
   }
   function buy(id) {
+    const fresh = TG.UPGRADES.find((u) => u.id === id).tab === 'pet' && !ui.game.s.lv[id];
     if (ui.game.buy(id)) {
       sfx.coin();
+      if (fresh) {
+        const u = TG.UPGRADES.find((x) => x.id === id);
+        toast(null, `${u.name} 합류!`, '이제 주인공 뒤에서 같이 싸운다.');
+        sfx.discover();
+        if (ui.sheet === 'pet') buildPets();
+      }
       refreshUpgrades();
       updateHud();
       save();
+    }
+  }
+
+  /* ---- 동료 ---- */
+  const PETS = ['monkey', 'hippo'];
+  function buildPets() {
+    const body = $('#sheetBody');
+    const list = el('div', { class: 'pets' });
+    for (const id of PETS) {
+      const u = TG.UPGRADES.find((x) => x.id === id);
+      const def = TG.SPR.pet[id];
+      const cv = def ? spriteCanvas(def, 'idle') : uiIcon(id, 'icon x2');
+      cv.dataset.pet = id;
+      list.append(el('div', { class: 'pet', 'data-row': id }, [cv, el('div', { class: 'nm' }, [u.name, ' ', el('small', { class: 'lv' })]), el('div', { class: 'desc' }), el('button', { type: 'button', class: 'ruby', onclick: () => buy(id) })]));
+    }
+    body.replaceChildren(el('p', { class: 'note', text: '동료는 루비로 데려오고 루비로 키운다. 데려오면 전투 화면에서 주인공 뒤에 선다.' }), list);
+    refreshUpgrades();
+    refreshPets();
+  }
+  function refreshPets() {
+    const game = ui.game;
+    for (const id of PETS) {
+      const row = document.querySelector(`[data-row="${id}"]`);
+      if (!row) continue;
+      const L = game.s.lv[id];
+      row.classList.toggle('locked', !L);
+      if (!L) row.querySelector('.lv').textContent = '';
+    }
+  }
+  /* 동료 판의 그림을 idle 동작으로 움직인다 */
+  function animPets(dt) {
+    ui.petClock = (ui.petClock || 0) + dt;
+    for (const cv of document.querySelectorAll('canvas[data-pet]')) {
+      const def = TG.SPR.pet[cv.dataset.pet];
+      if (!def) continue;
+      const c = TG.clip(def, 'idle', (def.palettes || [{}])[0], 1, 'p0');
+      const i = Math.floor(ui.petClock * 8) % c.n;
+      if (cv.dataset.f === String(i)) continue;
+      cv.dataset.f = String(i);
+      const x = cv.getContext('2d');
+      x.clearRect(0, 0, cv.width, cv.height);
+      x.drawImage(c.frames[i].canvas, 0, 0);
     }
   }
 
@@ -447,7 +507,7 @@
   }
 
   /* ---- 판 열고 닫기 ---- */
-  const TITLES = { up: '강화', shop: '조각 상점', dex: '도감', set: '설정' };
+  const TITLES = { up: '강화', pet: '동료', shop: '조각 상점', dex: '도감', set: '설정' };
   function openSheet(kind) {
     if (ui.sheet === kind) {
       closeSheet();
@@ -456,6 +516,7 @@
     ui.sheet = kind;
     $('#sheetTitle').textContent = TITLES[kind];
     if (kind === 'up') buildUpgrades();
+    else if (kind === 'pet') buildPets();
     else if (kind === 'shop') buildShop();
     else if (kind === 'dex') buildDex();
     else buildSettings();
@@ -511,6 +572,12 @@
           break;
         case 'hurt':
           sfx.hurt();
+          break;
+        case 'heal':
+          beep(700, 0.12, 'triangle', 0.03, 400);
+          break;
+        case 'banana':
+          beep(300, 0.08, 'triangle', 0.025, 500);
           break;
         case 'ruby':
           sfx.coin();
@@ -616,6 +683,7 @@
     });
     $('#tabUp').addEventListener('click', () => openSheet('up'));
     $('#tabShop').addEventListener('click', () => openSheet('shop'));
+    $('#tabPet').addEventListener('click', () => openSheet('pet'));
     $('#skRain').addEventListener('click', () => ui.game.useSkill('rain'));
     $('#skRage').addEventListener('click', () => ui.game.useSkill('rage'));
     $('#bossBtn').addEventListener('click', () => {
@@ -638,7 +706,7 @@
     document.addEventListener('visibilitychange', save);
     setInterval(save, 4000);
 
-    for (const [id, name] of [['goldIcon', 'coin'], ['craftIcon', 'craft'], ['upIcon', 'atk'], ['dexIcon', 'dex'], ['setIcon', 'stage'], ['countIcon', 'slots'], ['meAtkIcon', 'atk'], ['rubyIcon', 'ruby'], ['skRainIcon', 'skillRain'], ['skRageIcon', 'skillRage'], ['bossIcon', 'boss'], ['shopIcon', 'shop'], ['offIcon', 'offline']]) {
+    for (const [id, name] of [['goldIcon', 'coin'], ['craftIcon', 'craft'], ['upIcon', 'atk'], ['dexIcon', 'dex'], ['setIcon', 'stage'], ['countIcon', 'slots'], ['meAtkIcon', 'atk'], ['rubyIcon', 'ruby'], ['skRainIcon', 'skillRain'], ['skRageIcon', 'skillRage'], ['bossIcon', 'boss'], ['shopIcon', 'shop'], ['offIcon', 'offline'], ['petIcon', 'pets']]) {
       const slot = document.getElementById(id);
       if (slot) slot.replaceWith(Object.assign(uiIcon(name), { id }));
     }
@@ -660,6 +728,7 @@
       TG.render.warmTheme(ui.game);
       TG.render.warmStep();
       TG.render.draw(ui.game, dt);
+      if (ui.sheet === 'pet') animPets(dt);
       shineClock += dt;
       hudT += dt;
       if (hudT > 0.1) {
