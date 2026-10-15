@@ -3,9 +3,48 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f1020">
   <title>뭐든 던져</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <main id="app">
+    <header class="hud">
+      <div class="stage" id="stageBox"><b id="stageNum">스테이지 1</b><span id="stageSub">들판</span></div>
+      <div class="gold" aria-label="골드"><span id="goldIcon" class="icon"></span><span id="goldNum">0</span></div>
+    </header>
+
+    <section class="battle" aria-label="전투 화면"><canvas id="battle"></canvas></section>
+
+    <div class="bar">
+      <div class="chips">
+        <span class="chip" id="chipCraft"><span id="chipCraftIcon" class="icon"></span>자동 제작</span>
+        <span class="chip" id="chipMerge"><span id="chipMergeIcon" class="icon"></span>자동 합성</span>
+      </div>
+      <button class="craft" id="craft" type="button" aria-label="던질 것 만들기">
+        <span class="face"><span id="craftIcon" class="icon"></span>만들기 <span id="craftCount">5/5</span><span class="fill" id="craftFill"></span></span>
+      </button>
+    </div>
+
+    <section class="board" id="board" aria-label="합성 보드"></section>
+
+    <nav class="dock">
+      <button class="tab" id="tabUp" type="button"><span id="upIcon" class="icon"></span>강화<span class="dot" id="upDot" hidden></span></button>
+      <button class="tab" id="tabDex" type="button"><span id="dexIcon" class="icon"></span>도감</button>
+      <button class="tab" id="tabSet" type="button"><span id="setIcon" class="icon"></span>설정</button>
+    </nav>
+
+    <section class="sheet" id="sheet" aria-hidden="true">
+      <header><h2 id="sheetTitle">강화</h2><button type="button" id="sheetClose">닫기</button></header>
+      <div class="body" id="sheetBody"></div>
+    </section>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  </main>
+
   <script src="js/format.js"></script>
   <script src="js/items.js"></script>
   <script src="js/core.js"></script>
@@ -22,5 +61,8 @@
   <script src="js/spr_items_b.js"></script>
   <script src="js/spr_bg.js"></script>
   <script src="js/spr_fx.js"></script>
+  <script data-dom src="js/render.js"></script>
+  <script data-dom src="js/ui.js"></script>
+  <script data-dom src="js/main.js"></script>
 </body>
 </html>
