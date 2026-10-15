@@ -238,7 +238,7 @@
     const game = ui.game;
     const th = game.theme();
     $('#stageNum').textContent = `스테이지 ${game.s.stage}`;
-    $('#stageSub').textContent = game.mode === 'boss' ? `보스전 ${game.s.boss} · 남은 시간 ${Math.ceil(game.bossT)}초` : game.phase === 'run' ? `${th.name} · 다음 스테이지로` : `${th.name} · 웨이브 ${Math.max(1, game.wave)}/${P.waves}`;
+    $('#stageSub').textContent = game.mode === 'mine' ? `광산 · 남은 시간 ${Math.ceil(game.mineT)}초 · 철광석 +${game.mineGot}` : game.mode === 'boss' ? `보스전 ${game.s.boss} · 남은 시간 ${Math.ceil(game.bossT)}초` : game.phase === 'run' ? `${th.name} · 다음 스테이지로` : `${th.name} · 웨이브 ${Math.max(1, game.wave)}/${P.waves}`;
     $('#goldNum').textContent = TG.fmt(game.s.gold);
     $('#rubyNum').textContent = TG.fmt(game.s.ruby);
     /* 스킬과 보스 버튼: 남은 대기 시간만큼 어둡게 덮는다 */
@@ -255,6 +255,10 @@
     $('#skRage').classList.toggle('on', game.raging);
     cdView($('#bossBtn'), game.s.bossCd, game.s.bossCd > P.bossFailCd ? P.bossCd : P.bossFailCd, game.canBoss());
     $('#bossLabel').textContent = game.mode === 'boss' ? `${Math.ceil(game.bossT)}초` : `보스 ${game.s.boss}`;
+    const mineOpen = game.s.best >= P.mineOpen;
+    cdView($('#mineBtn'), game.s.mineCd, P.mineCd, game.canMine());
+    $('#mineBtn').classList.toggle('locked', !mineOpen);
+    $('#mineLabel').textContent = game.mode === 'mine' ? `${Math.ceil(game.mineT)}초` : mineOpen ? '광산' : `${P.mineOpen}층`;
     $('#autoTag').textContent = [game.s.lv.autoCraft ? '자동 제작' : '', game.s.lv.autoMerge ? '자동 합성' : '', game.s.lv.autoSkill && game.s.autoSkillOn ? '자동 스킬' : ''].filter(Boolean).join(' · ');
     $('#shopDot').hidden = !game.s.shop.offers.some((o) => !o.sold && game.s.shards >= game.shopPrice(o.tier));
     if (ui.sheet === 'shop') refreshShop();
@@ -273,10 +277,10 @@
     const f = game.front() || game.mobs[0];
     if (f) {
       const def = TG.SPR.mob[f.kind] || TG.SPR.mob.slime;
-      $('#foeName').textContent = f.boss ? `보스 ${game.s.boss}: ${def.name || f.kind}` : `${f.giant ? '거대 ' : ''}${def.name || f.kind} Lv.${game.s.stage}`;
+      $('#foeName').textContent = f.ore ? `${def.name || '광석 바위'} ${f.k + 1}번째` : f.boss ? `보스 ${game.s.boss}: ${def.name || f.kind}` : `${f.giant ? '거대 ' : ''}${def.name || f.kind} Lv.${game.s.stage}`;
       $('#foeHp').textContent = `${TG.fmt(Math.max(0, f.hp))}/${TG.fmt(f.max)}`;
       $('#foeHpBar').style.width = `${Math.max(0, Math.min(100, (f.hp / f.max) * 100))}%`;
-      $('#foeAtk').textContent = TG.fmt(f.atk);
+      $('#foeAtk').textContent = f.ore ? '-' : TG.fmt(f.atk);
       $('#foe').classList.toggle('giant', !!f.giant);
     } else {
       $('#foeName').textContent = game.phase === 'run' ? '다음 스테이지로' : '다음 웨이브';
@@ -358,7 +362,7 @@
   }
 
   /* ---- 동료 ---- */
-  const PETS = ['monkey', 'hippo'];
+  const PETS = ['monkey', 'hippo', 'bear', 'dragon'];
   function buildPets() {
     const body = $('#sheetBody');
     const list = el('div', { class: 'pets' });
@@ -367,9 +371,18 @@
       const def = TG.SPR.pet[id];
       const cv = def ? spriteCanvas(def, 'idle') : uiIcon(id, 'icon x2');
       cv.dataset.pet = id;
-      list.append(el('div', { class: 'pet', 'data-row': id }, [cv, el('div', { class: 'nm' }, [u.name, ' ', el('small', { class: 'lv' })]), el('div', { class: 'desc' }), el('button', { type: 'button', class: 'ruby', onclick: () => buy(id) })]));
+      list.append(
+        el('div', { class: 'pet', 'data-row': id }, [
+          cv,
+          el('div', { class: 'nm' }, [u.name, ' ', el('small', { class: 'lv' })]),
+          el('div', { class: 'stars' }),
+          el('div', { class: 'desc' }),
+          el('button', { type: 'button', class: 'ruby', onclick: () => buy(id) }),
+          el('button', { type: 'button', class: 'evo', onclick: () => evolve(id) }),
+        ]),
+      );
     }
-    body.replaceChildren(el('p', { class: 'note', text: '동료는 루비로 데려오고 루비로 키운다. 데려오면 전투 화면에서 주인공 뒤에 선다.' }), list);
+    body.replaceChildren(el('p', { class: 'note' }, ['동료는 루비로 데려오고 키운다. 광산에서 캔 철광석으로 진화하면 더 세진다. 철광석 ', el('b', { id: 'oreNum', text: TG.fmt(ui.game.s.ore) }), '개']), list);
     refreshUpgrades();
     refreshPets();
   }
@@ -381,6 +394,24 @@
       const L = game.s.lv[id];
       row.classList.toggle('locked', !L);
       if (!L) row.querySelector('.lv').textContent = '';
+      const st = game.s.stars[id];
+      row.querySelector('.stars').textContent = '★'.repeat(st) + '☆'.repeat(P.evoCost.length - st);
+      const need = game.evoNeed(id);
+      const evo = row.querySelector('button.evo');
+      evo.disabled = !need || L < need.lv || game.s.ore < need.ore;
+      const label = !need ? '진화 끝' : L < need.lv ? `진화: ${need.lv}레벨부터` : `진화 ${TG.fmt(need.ore)}`;
+      if (evo.dataset.label !== label) {
+        evo.dataset.label = label;
+        evo.replaceChildren(need && L >= need.lv ? uiIcon('ore') : '', label);
+      }
+    }
+    if ($('#oreNum')) $('#oreNum').textContent = TG.fmt(game.s.ore);
+  }
+  function evolve(id) {
+    if (ui.game.evolve(id) === 'ok') {
+      handleEvents();
+      refreshPets();
+      save();
     }
   }
   /* 동료 판의 그림을 idle 동작으로 움직인다 */
@@ -579,6 +610,29 @@
         case 'banana':
           beep(300, 0.08, 'triangle', 0.025, 500);
           break;
+        case 'breath':
+          beep(160, 0.18, 'sawtooth', 0.03, 200);
+          break;
+        case 'bash':
+          beep(110, 0.1, 'square', 0.04, -40);
+          break;
+        case 'ore':
+          beep(1300, 0.05, 'square', 0.02, -300);
+          break;
+        case 'mine-start':
+          toast(null, '광산', `${P.mineTime}초 동안 바위를 부수자. 깊이 갈수록 단단하고 철광석이 많다.`);
+          sfx.discover();
+          break;
+        case 'mine-end':
+          toast(null, `광산 끝: 철광석 ${e.ore}개`, `바위 ${e.broken}개를 부쉈다. 동료 탭에서 진화에 쓰자.`);
+          sfx.clear();
+          break;
+        case 'evolve': {
+          const u = TG.UPGRADES.find((x) => x.id === e.id);
+          toast(null, `${u.name} 진화! ${'★'.repeat(e.star)}`, '동료가 더 세졌다.');
+          sfx.discover();
+          break;
+        }
         case 'ruby':
           sfx.coin();
           break;
@@ -686,6 +740,11 @@
     $('#tabPet').addEventListener('click', () => openSheet('pet'));
     $('#skRain').addEventListener('click', () => ui.game.useSkill('rain'));
     $('#skRage').addEventListener('click', () => ui.game.useSkill('rage'));
+    $('#mineBtn').addEventListener('click', () => {
+      const game = ui.game;
+      if (game.s.best < P.mineOpen) toast(null, '광산은 잠겨 있다', `최고 스테이지 ${P.mineOpen}에 가면 열린다.`);
+      else if (!game.startMine() && game.s.mineCd > 0) toast(null, '광산 정비 중', `${TG.fmtTime(game.s.mineCd)} 뒤에 다시 들어갈 수 있다.`);
+    });
     $('#bossBtn').addEventListener('click', () => {
       if (!ui.game.startBoss() && ui.game.s.bossCd > 0) toast(null, '보스 준비 중', `${TG.fmtTime(ui.game.s.bossCd)} 뒤에 다시 도전할 수 있다.`);
     });
@@ -706,7 +765,7 @@
     document.addEventListener('visibilitychange', save);
     setInterval(save, 4000);
 
-    for (const [id, name] of [['goldIcon', 'coin'], ['craftIcon', 'craft'], ['upIcon', 'atk'], ['dexIcon', 'dex'], ['setIcon', 'stage'], ['countIcon', 'slots'], ['meAtkIcon', 'atk'], ['rubyIcon', 'ruby'], ['skRainIcon', 'skillRain'], ['skRageIcon', 'skillRage'], ['bossIcon', 'boss'], ['shopIcon', 'shop'], ['offIcon', 'offline'], ['petIcon', 'pets']]) {
+    for (const [id, name] of [['goldIcon', 'coin'], ['craftIcon', 'craft'], ['upIcon', 'atk'], ['dexIcon', 'dex'], ['setIcon', 'stage'], ['countIcon', 'slots'], ['meAtkIcon', 'atk'], ['rubyIcon', 'ruby'], ['skRainIcon', 'skillRain'], ['skRageIcon', 'skillRage'], ['bossIcon', 'boss'], ['shopIcon', 'shop'], ['offIcon', 'offline'], ['petIcon', 'pets'], ['mineIcon', 'mine']]) {
       const slot = document.getElementById(id);
       if (slot) slot.replaceWith(Object.assign(uiIcon(name), { id }));
     }

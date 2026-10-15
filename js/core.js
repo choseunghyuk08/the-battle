@@ -85,6 +85,30 @@
     healAnim: 0.9, // 하마 회복 동작 길이
     healAt: 0.556, // 그중 회복이 들어가는 순간 (하마 그림의 hit 과 맞춘다)
     doubleDelay: 0.08, // 더블샷 두 번째가 뒤따르는 시간
+
+    /* v0.4 */
+    bearX: 74, // 곰은 주인공 앞에서 막는다
+    bearStop: 16, // 곰이 있으면 몬스터가 곰 앞 이만큼에서 멈춘다
+    blockAnim: 0.35,
+    bashAnim: 0.5,
+    bashAt: 0.45,
+    knock: 26, // 방패로 밀쳐내는 거리 (거대는 절반)
+    dragonX: 30,
+    dragonY: 40, // 아기 용이 떠 있는 높이 (땅에서)
+    breathAnim: 0.7,
+    breathAt: 0.55,
+    fireSpeed: 200,
+    fireSplash: 18, // 불덩이가 터질 때 옆 몬스터도 맞는 거리
+    mineTime: 30, // 광산 한 번
+    mineCd: 600, // 다시 들어가기까지
+    mineOpen: 20, // 최고 스테이지가 이만큼 되면 열린다
+    oreSlots: 5, // 화면에 늘어선 바위 수
+    oreX0: 100,
+    oreGap: 20,
+    oreHpK: 3, // 첫 바위 체력 = (최고 스테이지 - oreBack) 몬스터 체력 x 이만큼
+    oreBack: 15,
+    oreHpGrow: 1.18, // 하나 부술 때마다 다음 바위가 이만큼 단단해진다
+    evoCost: [10, 30, 80, 200, 500], // 진화 철광석 (별 0->1 ...)
   });
 
   P.mobHp = (n) => Math.round(P.mobHp0 * P.mobHpGrow ** (n - 1));
@@ -99,6 +123,12 @@
     monkeyMult: (L) => 1 + 0.1 * (L - 1),
     hippoGap: (L) => 6 - 0.06 * (L - 1),
     hippoHeal: (L) => 0.04 + 0.002 * (L - 1),
+    bearCut: (L, st = 0) => Math.min(0.75, 0.15 + 0.008 * (L - 1) + 0.04 * st),
+    bearKnock: (L, st = 0) => Math.min(0.9, 0.2 + 0.01 * (L - 1) + 0.05 * st),
+    dragonEvery: (L) => Math.max(2, 10 - Math.floor((L - 1) / 6)),
+    dragonMult: (L) => 6 + 0.25 * (L - 1),
+    starMult: (st) => 1 + 0.5 * st, // 원숭이, 용 피해
+    healStar: (st) => 1 + 0.2 * st, // 하마 회복량
     powerChance: (L) => Math.ceil(L / 2) / 100,
     doubleChance: (L) => Math.floor(L / 2) / 100,
   };
@@ -138,8 +168,10 @@
     { id: 'skRain', cur: 'ruby', name: '쏟아지기', max: 50, cost: (L) => Math.ceil(15 * 1.45 ** L), desc: (L) => `최고 물건 ${6 + 2 * L}개가 쏟아진다 (x${TG.fmtMult(1 + 0.25 * L)})` },
     { id: 'skRage', cur: 'ruby', name: '분노', max: 50, cost: (L) => Math.ceil(15 * 1.45 ** L), desc: (L) => `${P.rageTime + L}초 동안 2배 빠르게, 피해 x${TG.fmtMult(1.5 + 0.1 * L)}` },
     { id: 'autoSkill', cur: 'ruby', name: '자동 스킬', max: 1, cost: (L) => (L < 1 ? 50 : null), desc: (L) => (L ? '스킬을 알아서 쓴다' : '꺼짐') },
-    { id: 'monkey', cur: 'ruby', tab: 'pet', name: '바나나 원숭이', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 30 : Math.ceil(8 * 1.3 ** L)), desc: (L) => (L ? `내가 던질 때 ${pct(PET.monkeyChance(L))}로 바나나를 던진다. 관통, 최고 물건 공격력 x${TG.fmtMult(PET.monkeyMult(L))}` : '루비로 데려온다. 내가 던질 때 가끔 바나나를 같이 던진다 (관통)') },
-    { id: 'hippo', cur: 'ruby', tab: 'pet', name: '간호 하마', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 60 : Math.ceil(8 * 1.3 ** L)), desc: (L) => (L ? `${Math.round(PET.hippoGap(L) * 10) / 10}초마다 체력 ${pct(PET.hippoHeal(L))} 회복` : '루비로 데려온다. 몇 초마다 체력을 채워 준다') },
+    { id: 'monkey', cur: 'ruby', tab: 'pet', name: '바나나 원숭이', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 30 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `내가 던질 때 ${pct(PET.monkeyChance(L))}로 바나나를 던진다. 관통, 최고 물건 공격력 x${TG.fmtMult(PET.monkeyMult(L))}` : '루비로 데려온다. 내가 던질 때 가끔 바나나를 같이 던진다 (관통)') },
+    { id: 'hippo', cur: 'ruby', tab: 'pet', name: '간호 하마', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 50 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `${Math.round(PET.hippoGap(L) * 10) / 10}초마다 체력 ${pct(PET.hippoHeal(L))} 회복` : '루비로 데려온다. 몇 초마다 체력을 채워 준다') },
+    { id: 'bear', cur: 'ruby', tab: 'pet', name: '곰 방패병', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 80 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `받는 피해 -${pct(PET.bearCut(L))}, 맞을 때 ${pct(PET.bearKnock(L))}로 방패로 밀쳐낸다` : '루비로 데려온다. 앞에서 막아 받는 피해를 줄이고 몬스터를 밀쳐낸다') },
+    { id: 'dragon', cur: 'ruby', tab: 'pet', name: '아기 용', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 150 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `${PET.dragonEvery(L)}번 던질 때마다 불덩이 (최고 물건 공격력 x${TG.fmtMult(PET.dragonMult(L))}, 옆 몬스터도 맞음)` : '루비로 데려온다. 몇 번 던질 때마다 불덩이를 뿜는다') },
     { id: 'awaken', cur: 'shards', name: '각성', max: 200, cost: (L) => (L >= 200 ? null : Math.ceil(40 * 1.09 ** L)), desc: (L) => `던질 때 ${pct(PET.powerChance(L))}로 파워샷(2배), ${pct(PET.doubleChance(L))}로 더블샷(한 번 더)` },
   ];
   const UPBY = Object.fromEntries(TG.UPGRADES.map((u) => [u.id, u]));
@@ -167,7 +199,10 @@
     best: 1,
     board: new Array(P.maxSlots).fill(0),
     pos: [], // 물건마다 필드 안 위치 [x, y] (0..1). 화면만 쓴다
-    lv: { atk: 0, hp: 0, craft: 0, climb: 0, slots: 0, autoCraft: 0, autoMerge: 0, rAtk: 0, rGold: 0, skRain: 0, skRage: 0, autoSkill: 0, monkey: 0, hippo: 0, awaken: 0 },
+    lv: { atk: 0, hp: 0, craft: 0, climb: 0, slots: 0, autoCraft: 0, autoMerge: 0, rAtk: 0, rGold: 0, skRain: 0, skRage: 0, autoSkill: 0, monkey: 0, hippo: 0, awaken: 0, bear: 0, dragon: 0 },
+    ore: 0, // 철광석 (광산에서 얻고 동료 진화에 쓴다)
+    mineCd: 0,
+    stars: { monkey: 0, hippo: 0, bear: 0, dragon: 0 }, // 동료 진화 단계 (0..5)
     ruby: 0,
     shards: 0,
     boss: 1, // 다음에 싸울 보스 번호
@@ -199,7 +234,8 @@
         this.s.best = Math.max(this.s.stage, Math.floor(this.s.best) || 1);
         this.s.gold = Math.max(0, Number(this.s.gold) || 0);
         this.s.charges = Math.max(0, Math.min(P.craftMax, Number(this.s.charges) || 0));
-        for (const k of ['ruby', 'shards', 'bossCd']) this.s[k] = Math.max(0, Number(this.s[k]) || 0);
+        for (const k of ['ruby', 'shards', 'bossCd', 'ore', 'mineCd']) this.s[k] = Math.max(0, Number(this.s[k]) || 0);
+        this.s.stars = Object.fromEntries(Object.keys(s.stars).map((k) => [k, Math.max(0, Math.min(P.evoCost.length, Math.floor(Number((save.stars || {})[k]) || 0)))]));
         this.s.boss = Math.max(1, Math.floor(this.s.boss) || 1);
         this.s.skillCd = { rain: Math.max(0, Number((save.skillCd || {}).rain) || 0), rage: Math.max(0, Number((save.skillCd || {}).rage) || 0) };
         const shop = save.shop && Array.isArray(save.shop.offers) ? save.shop : { offers: [], t: 0 };
@@ -218,7 +254,8 @@
       if (!this.s.shop.offers.length) this.shopRoll();
       this.proj = [];
       this.mobs = [];
-      this.pets = { monkey: { cd: 0, act: { kind: 'idle', t: 0, dur: 1 } }, hippo: { t: 0, act: { kind: 'idle', t: 0, dur: 1 } } };
+      const idle = () => ({ kind: 'idle', t: 0, dur: 1 });
+      this.pets = { monkey: { cd: 0, act: idle() }, hippo: { t: 0, act: idle() }, bear: { act: idle() }, dragon: { n: 0, act: idle() } };
       this.startStage();
     }
 
@@ -408,7 +445,17 @@
       this.drops = [];
       this.rain = null;
       this.bananas = [];
+      this.fires = [];
       this.petQ = [];
+      if (this.mode === 'mine') {
+        this.wave = P.waves;
+        this.mineT = P.mineTime;
+        this.mineBroken = 0;
+        this.mineGot = 0;
+        for (let k = 0; k < P.oreSlots; k++) this.spawnOre(P.oreX0 + k * P.oreGap);
+        this.events.push({ type: 'mine-start' });
+        return;
+      }
       if (this.mode === 'boss') {
         this.wave = P.waves;
         this.bossT = P.bossTime;
@@ -447,6 +494,7 @@
       this.queue = [];
       this.pending = [];
       this.bananas = [];
+      this.fires = [];
       this.petQ = [];
       if (win) {
         const r = this.bossInfo(k).ruby;
@@ -468,6 +516,60 @@
         this.act('die', P.deadTime * 0.6);
       }
       this.mode = 'stage';
+    }
+
+    /* ---- 광산: 늘어선 바위를 제한 시간 동안 부숴 철광석을 모은다. 몬스터가 없어서 다치지 않는다 ---- */
+    canMine() {
+      return this.mode === 'stage' && this.phase === 'fight' && this.s.mineCd <= 0 && this.s.best >= P.mineOpen;
+    }
+    startMine() {
+      if (!this.canMine()) return false;
+      this.mode = 'mine';
+      this.startStage();
+      return true;
+    }
+    oreHp(k) {
+      return P.mobHp(Math.max(1, this.s.best - P.oreBack)) * P.oreHpK * P.oreHpGrow ** k;
+    }
+    spawnOre(x) {
+      const k = this.mineBroken + this.mobs.length;
+      const hp = this.oreHp(k);
+      this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind: 'ore', ore: true, k, pal: Math.min(3, Math.floor(k / 5)), x, hp, max: hp, atk: 0, giant: false, state: 'idle', t: this.rng(), atkT: 0, cd: 0, hurt: 0 });
+    }
+    oreReward(k) {
+      return 1 + Math.floor(k / 10);
+    }
+    mineEnd() {
+      this.s.mineCd = P.mineCd;
+      this.events.push({ type: 'mine-end', ore: this.mineGot, broken: this.mineBroken });
+      this.mode = 'stage';
+      this.proj = [];
+      this.queue = [];
+      this.pending = [];
+      this.bananas = [];
+      this.fires = [];
+      this.petQ = [];
+      this.mobs = [];
+      this.nextStage = this.s.stage;
+      this.phase = 'win';
+      this.phaseT = P.winTime;
+      this.act('win', P.winTime);
+    }
+
+    /* ---- 동료 진화: 철광석으로 별을 올린다 (레벨 5, 10, 15, ... 이 되어야 다음 별) ---- */
+    evoNeed(id) {
+      const st = this.s.stars[id];
+      return st >= P.evoCost.length ? null : { ore: P.evoCost[st], lv: 5 * (st + 1) };
+    }
+    evolve(id) {
+      const need = this.evoNeed(id);
+      if (!need) return 'max';
+      if (this.s.lv[id] < need.lv) return 'lv';
+      if (this.s.ore < need.ore) return 'poor';
+      this.s.ore -= need.ore;
+      this.s.stars[id]++;
+      this.events.push({ type: 'evolve', id, star: this.s.stars[id] });
+      return 'ok';
     }
 
     /* ---- 스킬 ---- */
@@ -621,6 +723,7 @@
       if (extra) return;
       if (aw > 0 && this.rng() < PET.doubleChance(aw)) this.pending.push({ tier, t: P.doubleDelay, extra: true });
       this.monkeyTry();
+      this.dragonTry();
     }
 
     /* ---- 동료 ---- */
@@ -635,14 +738,52 @@
       this.petAct('monkey', 'throw', P.monkeyAnim);
       this.petQ.push({ kind: 'banana', t: P.monkeyAnim * P.monkeyRelease });
     }
-    bananaDmg() {
+    topDmg() {
       const rage = this.raging ? 1.5 + 0.1 * this.s.lv.skRage : 1;
-      return TG.tierAtk(Math.max(1, this.highest)) * this.atkMult * rage * PET.monkeyMult(this.s.lv.monkey);
+      return TG.tierAtk(Math.max(1, this.highest)) * this.atkMult * rage;
+    }
+    bananaDmg() {
+      return this.topDmg() * PET.monkeyMult(this.s.lv.monkey) * PET.starMult(this.s.stars.monkey);
+    }
+    dragonTry() {
+      const L = this.s.lv.dragon;
+      if (!L) return;
+      const pd = this.pets.dragon;
+      pd.n++;
+      if (pd.n < PET.dragonEvery(L) || pd.act.kind === 'breath') return;
+      pd.n = 0;
+      this.petAct('dragon', 'breath', P.breathAnim);
+      this.petQ.push({ kind: 'fire', t: P.breathAnim * P.breathAt });
+    }
+    /* 곰: 맞는 피해를 줄이고, 확률로 앞쪽 몬스터들을 방패로 밀쳐낸다 */
+    bearHit(dmg) {
+      const L = this.s.lv.bear;
+      if (!L) return dmg;
+      const pb = this.pets.bear;
+      if (pb.act.kind !== 'bash') {
+        if (this.rng() < PET.bearKnock(L, this.s.stars.bear)) {
+          this.petAct('bear', 'bash', P.bashAnim);
+          this.petQ.push({ kind: 'bash', t: P.bashAnim * P.bashAt });
+        } else this.petAct('bear', 'block', P.blockAnim);
+      }
+      return dmg * (1 - PET.bearCut(L, this.s.stars.bear));
+    }
+    bash() {
+      const f = this.front();
+      if (!f) return;
+      for (const m of this.mobs) {
+        if (m.ore || m.x > f.x + 30) continue;
+        m.x = Math.min(P.spawnX, m.x + (m.giant ? P.knock / 2 : P.knock));
+        m.state = 'walk';
+        m.atkT = 0;
+        m.cd = 0.3;
+      }
+      this.events.push({ type: 'bash', x: P.bearX + 10 });
     }
     tickPets(dt) {
       const pm = this.pets.monkey;
       const ph = this.pets.hippo;
-      for (const p of [pm, ph]) {
+      for (const p of Object.values(this.pets)) {
         p.act.t += dt;
         if (p.act.t >= p.act.dur && p.act.kind !== 'idle') p.act = { kind: 'idle', t: 0, dur: 1 };
       }
@@ -665,9 +806,41 @@
           this.bananas.push({ x: P.monkeyX + 6, dmg: this.bananaDmg(), hit: [], spin: this.rng() * 360 });
           this.events.push({ type: 'banana' });
         } else if (q.kind === 'heal') {
-          const amt = Math.round(this.maxHp * PET.hippoHeal(L));
+          const amt = Math.round(this.maxHp * PET.hippoHeal(L) * PET.healStar(this.s.stars.hippo));
           this.hero.hp = Math.min(this.maxHp, this.hero.hp + amt);
           this.events.push({ type: 'heal', amount: amt });
+        } else if (q.kind === 'fire') {
+          const f = this.front();
+          if (f) this.fires.push({ x: P.dragonX + 10, x0: P.dragonX + 10, target: f, dmg: this.topDmg() * PET.dragonMult(this.s.lv.dragon) * PET.starMult(this.s.stars.dragon) });
+          this.events.push({ type: 'breath' });
+        } else if (q.kind === 'bash') this.bash();
+      }
+      /* 불덩이: 앞 몬스터에게 날아가 터지고, 옆에 있는 몬스터도 맞는다 */
+      for (let i = this.fires.length - 1; i >= 0; i--) {
+        const fb = this.fires[i];
+        if (!fb) continue;
+        const tgt = this.mobs.includes(fb.target) ? fb.target : this.front();
+        if (!tgt) {
+          this.fires.splice(i, 1);
+          continue;
+        }
+        fb.target = tgt;
+        const d = tgt.x - fb.x;
+        const step = P.fireSpeed * dt;
+        if (Math.abs(d) > step) {
+          fb.x += Math.sign(d) * step;
+          continue;
+        }
+        this.fires.splice(i, 1);
+        this.events.push({ type: 'fire', x: tgt.x });
+        for (const m of this.mobs.slice()) {
+          if (Math.abs(m.x - tgt.x) > (m === tgt ? 99 : P.fireSplash)) continue;
+          const dmg = m === tgt ? fb.dmg : fb.dmg * 0.5;
+          m.hp -= dmg;
+          m.hurt = 0.16;
+          this.events.push({ type: 'hit', id: m.id, x: m.x, giant: m.giant, dmg, fire: true });
+          if (m.hp <= 0) this.killMob(m);
+          if (this.phase !== 'fight') return;
         }
       }
       /* 바나나는 화면 끝까지 날아가며 지나는 몬스터를 모두 맞힌다 */
@@ -692,6 +865,15 @@
       const n = this.s.stage;
       this.mobs.splice(this.mobs.indexOf(m), 1);
       this.dying.push({ m, t: 0 });
+      if (m.ore) {
+        const got = this.oreReward(m.k);
+        this.s.ore += got;
+        this.mineGot += got;
+        this.mineBroken++;
+        this.events.push({ type: 'ore', x: m.x, n: got });
+        this.spawnOre(P.oreX0 + P.oreSlots * P.oreGap);
+        return;
+      }
       const gold = Math.ceil(P.mobGold(n) * (m.giant ? P.giantGold : 1) * this.goldMult);
       this.s.gold += gold;
       this.s.stats.kills++;
@@ -736,6 +918,7 @@
       this.queue = [];
       this.pending = [];
       this.bananas = [];
+      this.fires = [];
       this.petQ = [];
     }
 
@@ -762,6 +945,7 @@
       }
 
       if (s.bossCd > 0) s.bossCd = Math.max(0, s.bossCd - dt);
+      if (s.mineCd > 0) s.mineCd = Math.max(0, s.mineCd - dt);
       s.shop.t -= dt;
       if (s.shop.t <= 0) this.shopRoll();
       if (this.phase === 'fight') this.tickSkills(dt);
@@ -771,7 +955,7 @@
         if (this.dying[i].t > P.dieTime) this.dying.splice(i, 1);
       }
       this.tickHero(dt);
-      for (const p of [this.pets.monkey, this.pets.hippo]) if (this.phase !== 'fight') p.act.t += dt;
+      if (this.phase !== 'fight') for (const p of Object.values(this.pets)) p.act.t += dt;
       const hero = this.hero;
 
       /* 쓰러짐, 승리, 다음 스테이지로 달려가기 */
@@ -804,8 +988,16 @@
         }
       }
 
-      /* 웨이브 진행 (보스전에서는 보스 하나뿐이다) */
-      if (this.mode === 'boss') {
+      if (this.mode === 'mine') {
+        this.mineT -= dt;
+        if (this.mineT <= 0) {
+          this.mineEnd();
+          return;
+        }
+      }
+
+      /* 웨이브 진행 (보스전에서는 보스 하나뿐이고, 광산에는 바위뿐이다) */
+      if (this.mode === 'boss' || this.mode === 'mine') {
         /* 아무것도 안 한다 */
       } else if (this.gapT > 0) {
         this.gapT -= dt;
@@ -829,16 +1021,25 @@
       /* 몬스터: 걷다가 주인공 앞에 서면 예비 동작 후 때린다 */
       this.mobs.sort((a, b) => a.x - b.x);
       let prev = null;
+      const front = this.s.lv.bear ? P.bearX + P.bearStop : P.heroX + P.mobRange;
+      let oreIdx = 0;
       for (const m of this.mobs) {
         m.t += dt;
         if (m.hurt > 0) m.hurt -= dt;
-        const stop = prev ? prev.x + P.mobSpace + (m.giant || prev.giant ? 6 : 0) : P.heroX + P.mobRange + (m.giant ? 6 : 0);
+        if (m.ore) {
+          /* 바위는 앞 바위가 부서지면 한 칸씩 당겨진다 */
+          const want = P.oreX0 + oreIdx++ * P.oreGap;
+          m.x = Math.max(want, m.x - 60 * dt);
+          continue;
+        }
+        const stop = prev ? prev.x + P.mobSpace + (m.giant || prev.giant ? 6 : 0) : front + (m.giant ? 6 : 0);
         if (m.state === 'attack') {
           m.atkT += dt;
           if (!m.struck && m.atkT >= P.mobAtkDur * P.mobHitAt) {
             m.struck = true;
-            hero.hp -= m.atk;
-            this.events.push({ type: 'hurt', dmg: m.atk });
+            const dmg = this.bearHit(m.atk);
+            hero.hp -= dmg;
+            this.events.push({ type: 'hurt', dmg });
             if (hero.act.kind !== 'throw') this.act('hurt', 0.3);
           }
           if (m.atkT >= P.mobAtkDur) {

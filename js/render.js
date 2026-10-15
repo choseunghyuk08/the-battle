@@ -91,7 +91,8 @@
   }
 
   /* ---- 배경 ---- */
-  const FALLBACK_SKY = { field: ['#7ec8f0', '#cfeeff'], forest: ['#f0a070', '#ffd9a0'], cave: ['#1a1428', '#2c2240'], volcano: ['#4a1414', '#a8401c'], ice: ['#10203a', '#3a7090'], space: ['#05040f', '#1c1440'] };
+  const FALLBACK_SKY = { field: ['#7ec8f0', '#cfeeff'], forest: ['#f0a070', '#ffd9a0'], cave: ['#1a1428', '#2c2240'], volcano: ['#4a1414', '#a8401c'], ice: ['#10203a', '#3a7090'], space: ['#05040f', '#1c1440'], mine: ['#120e14', '#2a2026'] };
+  const MINE = { id: 'mine', name: '광산' };
   function drawBg(theme) {
     const def = TG.SPR.bg[theme.id];
     if (!def) {
@@ -170,7 +171,7 @@
         const y = GROUND - heightOf(m);
         addFx(e.giant ? 'bighit' : 'hit', e.x - 2, y, 0.25);
         if (e.power) addFx('powerShot', e.x - 2, y, 0.35);
-        addText(TG.fmt(e.dmg), e.x, y - 6, e.power ? '#ffb13a' : e.banana ? '#ffe45a' : '#ffffff', e.power);
+        addText(TG.fmt(e.dmg), e.x, y - 6, e.power ? '#ffb13a' : e.fire ? '#ff7a3a' : e.banana ? '#ffe45a' : '#ffffff', e.power || e.fire);
         if (e.giant) shake = Math.max(shake, 0.12);
         break;
       }
@@ -194,6 +195,17 @@
         addFx('rubyPop', e.x, GROUND - 4, 0.8);
         addText('+1', e.x, GROUND - 30, '#ff7a8a', true);
         break;
+      case 'fire':
+        addFx('fireBurst', e.x, GROUND - 2, 0.5);
+        shake = Math.max(shake, 0.1);
+        break;
+      case 'bash':
+        addFx('bash', e.x, GROUND - 14, 0.3);
+        shake = Math.max(shake, 0.1);
+        break;
+      case 'ore':
+        addText(`+${e.n}`, e.x, GROUND - 30, '#9fd8ff', true);
+        break;
       case 'heal':
         addFx('heal', P.heroX, GROUND, 1.0);
         addText(`+${TG.fmt(e.amount)}`, P.heroX, GROUND - 44, '#7dff8a', true);
@@ -210,7 +222,7 @@
     clock += dt;
     if (game.hero.act.kind === 'run') scroll += dt * 70;
     if (shake > 0) shake -= dt;
-    const theme = game.theme();
+    const theme = game.mode === 'mine' ? MINE : game.theme();
     ctx.save();
     ctx.clearRect(0, 0, W, H);
     if (shake > 0) ctx.translate(Math.round((Math.random() - 0.5) * 3), Math.round((Math.random() - 0.5) * 2));
@@ -252,25 +264,27 @@
       }
     }
 
-    /* 동료: 주인공 뒤에 서서 같은 장면을 함께 한다 (이기면 기뻐하고, 달리고, 쓰러지면 주저앉는다) */
-    for (const [name, x] of [['hippo', P.hippoX], ['monkey', P.monkeyX]]) {
-      if (!game.s.lv[name]) continue;
+    /* 동료: 같은 장면을 함께 한다 (이기면 기뻐하고, 달리고, 쓰러지면 주저앉는다). 하마와 원숭이는 주인공 뒤, 곰은 앞, 용은 공중 */
+    const drawPet = (name, x, y) => {
+      if (!game.s.lv[name]) return;
       const def = TG.SPR.pet[name];
       const pa = game.pets[name].act;
       if (!def) {
-        ctx.fillStyle = name === 'monkey' ? '#8a5a34' : '#b49ad8';
-        ctx.fillRect(x - 6, GROUND - 16, 12, 16);
-        continue;
+        ctx.fillStyle = { monkey: '#8a5a34', hippo: '#b49ad8', bear: '#6a4428', dragon: '#4caf50' }[name];
+        ctx.fillRect(x - 6, y - 16, 12, 16);
+        return;
       }
-      const off = name === 'monkey' ? 0.37 : 0;
+      const off = { monkey: 0.37, hippo: 0, bear: 0.61, dragon: 0.19 }[name];
       let r;
       if (game.phase === 'win') r = frame(def, 'cheer', 0, 1, { time: clock + off, fps: 10 });
       else if (game.phase === 'run') r = frame(def, 'run', 0, 1, { time: clock + off, fps: 13 });
       else if (game.phase === 'dead') r = frame(def, 'sad', 0, 1, { progress: Math.min(0.999, (P.deadTime - game.phaseT) / (P.deadTime * 0.6)) });
       else if (pa.kind !== 'idle' && pa.t < pa.dur) r = frame(def, pa.kind, 0, 1, { progress: Math.min(0.999, pa.t / pa.dur) });
       else r = frame(def, 'idle', 0, 1, { time: clock + off, fps: 8 });
-      put(r.fr, r.c, x, GROUND, false);
-    }
+      put(r.fr, r.c, x, y, false);
+    };
+    drawPet('hippo', P.hippoX, GROUND);
+    drawPet('monkey', P.monkeyX, GROUND);
 
     /* 바나나: 원숭이 손에서 화면 끝까지 빙글빙글 (주인공 뒤로 지나간다) */
     for (const b of game.bananas) {
@@ -298,6 +312,20 @@
     const loops = { idle: 6, reload: 9, win: 11, run: 13 };
     const hr = loops[a.kind] ? frame(hero, a.kind, 0, 1, { time: a.t, fps: loops[a.kind] }) : frame(hero, a.kind, 0, 1, { progress: Math.min(0.999, a.t / a.dur) });
     put(hr.fr, hr.c, P.heroX, GROUND, a.kind === 'hurt' && a.t < 0.08);
+    drawPet('bear', P.bearX, GROUND);
+    drawPet('dragon', P.dragonX, GROUND - P.dragonY);
+
+    /* 불덩이: 용의 입에서 앞 몬스터까지 */
+    for (const fb of game.fires) {
+      const tgt = game.mobs.includes(fb.target) ? fb.target : game.front();
+      const tx = tgt ? tgt.x : P.spawnX;
+      const k = Math.max(0, Math.min(1, (fb.x - fb.x0) / Math.max(1, tx - fb.x0)));
+      const y = GROUND - P.dragonY - 4 + (P.dragonY + 4 - (tgt ? heightOf(tgt) : 12)) * k;
+      if (!loopFx('fireball', fb.x, y, clock, 14)) {
+        ctx.fillStyle = '#ff8a2a';
+        ctx.fillRect(Math.round(fb.x) - 3, Math.round(y) - 2, 6, 5);
+      }
+    }
 
 
     /* 날아가는 물건: 손에서 목표까지 포물선을 그리며 돈다 */
@@ -390,6 +418,16 @@
   const warmQ = [];
   let warmedFor = '';
   function warmTheme(game) {
+    if (game.mode === 'mine') {
+      if (warmedFor === 'mine') return;
+      warmedFor = 'mine';
+      warmQ.length = 0;
+      const bg = TG.SPR.bg.mine;
+      if (bg) for (const c of Object.keys(bg.clips)) warmQ.push(() => TG.clip(bg, c, (bg.palettes || [{}])[0], 1, 'p0'));
+      const ore = TG.SPR.mob.ore;
+      if (ore) for (let k = 0; k < 4; k++) for (const c of Object.keys(ore.clips)) warmQ.push(() => TG.clip(ore, c, palOf(ore, k).pal, 1, palOf(ore, k).key));
+      return;
+    }
     const th = game.theme();
     const v = game.variant();
     const key = `${th.id}|${v}`;
@@ -398,7 +436,7 @@
     warmQ.length = 0;
     const bg = TG.SPR.bg[th.id];
     if (bg) for (const c of Object.keys(bg.clips)) warmQ.push(() => TG.clip(bg, c, (bg.palettes || [{}])[0], 1, 'p0'));
-    for (const name of ['monkey', 'hippo']) {
+    for (const name of ['monkey', 'hippo', 'bear', 'dragon']) {
       const def = TG.SPR.pet[name];
       if (def && game.s.lv[name]) for (const c of Object.keys(def.clips)) warmQ.push(() => TG.clip(def, c, (def.palettes || [{}])[0], 1, 'p0'));
     }

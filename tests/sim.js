@@ -230,6 +230,76 @@ function testV03() {
   console.log('v0.3 ok');
 }
 
+function testV04() {
+  /* 곰: 받는 피해가 줄고, 밀쳐내기가 나온다 */
+  const b = new TG.Game(null, seeded(21));
+  b.s.lv.bear = 50;
+  b.s.lv.hp = 200;
+  b.spawnMob(false);
+  b.mobs[0].x = 95;
+  b.mobs[0].hp = 1e12;
+  b.mobs[0].max = 1e12;
+  b.gapT = 99;
+  let hurt = 0;
+  let bash = 0;
+  for (let t = 0; t < 20; t += 0.05) {
+    b.tick(0.05);
+    for (const e of b.events) {
+      if (e.type === 'hurt') hurt = e.dmg;
+      if (e.type === 'bash') bash++;
+    }
+    b.events.length = 0;
+  }
+  assert(hurt > 0 && hurt < b.mobs[0].atk, `곰이 막은 피해 ${hurt}`);
+  assert(bash >= 1, '방패 밀치기');
+
+  /* 아기 용: 몇 번 던지면 불덩이, 옆 몬스터도 맞는다 */
+  const d = new TG.Game(null, seeded(22));
+  d.s.lv.dragon = 50;
+  d.s.board[0] = 3;
+  for (let i = 0; i < 3; i++) d.spawnMob(false);
+  d.mobs.forEach((m, i) => {
+    m.x = 120 + i * 8;
+    m.hp = m.max = 1e12;
+  });
+  d.gapT = 99;
+  const fireHit = new Set();
+  for (let t = 0; t < 8; t += 0.02) {
+    d.tick(0.02);
+    for (const e of d.events) if (e.type === 'hit' && e.fire) fireHit.add(e.id);
+    d.events.length = 0;
+  }
+  assert(fireHit.size >= 2, `불덩이가 맞힌 몬스터 ${fireHit.size}`);
+
+  /* 광산: 최고 스테이지가 되어야 열리고, 부수면 철광석, 끝나면 같은 스테이지 */
+  const m = new TG.Game(null, seeded(23));
+  assert.strictEqual(m.startMine(), false, '처음엔 잠김');
+  m.s.stage = m.s.best = 25;
+  m.startStage();
+  m.s.board.fill(12, 0, 8);
+  assert(m.startMine());
+  assert.strictEqual(m.mobs.length, TG.P.oreSlots);
+  for (let t = 0; t < TG.P.mineTime + 4; t += 0.05) m.tick(0.05);
+  assert.strictEqual(m.mode, 'stage');
+  assert(m.s.ore > 0, `철광석 ${m.s.ore}`);
+  assert.strictEqual(m.s.stage, 25);
+  assert(m.s.mineCd > 0 && !m.canMine());
+
+  /* 진화: 레벨과 철광석이 있어야 한다 */
+  const e = new TG.Game(null, seeded(24));
+  assert.strictEqual(e.evolve('monkey'), 'lv');
+  e.s.lv.monkey = 5;
+  assert.strictEqual(e.evolve('monkey'), 'poor');
+  e.s.ore = 1000;
+  assert.strictEqual(e.evolve('monkey'), 'ok');
+  assert.strictEqual(e.s.stars.monkey, 1);
+  assert.strictEqual(e.evolve('monkey'), 'lv', '다음 별은 10레벨');
+  const re = new TG.Game(JSON.parse(JSON.stringify(e.snapshot())), seeded(1));
+  assert.strictEqual(re.s.stars.monkey, 1);
+  assert.strictEqual(re.s.ore, e.s.ore);
+  console.log('v0.4 ok');
+}
+
 /* ---- 속도 ---- */
 function bot(kind, minutes, seed = 7) {
   const g = new TG.Game(null, seeded(seed));
@@ -258,15 +328,19 @@ function bot(kind, minutes, seed = 7) {
     }
     /* 보스전은 열리면 바로, 상점은 살 수 있으면 산다, 스킬은 자동 스킬을 사기 전엔 손으로 */
     if (g.canBoss() && g.highest >= 6) g.startBoss();
+    else if (g.canMine()) g.startMine();
+    for (const id of ['monkey', 'hippo', 'bear', 'dragon']) g.evolve(id);
     if (kind === 'active') {
       for (let k = 0; k < g.s.shop.offers.length; k++) g.shopBuy(k);
       if (!g.s.lv.autoSkill) for (const id of ['rain', 'rage']) g.useSkill(id);
     }
-    for (const id of ['autoSkill', 'monkey', 'hippo', 'rAtk', 'rGold', 'skRain', 'skRage']) {
-      if (id === 'autoSkill' || id === 'monkey' || id === 'hippo') {
+    for (const id of ['autoSkill', 'monkey', 'hippo', 'bear', 'dragon', 'rAtk', 'rGold', 'skRain', 'skRage']) {
+      /* 동료는 모두 데려오는 게 먼저 */
+      const locked = ['monkey', 'hippo', 'bear', 'dragon'].find((k) => !g.s.lv[k]);
+      if (id === 'autoSkill' || TG.UPGRADES.find((u) => u.id === id).tab === 'pet') {
         if (g.s.lv[id] === 0 && g.buy(id)) continue;
       }
-      if (g.s.lv.autoSkill || g.s.ruby > 200) g.buy(id);
+      if ((g.s.lv.autoSkill && !locked) || g.s.ruby > 300) g.buy(id);
     }
     while (g.buy('awaken'));
     /* 자동 기능 첫 레벨을 먼저, 그다음은 가장 싼 골드 강화 */
@@ -282,7 +356,7 @@ function bot(kind, minutes, seed = 7) {
       ids.sort((a, b) => g.cost(a) - g.cost(b));
       if (g.buy(ids[0])) bought = true;
     }
-    for (const m of marks) if (!out[m] && t >= m * 60 - dt * 1.5) out[m] = { stage: g.s.stage, best: g.s.best, top: g.highest, deaths: g.s.stats.deaths, lv: { ...g.s.lv }, ruby: g.s.ruby, boss: g.s.boss, shards: g.s.shards };
+    for (const m of marks) if (!out[m] && t >= m * 60 - dt * 1.5) out[m] = { stage: g.s.stage, best: g.s.best, top: g.highest, deaths: g.s.stats.deaths, lv: { ...g.s.lv }, ruby: g.s.ruby, boss: g.s.boss, shards: g.s.shards, ore: g.s.ore, stars: { ...g.s.stars } };
   }
   return out;
 }
@@ -292,7 +366,7 @@ if (process.argv.includes('--pace')) {
   for (const kind of ['idle', 'active']) {
     const r = bot(kind, minutes);
     console.log(`\n[${kind}]`);
-    for (const [m, v] of Object.entries(r)) console.log(`${String(m).padStart(4)}분  스테이지 ${v.stage} (최고 ${v.best})  최고 단계 ${v.top}  쓰러짐 ${v.deaths}  보스 ${v.boss - 1}승  루비 ${v.ruby}  원숭이 ${v.lv.monkey} 하마 ${v.lv.hippo} 각성 ${v.lv.awaken}`);
+    for (const [m, v] of Object.entries(r)) console.log(`${String(m).padStart(4)}분  스테이지 ${v.stage} (최고 ${v.best})  최고 단계 ${v.top}  쓰러짐 ${v.deaths}  보스 ${v.boss - 1}승  루비 ${v.ruby}  동료 ${['monkey', 'hippo', 'bear', 'dragon'].map((k) => `${v.lv[k]}★${v.stars[k]}`).join('/')} 각성 ${v.lv.awaken} 철 ${v.ore}`);
   }
 } else {
   testBoard();
@@ -302,6 +376,7 @@ if (process.argv.includes('--pace')) {
   testBattle();
   testV02();
   testV03();
+  testV04();
   console.log('\nall tests passed');
 }
 
