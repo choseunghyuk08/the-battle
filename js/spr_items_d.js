@@ -709,7 +709,7 @@
 
   const DRAW = [comet, galaxy, supernova, wormhole, quasar, hourglass, rift, bigBang, infinity, everything];
   DRAW.forEach((fn, k) => {
-    const tier = 31 + k;
+    const tier = k === 9 ? 60 : 31 + k; /* 뭐든지는 v0.5 부터 마지막 60단계 */
     TG.SPR.item[`t${tier}`] = {
       id: `item.t${tier}`,
       tier,
