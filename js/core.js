@@ -3,7 +3,7 @@
 
   /* 조정할 수 있는 숫자는 전부 여기 있다. 바꾼 뒤에는 `node tests/sim.js --pace` 로 속도를 본다 */
   const P = (TG.P = {
-    tiers: 20,
+    tiers: 40,
     maxSlots: 60, // 필드에 둘 수 있는 물건 최대 개수 (보유 개수 강화의 끝)
     slotsStart: 8,
     slotCost0: 60,
