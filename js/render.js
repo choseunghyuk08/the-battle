@@ -299,5 +299,30 @@
     }
   }
 
-  TG.render = { init, draw, fit, onEvent, W, H };
+  /* 미리 그려 두기: 테마가 바뀌면 그 테마의 배경과 몬스터 동작을 한 프레임에 하나씩 만들어 둔다 (처음 나올 때 멈칫하지 않게) */
+  const warmQ = [];
+  let warmedFor = '';
+  function warmTheme(game) {
+    const th = game.theme();
+    const v = game.variant();
+    const key = `${th.id}|${v}`;
+    if (key === warmedFor) return;
+    warmedFor = key;
+    warmQ.length = 0;
+    const bg = TG.SPR.bg[th.id];
+    if (bg) for (const c of Object.keys(bg.clips)) warmQ.push(() => TG.clip(bg, c, (bg.palettes || [{}])[0], 1, 'p0'));
+    for (const kind of th.mobs) {
+      const def = mobDef(kind);
+      for (const [palIdx, S] of [[v, 1], [v + 1, 2]]) {
+        const { pal, key: pk } = palOf(def, palIdx);
+        for (const c of Object.keys(def.clips)) warmQ.push(() => TG.clip(def, c, pal, S, pk));
+      }
+    }
+  }
+  function warmStep() {
+    const t = performance.now();
+    while (warmQ.length && performance.now() - t < 6) warmQ.shift()();
+  }
+
+  TG.render = { init, draw, fit, onEvent, warmTheme, warmStep, W, H };
 })(globalThis);

@@ -537,6 +537,8 @@
         acc -= STEP;
       }
       handleEvents();
+      TG.render.warmTheme(ui.game);
+      TG.render.warmStep();
       TG.render.draw(ui.game, dt);
       shineClock += dt;
       hudT += dt;
