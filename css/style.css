@@ -35,8 +35,9 @@ button { font-family: inherit; color: inherit; }
   max-width: 480px;
   margin: 0 auto;
   display: grid;
-  grid-template-rows: auto minmax(150px, 1fr) auto auto auto;
+  grid-template-rows: auto auto auto auto auto;
   grid-template-columns: minmax(0, 1fr);
+  align-content: space-evenly;
   gap: 8px;
   padding: 8px 12px 10px;
   position: relative;
@@ -86,7 +87,7 @@ button { font-family: inherit; color: inherit; }
   border-radius: 8px;
   overflow: hidden;
 }
-#battle { image-rendering: pixelated; display: block; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
+#battle { image-rendering: pixelated; display: block; }
 
 /* 제작 줄 */
 .bar { display: flex; align-items: center; gap: 8px; }
@@ -156,7 +157,9 @@ button { font-family: inherit; color: inherit; }
   box-shadow: inset 0 -4px 0 #0005;
 }
 .cell.has { background: var(--cell-2); cursor: grab; }
-.cell.locked { background: #14152a; border-style: dashed; color: var(--ink-3); font-size: 12px; flex-direction: column; }
+.cell.locked { background: #14152a; border-style: dashed; color: var(--ink-3); font-size: 12px; }
+.cell.locked > canvas:not(.lockicon) { display: none; }
+.cell .lockicon { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); }
 .cell.locked .icon { opacity: 0.7; }
 .cell.target { border-color: var(--gold); background: #3a3a6a; }
 .cell.dragging canvas { opacity: 0.25; }

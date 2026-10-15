@@ -53,7 +53,7 @@
     const c = TG.clip(def, clip, pal, S, key);
     let i;
     if (opt.progress !== undefined) i = Math.min(c.n - 1, Math.max(0, Math.floor(opt.progress * c.n)));
-    else i = Math.floor(opt.time * (opt.fps || 8)) % c.n;
+    else i = ((Math.floor(opt.time * (opt.fps || 8)) % c.n) + c.n) % c.n;
     return { fr: c.frames[i], c };
   }
 
@@ -101,7 +101,7 @@
     const layer = (clip, speed, fps) => {
       if (!def.clips[clip]) return;
       const c = TG.clip(def, clip, pals[0], 1, 'p0');
-      const fr = c.frames[fps ? Math.floor(clock * fps) % c.n : 0];
+      const fr = c.frames[fps ? ((Math.floor(clock * fps) % c.n) + c.n) % c.n : 0];
       const off = -Math.round((scroll * speed) % W);
       ctx.drawImage(fr.canvas, off, 0);
       if (speed) ctx.drawImage(fr.canvas, off + W, 0);
@@ -134,9 +134,11 @@
   /* ---- 화면 크기 맞추기 ---- */
   function fit() {
     if (!cv) return;
+    /* 폭에 맞춰 정수 배율로 키우되, 화면 높이의 38%를 넘지 않게 한다 */
     const box = cv.parentElement.getBoundingClientRect();
     const dpr = g.devicePixelRatio || 1;
-    const k = Math.max(1, Math.floor(Math.min((box.width - 4) * dpr / W, (box.height - 4) * dpr / H)));
+    const maxH = g.innerHeight * 0.38;
+    const k = Math.max(1, Math.floor(Math.min((box.width - 4) * dpr / W, (maxH * dpr) / H)));
     cv.style.width = `${(W * k) / dpr}px`;
     cv.style.height = `${(H * k) / dpr}px`;
   }

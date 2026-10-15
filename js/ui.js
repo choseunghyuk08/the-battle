@@ -523,7 +523,7 @@
     let hudT = 0;
     const STEP = 1 / 60;
     function frame(now) {
-      let dt = (now - last) / 1000;
+      let dt = Math.max(0, (now - last) / 1000);
       last = now;
       if (dt > 0.25) dt = 0.25;
       acc += dt;
