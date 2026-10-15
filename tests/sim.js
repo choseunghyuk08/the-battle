@@ -300,6 +300,65 @@ function testV04() {
   console.log('v0.4 ok');
 }
 
+function testV05() {
+  /* 60단계 */
+  assert.strictEqual(TG.ITEMS.length, 60);
+  assert.strictEqual(TG.ITEMS[59].name, '뭐든지');
+
+  /* 유물: 루비로 뽑고, 같은 게 나오면 레벨업, 효과가 들어간다 */
+  const g = new TG.Game(null, seeded(31));
+  assert.strictEqual(g.relicPull(1).ok, false, '루비가 없으면 못 뽑는다');
+  const atk0 = g.atkMult;
+  g.s.ruby = 1e6;
+  for (let k = 0; k < 30; k++) g.relicPull(10);
+  assert(TG.RELICS.every((r) => g.s.relics[r.id] === TG.P.relicMax), '300번이면 다 모인다');
+  assert.strictEqual(g.relicPull(1).why, 'max');
+  assert(g.atkMult > atk0 * 1.5, '장갑과 왕관');
+  const re = new TG.Game(JSON.parse(JSON.stringify(g.snapshot())), seeded(1));
+  assert.strictEqual(re.s.relics.crown, TG.P.relicMax);
+
+  /* 업적: 목표를 채우면 루비 */
+  const a = new TG.Game(null, seeded(32));
+  assert.strictEqual(a.claim('stage'), 0);
+  a.s.best = 30;
+  const r0 = a.s.ruby;
+  assert(a.claim('stage') > 0);
+  assert(a.claim('stage') > 0, '두 번째 단계(25)도');
+  assert.strictEqual(a.claim('stage'), 0, '50은 아직');
+  assert(a.s.ruby > r0);
+
+  /* 새 스킬: 배워야 쓸 수 있고, 분신은 같이 던지고, 난사는 여러 개 던진다 */
+  const k = new TG.Game(null, seeded(33));
+  k.s.board[0] = 5;
+  for (let t = 0; t < 3; t += 0.05) k.tick(0.05);
+  assert.strictEqual(k.useSkill('shadow'), false, '배우기 전');
+  k.s.lv.skShadow = 1;
+  k.s.lv.skBarrage = 1;
+  for (const m of k.mobs) m.hp = m.max = 1e12;
+  assert(k.useSkill('shadow'));
+  assert(k.useSkill('barrage'));
+  let shadow = 0;
+  let thrown = 0;
+  for (let t = 0; t < 3; t += 0.02) {
+    k.tick(0.02);
+    for (const e of k.events) {
+      if (e.type === 'hit' && e.shadow) shadow++;
+      if (e.type === 'throw' && e.extra) thrown++;
+    }
+    k.events.length = 0;
+  }
+  assert(shadow > 0, '분신 공격');
+  assert(thrown >= 10, `난사 ${thrown}`);
+
+  /* 자동 구매 */
+  const s = new TG.Game(null, seeded(34));
+  s.s.lv.autoShop = 1;
+  s.s.shards = 1e9;
+  for (let t = 0; t < 3; t += 0.1) s.tick(0.1);
+  assert(s.s.shop.offers.every((o) => o.sold), '자동 구매');
+  console.log('v0.5 ok');
+}
+
 /* ---- 속도 ---- */
 function bot(kind, minutes, seed = 7) {
   const g = new TG.Game(null, seeded(seed));
@@ -330,17 +389,20 @@ function bot(kind, minutes, seed = 7) {
     if (g.canBoss() && g.highest >= 6) g.startBoss();
     else if (g.canMine()) g.startMine();
     for (const id of ['monkey', 'hippo', 'bear', 'dragon']) g.evolve(id);
+    for (const a of TG.ACHIEVE) g.claim(a.id);
     if (kind === 'active') {
       for (let k = 0; k < g.s.shop.offers.length; k++) g.shopBuy(k);
       if (!g.s.lv.autoSkill) for (const id of ['rain', 'rage']) g.useSkill(id);
     }
-    for (const id of ['autoSkill', 'monkey', 'hippo', 'bear', 'dragon', 'rAtk', 'rGold', 'skRain', 'skRage']) {
-      /* 동료는 모두 데려오는 게 먼저 */
-      const locked = ['monkey', 'hippo', 'bear', 'dragon'].find((k) => !g.s.lv[k]);
-      if (id === 'autoSkill' || TG.UPGRADES.find((u) => u.id === id).tab === 'pet') {
-        if (g.s.lv[id] === 0 && g.buy(id)) continue;
-      }
-      if ((g.s.lv.autoSkill && !locked) || g.s.ruby > 300) g.buy(id);
+    /* 루비: 자동 기능과 동료 데려오기, 스킬 배우기가 먼저. 그다음은 가장 싼 것부터 (유물 한 번 뽑기 포함) */
+    for (const id of ['autoSkill', 'monkey', 'hippo', 'bear', 'dragon', 'autoShop', 'skShadow', 'skBarrage']) if (!g.s.lv[id]) g.buy(id);
+    const locked = ['autoSkill', 'monkey', 'hippo', 'bear', 'dragon'].some((id) => !g.s.lv[id]);
+    for (let k = 0; k < 20 && !locked; k++) {
+      const unlock = ['autoSkill', 'autoShop', 'monkey', 'hippo', 'bear', 'dragon', 'skShadow', 'skBarrage'];
+      const ids = TG.UPGRADES.filter((u) => u.cur === 'ruby' && (g.s.lv[u.id] > 0 || !unlock.includes(u.id)) && g.cost(u.id) !== null).map((u) => u.id);
+      ids.sort((a, b) => g.cost(a) - g.cost(b));
+      const relicFirst = TG.P.relicCost < g.cost(ids[0]) && TG.RELICS.some((r) => (g.s.relics[r.id] || 0) < TG.P.relicMax);
+      if (relicFirst ? !g.relicPull(1).ok : !g.buy(ids[0])) break;
     }
     while (g.buy('awaken'));
     /* 자동 기능 첫 레벨을 먼저, 그다음은 가장 싼 골드 강화 */
@@ -377,6 +439,7 @@ if (process.argv.includes('--pace')) {
   testV02();
   testV03();
   testV04();
+  testV05();
   console.log('\nall tests passed');
 }
 

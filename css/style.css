@@ -180,7 +180,7 @@ button { font-family: inherit; color: inherit; }
 .ghost { position: fixed; pointer-events: none; z-index: 30; image-rendering: pixelated; filter: drop-shadow(0 6px 4px #0008); }
 
 /* 아래 탭 */
-.dock { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
+.dock { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
 .tab {
   appearance: none;
   background: var(--panel);
@@ -360,7 +360,40 @@ button { font-family: inherit; color: inherit; }
 .fieldtag { position: absolute; left: 8px; top: 6px; display: flex; align-items: center; gap: 5px; font-size: 13px; color: var(--ink-2); pointer-events: none; text-shadow: 0 1px 0 #000; }
 .fieldtag b { color: var(--ink); font-weight: 400; }
 .fieldtag .auto { color: var(--good); font-size: 11px; }
-.tab { font-size: 15px; padding: 8px 2px; gap: 3px; }
+.tab { font-size: 13px; padding: 5px 2px 4px; gap: 1px; flex-direction: column; }
+.bar { flex-direction: column; }
+.skills { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
+.skills .skill { width: auto; min-height: 46px; }
+.bar .craft { flex: none; min-height: 46px; }
+.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+.seg button { appearance: none; border: 2px solid var(--line); background: var(--panel-2); color: var(--ink-2); border-radius: 8px; padding: 6px; font: inherit; font-size: 15px; cursor: pointer; }
+.seg button.on { border-color: var(--gold); color: var(--ink); }
+.pull { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 4px 0 8px; }
+.pull button { appearance: none; border: 0; border-radius: 8px; padding: 9px 6px; font: inherit; font-size: 15px; background: #ff7a8a; box-shadow: 0 3px 0 #9a3040; color: #2a0a10; display: flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; }
+.pull button:disabled { background: #3a3d63; color: var(--ink-3); box-shadow: none; }
+.relics { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.relic { display: grid; grid-template-columns: 34px 1fr; gap: 6px; align-items: center; background: var(--panel-2); border: 2px solid var(--line); border-radius: 8px; padding: 5px; }
+.relic canvas { width: 32px; height: 32px; image-rendering: pixelated; }
+.relic.none canvas { filter: brightness(0) opacity(0.5); }
+.relic .nm { font-size: 13px; }
+.relic .nm small { color: var(--gold); margin-left: 3px; }
+.relic .ds { font-size: 11px; color: var(--ink-2); }
+.relic.max { border-color: var(--gold); }
+.quest { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; align-items: center; background: var(--panel-2); border: 2px solid var(--line); border-radius: 8px; padding: 8px; margin-bottom: 6px; }
+.quest .nm { font-size: 15px; }
+.quest .nm small { color: var(--ink-3); margin-left: 4px; font-size: 12px; }
+.quest .pg { grid-column: 1; font-size: 12px; color: var(--ink-2); }
+.quest .bar2 { grid-column: 1; }
+.quest button { grid-row: 1 / span 3; grid-column: 2; appearance: none; border: 0; border-radius: 8px; padding: 8px 10px; min-width: 76px; font: inherit; font-size: 14px; background: #ff7a8a; box-shadow: 0 3px 0 #9a3040; color: #2a0a10; display: flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; }
+.quest button:disabled { background: #3a3d63; color: var(--ink-3); box-shadow: none; }
+.quest.ready { border-color: var(--gold); }
+.gacha .box { display: grid; justify-items: center; gap: 10px; }
+.gacha canvas#gachaCv { width: 192px; height: 192px; image-rendering: pixelated; }
+.gacha .got { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; max-width: 300px; min-height: 10px; }
+.gacha .got .g { display: grid; justify-items: center; font-size: 11px; color: var(--ink-2); width: 56px; }
+.gacha .got .g canvas { width: 32px; height: 32px; image-rendering: pixelated; }
+.gacha .got .g b { color: var(--gold); font-weight: 400; }
+.gacha .got .g.new b { color: #7dff8a; }
 .up button.shard { background: #9fd8ff; box-shadow: 0 3px 0 #3a6a9a; color: #0a1a2a; }
 .up button.shard:disabled { background: #3a3d63; color: var(--ink-3); box-shadow: none; }
 .pets { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }

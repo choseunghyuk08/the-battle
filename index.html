@@ -34,10 +34,14 @@
     <section class="battle" aria-label="전투 화면"><canvas id="battle"></canvas></section>
 
     <div class="bar">
-      <button class="skill" id="skRain" type="button" aria-label="쏟아지기 스킬"><span id="skRainIcon" class="icon x2"></span><span class="cd"></span><small>쏟아지기</small></button>
-      <button class="skill" id="skRage" type="button" aria-label="분노 스킬"><span id="skRageIcon" class="icon x2"></span><span class="cd"></span><small>분노</small></button>
-      <button class="skill boss" id="bossBtn" type="button" aria-label="보스전"><span id="bossIcon" class="icon x2"></span><span class="cd"></span><small id="bossLabel">보스 1</small></button>
-      <button class="skill mine" id="mineBtn" type="button" aria-label="광산"><span id="mineIcon" class="icon x2"></span><span class="cd"></span><small id="mineLabel">광산</small></button>
+      <div class="skills">
+        <button class="skill" id="skRain" type="button" aria-label="쏟아지기 스킬"><span id="skRainIcon" class="icon x2"></span><span class="cd"></span><small>쏟아지기</small></button>
+        <button class="skill" id="skRage" type="button" aria-label="분노 스킬"><span id="skRageIcon" class="icon x2"></span><span class="cd"></span><small>분노</small></button>
+        <button class="skill" id="skShadow" type="button" aria-label="그림자 분신 스킬"><span id="skShadowIcon" class="icon x2"></span><span class="cd"></span><small>분신</small></button>
+        <button class="skill" id="skBarrage" type="button" aria-label="난사 스킬"><span id="skBarrageIcon" class="icon x2"></span><span class="cd"></span><small>난사</small></button>
+        <button class="skill boss" id="bossBtn" type="button" aria-label="보스전"><span id="bossIcon" class="icon x2"></span><span class="cd"></span><small id="bossLabel">보스 1</small></button>
+        <button class="skill mine" id="mineBtn" type="button" aria-label="광산"><span id="mineIcon" class="icon x2"></span><span class="cd"></span><small id="mineLabel">광산</small></button>
+      </div>
       <button class="craft" id="craft" type="button" aria-label="던질 것 만들기">
         <span class="face"><span id="craftIcon" class="icon"></span>만들기 <span id="craftCount">5/5</span><span class="fill" id="craftFill"></span></span>
       </button>
@@ -49,6 +53,7 @@
       <button class="tab" id="tabUp" type="button"><span id="upIcon" class="icon"></span>강화<span class="dot" id="upDot" hidden></span></button>
       <button class="tab" id="tabPet" type="button"><span id="petIcon" class="icon"></span>동료<span class="dot" id="petDot" hidden></span></button>
       <button class="tab" id="tabShop" type="button"><span id="shopIcon" class="icon"></span>상점<span class="dot" id="shopDot" hidden></span></button>
+      <button class="tab" id="tabQuest" type="button"><span id="questIcon" class="icon"></span>임무<span class="dot" id="questDot" hidden></span></button>
       <button class="tab" id="tabDex" type="button"><span id="dexIcon" class="icon"></span>도감</button>
       <button class="tab" id="tabSet" type="button"><span id="setIcon" class="icon"></span>설정</button>
     </nav>
@@ -59,6 +64,14 @@
     </section>
 
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <div class="modal gacha" id="gacha" hidden>
+      <div class="box card">
+        <canvas id="gachaCv" width="64" height="64"></canvas>
+        <div class="got" id="gachaGot"></div>
+        <button type="button" class="primary" id="gachaOk">확인</button>
+      </div>
+    </div>
 
     <div class="modal" id="offline" hidden>
       <div class="card">

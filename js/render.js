@@ -67,6 +67,24 @@
     return true;
   }
 
+  /* 그림자 분신: 주인공 그림을 보랏빛 그림자로 */
+  const shadeCache = new WeakMap();
+  function shade(canvas) {
+    let w = shadeCache.get(canvas);
+    if (!w) {
+      w = document.createElement('canvas');
+      w.width = canvas.width;
+      w.height = canvas.height;
+      const x = w.getContext('2d');
+      x.drawImage(canvas, 0, 0);
+      x.globalCompositeOperation = 'source-atop';
+      x.fillStyle = 'rgba(40,16,70,0.82)';
+      x.fillRect(0, 0, w.width, w.height);
+      shadeCache.set(canvas, w);
+    }
+    return w;
+  }
+
   /* 맞았을 때 하얗게 번쩍 */
   const whiteCache = new WeakMap();
   function white(canvas) {
@@ -210,6 +228,12 @@
         addFx('heal', P.heroX, GROUND, 1.0);
         addText(`+${TG.fmt(e.amount)}`, P.heroX, GROUND - 44, '#7dff8a', true);
         break;
+      case 'skill':
+        if (e.id === 'shadow') addFx('shadowPuff', P.heroX - P.shadowX, GROUND, 0.6);
+        break;
+      case 'shadow-end':
+        addFx('shadowPuff', P.heroX - P.shadowX, GROUND, 0.6);
+        break;
       case 'boss-start':
         addFx('bossWarn', W / 2, H / 2 - 10, 1.0);
         shake = 0.25;
@@ -311,7 +335,14 @@
     const a = game.hero.act;
     const loops = { idle: 6, reload: 9, win: 11, run: 13 };
     const hr = loops[a.kind] ? frame(hero, a.kind, 0, 1, { time: a.t, fps: loops[a.kind] }) : frame(hero, a.kind, 0, 1, { progress: Math.min(0.999, a.t / a.dur) });
+    if (game.shadowT > 0 && game.phase === 'fight') {
+      const sx = P.heroX - P.shadowX;
+      ctx.globalAlpha = 0.8;
+      ctx.drawImage(shade(hr.fr.canvas), Math.round(sx - hr.c.ax), Math.round(GROUND - hr.c.ay));
+      ctx.globalAlpha = 1;
+    }
     put(hr.fr, hr.c, P.heroX, GROUND, a.kind === 'hurt' && a.t < 0.08);
+    if (game.barrage) loopFx('barrage', P.heroX + 8, GROUND - 22, clock, 14);
     drawPet('bear', P.bearX, GROUND);
     drawPet('dragon', P.dragonX, GROUND - P.dragonY);
 
@@ -334,7 +365,7 @@
       const tgt = game.mobs.includes(p.target) ? p.target : game.front();
       const tx = tgt ? tgt.x : P.spawnX;
       const ty = tgt ? GROUND - heightOf(tgt) : GROUND - 20;
-      const sx = P.heroX + 8;
+      const sx = P.heroX + 8 - (p.shadow ? P.shadowX : 0);
       const sy = GROUND - 26;
       const x = sx + (tx - sx) * k;
       const y = sy + (ty - sy) * k - Math.sin(Math.PI * k) * 10;

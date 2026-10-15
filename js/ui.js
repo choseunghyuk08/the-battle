@@ -250,9 +250,14 @@
       else delete cd.dataset.t;
       btn.classList.toggle('ready', ready);
     };
-    cdView($('#skRain'), game.s.skillCd.rain, P.rainCd, game.skillReady('rain'));
-    cdView($('#skRage'), game.raging ? 0 : game.s.skillCd.rage, P.rageCd, game.skillReady('rage'));
-    $('#skRage').classList.toggle('on', game.raging);
+    for (const [id, btn, lv] of SKILL_BTN) {
+      const on = id === 'rage' ? game.raging : id === 'shadow' ? game.shadowT > 0 : id === 'barrage' ? !!game.barrage : false;
+      cdView($(btn), on ? 0 : game.s.skillCd[id], game.skillCdOf(id), game.skillReady(id));
+      $(btn).classList.toggle('on', on);
+      $(btn).classList.toggle('locked', !!lv && !game.s.lv[lv]);
+    }
+    $('#questDot').hidden = !game.claimable;
+    if (ui.sheet === 'quest') refreshQuest();
     cdView($('#bossBtn'), game.s.bossCd, game.s.bossCd > P.bossFailCd ? P.bossCd : P.bossFailCd, game.canBoss());
     $('#bossLabel').textContent = game.mode === 'boss' ? `${Math.ceil(game.bossT)}초` : `보스 ${game.s.boss}`;
     const mineOpen = game.s.best >= P.mineOpen;
@@ -298,8 +303,15 @@
     }
   }
 
+  const SKILL_BTN = [
+    ['rain', '#skRain', null],
+    ['rage', '#skRage', null],
+    ['shadow', '#skShadow', 'skShadow'],
+    ['barrage', '#skBarrage', 'skBarrage'],
+  ];
+
   /* ---- 강화 판 ---- */
-  const UP_ICON = { atk: 'atk', hp: 'hp', craft: 'craftLv', climb: 'climb', slots: 'slots', autoCraft: 'autoCraft', autoMerge: 'autoMerge', rAtk: 'atk', rGold: 'coin', skRain: 'skillRain', skRage: 'skillRage', autoSkill: 'autoSkill', monkey: 'monkey', hippo: 'hippo', awaken: 'awaken' };
+  const UP_ICON = { atk: 'atk', hp: 'hp', craft: 'craftLv', climb: 'climb', slots: 'slots', autoCraft: 'autoCraft', autoMerge: 'autoMerge', rAtk: 'atk', rGold: 'coin', skRain: 'skillRain', skRage: 'skillRage', autoSkill: 'autoSkill', monkey: 'monkey', hippo: 'hippo', awaken: 'awaken', bear: 'bear', dragon: 'dragon', skShadow: 'skillShadow', skBarrage: 'skillBarrage', autoShop: 'autoShop' };
   const CUR = {
     gold: { icon: 'coin', cls: '', title: '골드 강화' },
     ruby: { icon: 'ruby', cls: 'ruby', title: '루비 강화 (보스전과 거대 몬스터에게서 얻는다)' },
@@ -431,7 +443,18 @@
   }
 
   /* ---- 조각 상점 ---- */
+  function segBar() {
+    const seg = ui.shopSeg || 'shard';
+    return el('div', { class: 'seg' }, [
+      el('button', { type: 'button', class: seg === 'shard' ? 'on' : '', text: '조각 상점', onclick: () => { ui.shopSeg = 'shard'; buildShop(); } }),
+      el('button', { type: 'button', class: seg === 'relic' ? 'on' : '', text: '유물 뽑기', onclick: () => { ui.shopSeg = 'relic'; buildShop(); } }),
+    ]);
+  }
   function buildShop() {
+    if (ui.shopSeg === 'relic') {
+      buildRelics();
+      return;
+    }
     const game = ui.game;
     const body = $('#sheetBody');
     const list = el('div', { class: 'offers' });
@@ -441,6 +464,7 @@
       list.append(el('div', { class: 'offer', 'data-offer': k }, [spriteCanvas(TG.itemDef(o.tier), 'icon'), el('div', {}, [el('div', { class: 'nm' }, [it.name, el('small', { text: `${o.tier}단계` })]), el('div', { class: 'ln', text: it.line })]), btn]));
     });
     body.replaceChildren(
+      segBar(),
       el('p', { class: 'note' }, ['합칠 때마다 결과 단계만큼 조각을 얻는다. 지금 조각 ', el('b', { id: 'shardNum', text: TG.fmt(game.s.shards) }), '개']),
       list,
       el('div', { class: 'row' }, [el('span', { id: 'shopTimer' }), el('button', { type: 'button', id: 'shopReroll', onclick: shopReroll }, [uiIcon('ruby'), `${P.shopRefreshRuby} 새로고침`])]),
@@ -449,6 +473,10 @@
   }
   function refreshShop() {
     const game = ui.game;
+    if (ui.shopSeg === 'relic') {
+      refreshRelics();
+      return;
+    }
     if (!$('#shardNum')) return;
     $('#shardNum').textContent = TG.fmt(game.s.shards);
     game.s.shop.offers.forEach((o, k) => {
@@ -483,6 +511,133 @@
     }
   }
 
+  /* ---- 유물 뽑기 ---- */
+  function relicIcon(id) {
+    const def = TG.SPR.ui[`relic_${id}`];
+    return def ? spriteCanvas(def) : uiIcon('relic');
+  }
+  function buildRelics() {
+    const body = $('#sheetBody');
+    const grid = el('div', { class: 'relics' });
+    for (const r of TG.RELICS) grid.append(el('div', { class: 'relic', 'data-relic': r.id }, [relicIcon(r.id), el('div', {}, [el('div', { class: 'nm' }, [r.name, el('small')]), el('div', { class: 'ds' })])]));
+    body.replaceChildren(
+      segBar(),
+      el('p', { class: 'note' }, ['루비로 유물 20종 중 하나를 뽑는다. 같은 것이 또 나오면 레벨이 오른다 (최대 ', String(P.relicMax), '). 다 모은 유물은 안 나온다.']),
+      el('div', { class: 'pull' }, [
+        el('button', { type: 'button', id: 'pull1', onclick: () => pull(1) }, [uiIcon('ruby'), `${P.relicCost} 한 번`]),
+        el('button', { type: 'button', id: 'pull10', onclick: () => pull(10) }, [uiIcon('ruby'), `${P.relicCost10} 열 번`]),
+      ]),
+      grid,
+    );
+    refreshRelics();
+  }
+  function refreshRelics() {
+    const game = ui.game;
+    if (!$('#pull1')) return;
+    $('#pull1').disabled = game.s.ruby < P.relicCost;
+    $('#pull10').disabled = game.s.ruby < P.relicCost10;
+    for (const r of TG.RELICS) {
+      const row = document.querySelector(`[data-relic="${r.id}"]`);
+      if (!row) continue;
+      const L = game.s.relics[r.id] || 0;
+      row.classList.toggle('none', !L);
+      row.classList.toggle('max', L >= P.relicMax);
+      row.querySelector('small').textContent = L ? (L >= P.relicMax ? '최대' : `Lv ${L}`) : '';
+      row.querySelector('.ds').textContent = L ? r.desc(r.v(L)) : `?? (Lv1: ${r.desc(r.v(1))})`;
+    }
+  }
+  /* 뽑기 연출: 상자가 열리고 나온 것을 보여 준다 */
+  function pull(n) {
+    const game = ui.game;
+    const res = game.relicPull(n);
+    if (!res.ok) {
+      toast(null, res.why === 'max' ? '유물을 다 모았다' : '루비가 모자라다', res.why === 'max' ? '모든 유물이 최대 레벨이다.' : '보스전과 업적에서 루비를 모으자.');
+      return;
+    }
+    handleEvents();
+    save();
+    const box = $('#gacha');
+    const got = $('#gachaGot');
+    got.replaceChildren();
+    $('#gachaOk').hidden = true;
+    box.hidden = false;
+    const cv = $('#gachaCv');
+    const x = cv.getContext('2d');
+    const def = TG.SPR.fx.chestOpen;
+    const t0 = performance.now();
+    const dur = 1400;
+    sfx.craft();
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / dur);
+      x.clearRect(0, 0, cv.width, cv.height);
+      if (def) {
+        const c = TG.clip(def, Object.keys(def.clips)[0], (def.palettes || [{}])[0], 1, 'p0');
+        const f = c.frames[Math.min(c.n - 1, Math.floor(k * c.n))];
+        x.drawImage(f.canvas, Math.round(32 - c.ax), Math.round(cv.height - (c.h - c.ay) - c.ay));
+      } else {
+        x.fillStyle = k < 0.6 ? '#a86a2a' : '#ffe48a';
+        x.fillRect(18, 34 - (k > 0.6 ? 6 : 0), 28, 20);
+      }
+      if (k < 1) {
+        requestAnimationFrame(step);
+        return;
+      }
+      sfx.discover();
+      for (const g2 of res.got) {
+        const r = TG.RELICS.find((rr) => rr.id === g2.id);
+        got.append(el('div', { class: `g${g2.lv === 1 ? ' new' : ''}` }, [relicIcon(g2.id), r.name, el('b', { text: g2.lv === 1 ? '새로!' : `Lv ${g2.lv}` })]));
+      }
+      $('#gachaOk').hidden = false;
+    };
+    requestAnimationFrame(step);
+  }
+
+  /* ---- 임무 (업적) ---- */
+  function buildQuest() {
+    const body = $('#sheetBody');
+    const list = el('div', {});
+    for (const a of TG.ACHIEVE) {
+      list.append(
+        el('div', { class: 'quest', 'data-quest': a.id }, [
+          el('div', { class: 'nm' }, [a.name, el('small')]),
+          el('div', { class: 'pg' }),
+          el('div', { class: 'bar2' }, [el('i')]),
+          el('button', { type: 'button', onclick: () => claim(a.id) }),
+        ]),
+      );
+    }
+    body.replaceChildren(el('p', { class: 'note', text: '목표를 채우면 루비를 받는다. 단계가 오를수록 목표도 보상도 커진다.' }), list);
+    refreshQuest();
+  }
+  function refreshQuest() {
+    const game = ui.game;
+    for (const a of TG.ACHIEVE) {
+      const row = document.querySelector(`[data-quest="${a.id}"]`);
+      if (!row) continue;
+      const st = game.achState(a.id);
+      row.classList.toggle('ready', st.ready);
+      row.querySelector('small').textContent = `${st.done}/${a.goals.length}단계`;
+      row.querySelector('.pg').textContent = st.goal === undefined ? '다 했다!' : `${TG.fmt(Math.min(st.have, st.goal))} / ${TG.fmt(st.goal)} ${a.unit}`;
+      row.querySelector('.bar2 i').style.width = `${st.goal === undefined ? 100 : Math.min(100, (st.have / st.goal) * 100)}%`;
+      const btn = row.querySelector('button');
+      btn.disabled = !st.ready;
+      const label = st.goal === undefined ? '끝' : `${st.ruby}`;
+      if (btn.dataset.label !== label) {
+        btn.dataset.label = label;
+        btn.replaceChildren(st.goal === undefined ? '' : uiIcon('ruby'), label);
+      }
+    }
+  }
+  function claim(id) {
+    if (ui.game.claim(id)) {
+      sfx.coin();
+      handleEvents();
+      refreshQuest();
+      updateHud();
+      save();
+    }
+  }
+
   /* ---- 도감 ---- */
   function buildDex() {
     const body = $('#sheetBody');
@@ -510,6 +665,7 @@
     const body = $('#sheetBody');
     body.replaceChildren(
       el('div', { class: 'row' }, ['소리', el('button', { type: 'button', text: ui.muted ? '켜기' : '끄기', onclick: () => { ui.muted = !ui.muted; save(); buildSettings(); } })]),
+      game.s.lv.autoShop ? el('div', { class: 'row' }, ['자동 구매', el('button', { type: 'button', text: game.s.autoShopOn ? '끄기' : '켜기', onclick: () => { game.s.autoShopOn = !game.s.autoShopOn; save(); buildSettings(); } })]) : null,
       game.s.lv.autoSkill ? el('div', { class: 'row' }, ['자동 스킬', el('button', { type: 'button', text: game.s.autoSkillOn ? '끄기' : '켜기', onclick: () => { game.s.autoSkillOn = !game.s.autoSkillOn; save(); buildSettings(); } })]) : null,
       el('div', { class: 'row' }, [`최고 스테이지 ${game.s.best} · 쓰러짐 ${game.s.stats.deaths}회 · 합성 ${TG.fmt(game.s.stats.merges)}회`]),
       el('div', { class: 'row' }, ['처음부터 다시', el('button', { type: 'button', class: 'danger', text: ui.resetArm ? '정말 지우기' : '세이브 지우기', onclick: resetSave })]),
@@ -538,7 +694,7 @@
   }
 
   /* ---- 판 열고 닫기 ---- */
-  const TITLES = { up: '강화', pet: '동료', shop: '조각 상점', dex: '도감', set: '설정' };
+  const TITLES = { up: '강화', pet: '동료', shop: '상점', quest: '임무', dex: '도감', set: '설정' };
   function openSheet(kind) {
     if (ui.sheet === kind) {
       closeSheet();
@@ -548,6 +704,7 @@
     $('#sheetTitle').textContent = TITLES[kind];
     if (kind === 'up') buildUpgrades();
     else if (kind === 'pet') buildPets();
+    else if (kind === 'quest') buildQuest();
     else if (kind === 'shop') buildShop();
     else if (kind === 'dex') buildDex();
     else buildSettings();
@@ -652,6 +809,9 @@
         case 'skill':
           sfx.discover();
           break;
+        case 'claim':
+          toast(null, `루비 ${e.ruby}개!`, '임무 보상을 받았다.');
+          break;
         case 'shop':
           if (ui.sheet === 'shop') buildShop();
           break;
@@ -738,8 +898,17 @@
     $('#tabUp').addEventListener('click', () => openSheet('up'));
     $('#tabShop').addEventListener('click', () => openSheet('shop'));
     $('#tabPet').addEventListener('click', () => openSheet('pet'));
-    $('#skRain').addEventListener('click', () => ui.game.useSkill('rain'));
-    $('#skRage').addEventListener('click', () => ui.game.useSkill('rage'));
+    for (const [id, btn, lv] of SKILL_BTN) {
+      $(btn).addEventListener('click', () => {
+        if (lv && !ui.game.s.lv[lv]) toast(null, '아직 못 쓰는 스킬', '강화 탭의 루비 강화에서 배울 수 있다.');
+        else ui.game.useSkill(id);
+      });
+    }
+    $('#tabQuest').addEventListener('click', () => openSheet('quest'));
+    $('#gachaOk').addEventListener('click', () => {
+      $('#gacha').hidden = true;
+      if (ui.sheet === 'shop') buildShop();
+    });
     $('#mineBtn').addEventListener('click', () => {
       const game = ui.game;
       if (game.s.best < P.mineOpen) toast(null, '광산은 잠겨 있다', `최고 스테이지 ${P.mineOpen}에 가면 열린다.`);
@@ -765,7 +934,7 @@
     document.addEventListener('visibilitychange', save);
     setInterval(save, 4000);
 
-    for (const [id, name] of [['goldIcon', 'coin'], ['craftIcon', 'craft'], ['upIcon', 'atk'], ['dexIcon', 'dex'], ['setIcon', 'stage'], ['countIcon', 'slots'], ['meAtkIcon', 'atk'], ['rubyIcon', 'ruby'], ['skRainIcon', 'skillRain'], ['skRageIcon', 'skillRage'], ['bossIcon', 'boss'], ['shopIcon', 'shop'], ['offIcon', 'offline'], ['petIcon', 'pets'], ['mineIcon', 'mine']]) {
+    for (const [id, name] of [['goldIcon', 'coin'], ['craftIcon', 'craft'], ['upIcon', 'atk'], ['dexIcon', 'dex'], ['setIcon', 'stage'], ['countIcon', 'slots'], ['meAtkIcon', 'atk'], ['rubyIcon', 'ruby'], ['skRainIcon', 'skillRain'], ['skRageIcon', 'skillRage'], ['bossIcon', 'boss'], ['shopIcon', 'shop'], ['offIcon', 'offline'], ['petIcon', 'pets'], ['mineIcon', 'mine'], ['skShadowIcon', 'skillShadow'], ['skBarrageIcon', 'skillBarrage'], ['questIcon', 'quest']]) {
       const slot = document.getElementById(id);
       if (slot) slot.replaceWith(Object.assign(uiIcon(name), { id }));
     }
