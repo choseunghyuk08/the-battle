@@ -899,7 +899,6 @@
       const [rx, ry] = rot(x, y, p.lean);
       return [fx0 + rx * p.sx, IG - p.lift + (ry - IHIP) * p.sy];
     };
-    const hipY = IG - p.lift - IHIP * p.sy;
 
     /* 죽을 때: 발밑을 축으로 뒤로 넘어가고, 연기 속으로 오그라든다 */
     const fallR = p.fall * D2R;

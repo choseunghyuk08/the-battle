@@ -4,9 +4,10 @@
   /* 조정할 수 있는 숫자는 전부 여기 있다. 바꾼 뒤에는 `node tests/sim.js --pace` 로 속도를 본다 */
   const P = (TG.P = {
     tiers: 20,
-    cols: 4,
-    rows: 3,
+    maxSlots: 60, // 필드에 둘 수 있는 물건 최대 개수 (보유 개수 강화의 끝)
     slotsStart: 8,
+    slotCost0: 60,
+    slotCostGrow: 1.22,
 
     atk0: 20, // 1단계 공격력
     atkGrow: 1.8, // 한 단계 오를 때 배율 (합치면 2개가 1개가 되니 전체 화력은 0.9배지만 칸이 빈다)
@@ -68,7 +69,6 @@
   const AUTO_COST = [100, 300, 900, 2700, 8100];
   const AUTO_COST2 = [200, 600, 1800, 5400, 16200];
   const AUTO_GAP = [0, 5, 4, 3.2, 2.6, 2];
-  const SLOT_COST = [150, 600, 2500, 10000];
   TG.UPGRADES = [
     { id: 'atk', name: '공격력', max: 9999, cost: (L) => Math.ceil(10 * P.upCostGrow ** L), desc: (L) => `던질 것의 공격력 x${TG.fmtMult(P.atkUp ** L)}` },
     { id: 'hp', name: '체력', max: 9999, cost: (L) => Math.ceil(10 * P.upCostGrow ** L), desc: (L) => `체력 ${TG.fmt(Math.round(P.hpBase * P.hpUp ** L))}` },
@@ -89,7 +89,7 @@
       cost: (L) => Math.ceil(40 * P.climbCostGrow ** L),
       desc: (L) => `클리어 때 ${Math.round(Math.min(0.5, 0.05 + 0.005 * L) * 100)}%로 최대 ${1 + Math.floor(L / 10)}스테이지 건너뜀`,
     },
-    { id: 'slots', name: '보드 칸', max: SLOT_COST.length, cost: (L) => (L < SLOT_COST.length ? SLOT_COST[L] : null), desc: (L) => `${P.slotsStart + L}칸 사용 중` },
+    { id: 'slots', name: '보유 개수', max: 52, cost: (L) => Math.ceil(P.slotCost0 * P.slotCostGrow ** L), desc: (L) => `필드에 ${P.slotsStart + L}개까지` },
     { id: 'autoCraft', name: '자동 제작', max: AUTO_COST.length, cost: (L) => (L < AUTO_COST.length ? AUTO_COST[L] : null), desc: (L) => (L ? `${AUTO_GAP[L]}초마다 제작` : '꺼짐') },
     { id: 'autoMerge', name: '자동 합성', max: AUTO_COST2.length, cost: (L) => (L < AUTO_COST2.length ? AUTO_COST2[L] : null), desc: (L) => (L ? `${AUTO_GAP[L]}초마다 합성` : '꺼짐') },
   ];
@@ -116,7 +116,8 @@
     gold: 0,
     stage: 1,
     best: 1,
-    board: new Array(P.cols * P.rows).fill(0),
+    board: new Array(P.maxSlots).fill(0),
+    pos: [], // 물건마다 필드 안 위치 [x, y] (0..1). 화면만 쓴다
     lv: { atk: 0, hp: 0, craft: 0, climb: 0, slots: 0, autoCraft: 0, autoMerge: 0 },
     charges: P.craftMax,
     seen: new Array(P.tiers + 1).fill(false),
@@ -133,6 +134,10 @@
           stats: Object.assign(s.stats, save.stats),
           board: s.board.map((_, i) => Math.max(0, Math.min(P.tiers, Math.floor((save.board || [])[i]) || 0))),
           seen: s.seen.map((_, i) => !!(save.seen || [])[i]),
+          pos: s.board.map((_, i) => {
+            const p = (save.pos || [])[i];
+            return Array.isArray(p) && p.every((v) => Number.isFinite(v)) ? [Math.min(1, Math.max(0, p[0])), Math.min(1, Math.max(0, p[1]))] : null;
+          }),
         });
         this.s.stage = Math.max(1, Math.floor(this.s.stage) || 1);
         this.s.best = Math.max(this.s.stage, Math.floor(this.s.best) || 1);
@@ -141,6 +146,7 @@
       } else {
         this.s = s;
       }
+      for (let i = 0; i < P.maxSlots; i++) if (!this.s.pos[i]) this.s.pos[i] = this.freeSpot(i);
       this.autoCraftT = 0;
       this.autoMergeT = 0;
       this.events = []; // 화면이 가져가서 보여줄 일들
@@ -177,6 +183,31 @@
       return Math.min(P.tiers, t);
     }
 
+    /* 필드에서 다른 물건과 덜 겹치는 자리 (몇 군데 뽑아 보고 가장 넓은 곳) */
+    freeSpot(skip = -1) {
+      let best = [this.rng(), this.rng()];
+      let bestD = -1;
+      for (let k = 0; k < 10; k++) {
+        const c = [0.04 + this.rng() * 0.92, 0.06 + this.rng() * 0.88];
+        let d = 9;
+        for (let i = 0; i < this.slots; i++) {
+          if (i === skip || !this.s.board[i] || !this.s.pos[i]) continue;
+          d = Math.min(d, Math.hypot(this.s.pos[i][0] - c[0], (this.s.pos[i][1] - c[1]) * 0.8));
+        }
+        if (d > bestD) {
+          bestD = d;
+          best = c;
+        }
+      }
+      return best;
+    }
+
+    /* 끌어다 놓은 자리로 옮긴다 */
+    place(i, x, y) {
+      if (i >= this.slots || !this.s.board[i]) return;
+      this.s.pos[i] = [Math.min(1, Math.max(0, x)), Math.min(1, Math.max(0, y))];
+    }
+
     emptySlot() {
       for (let i = 0; i < this.slots; i++) if (!this.s.board[i]) return i;
       return -1;
@@ -207,6 +238,7 @@
       }
       this.s.charges -= 1;
       b[i] = t;
+      this.s.pos[i] = this.freeSpot(i);
       this.s.stats.crafts++;
       this.see(t);
       this.events.push({ type: 'craft', slot: i, tier: t });
@@ -231,20 +263,6 @@
       b[from] = 0;
       this.mergeReward(to);
       return true;
-    }
-
-    /* 드래그로 옮기기: 빈 칸이면 이동, 같은 단계면 합성, 다르면 맞바꾸기 */
-    move(from, to) {
-      const b = this.s.board;
-      if (from === to || from >= this.slots || to >= this.slots || !b[from]) return 'none';
-      if (!b[to]) {
-        b[to] = b[from];
-        b[from] = 0;
-        return 'move';
-      }
-      if (b[from] === b[to]) return this.merge(from, to) ? 'merge' : 'swap-blocked';
-      [b[from], b[to]] = [b[to], b[from]];
-      return 'swap';
     }
 
     autoMergeOnce() {
@@ -308,7 +326,8 @@
       this.dying = [];
       this.proj = [];
       this.queue = [];
-      this.pending = null;
+      this.pending = [];
+      this.throwT = 0;
       this.reloadT = 0;
       this.gapT = 0.4;
       this.spawnList = [];
@@ -402,7 +421,7 @@
       this.act('die', P.deadTime * 0.6);
       this.proj = [];
       this.queue = [];
-      this.pending = null;
+      this.pending = [];
     }
 
     tickHero(dt) {
@@ -513,16 +532,17 @@
         return;
       }
 
-      /* 던지기: 던지는 동작이 시작되고 손이 떠나는 순간에 날아간다 */
-      if (this.pending) {
-        this.pending.t -= dt;
-        if (this.pending.t <= 0) {
-          this.launch(this.pending.tier);
-          this.events.push({ type: 'throw', tier: this.pending.tier });
-          this.pending = null;
-        }
+      /* 던지기: 물건마다 던지는 순간을 잡고, 손이 떠나는 시간만큼 뒤에 날아간다.
+         물건이 많으면 한 바퀴를 volley 초 안에 끝내도록 간격이 줄어서 여러 개가 겹쳐 날아간다 */
+      for (let i = this.pending.length - 1; i >= 0; i--) {
+        const pd = this.pending[i];
+        pd.t -= dt;
+        if (pd.t > 0) continue;
+        this.pending.splice(i, 1);
+        this.launch(pd.tier);
+        this.events.push({ type: 'throw', tier: pd.tier });
       }
-      if (this.mobs.length && !this.pending) {
+      if (this.mobs.length) {
         if (!this.queue.length) {
           if (this.reloadT > 0) {
             this.reloadT -= dt;
@@ -531,15 +551,21 @@
           if (this.reloadT <= 0) {
             this.queue = this.boardTiers();
             this.gap = Math.min(P.throwGap, P.volley / Math.max(1, this.queue.length));
+            this.throwT = 0;
           }
         }
-        if (this.queue.length && (hero.act.kind !== 'throw' || hero.act.t >= hero.act.dur * 0.999)) {
-          const tier = this.queue.shift();
-          this.act('throw', this.gap);
-          this.pending = { tier, t: this.gap * P.release };
-          if (!this.queue.length) this.reloadT = P.reload;
+        if (this.queue.length) {
+          this.throwT -= dt;
+          while (this.queue.length && this.throwT <= 0) {
+            const tier = this.queue.shift();
+            const anim = Math.max(this.gap, 0.22);
+            if (hero.act.kind !== 'throw' || hero.act.t >= hero.act.dur * 0.999) this.act('throw', anim);
+            this.pending.push({ tier, t: anim * P.release });
+            this.throwT += this.gap;
+            if (!this.queue.length) this.reloadT = P.reload;
+          }
         }
-      } else if (!this.mobs.length && (hero.act.kind === 'reload' || (hero.act.kind === 'throw' && hero.act.t >= hero.act.dur))) {
+      } else if (hero.act.kind === 'reload' || (hero.act.kind === 'throw' && hero.act.t >= hero.act.dur)) {
         this.act('idle', 1);
       }
 

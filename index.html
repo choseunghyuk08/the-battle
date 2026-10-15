@@ -17,19 +17,33 @@
       <div class="gold" aria-label="골드"><span id="goldIcon" class="icon"></span><span id="goldNum">0</span></div>
     </header>
 
+    <div class="info" aria-label="전투 정보">
+      <div class="side me">
+        <div class="row1"><span class="nm">나</span><span class="hp" id="meHp">100/100</span></div>
+        <div class="bar2"><i id="meHpBar"></i></div>
+        <div class="row2"><span id="meAtkIcon" class="icon"></span>한 바퀴 <b id="meAtk">0</b></div>
+      </div>
+      <div class="side foe" id="foe">
+        <div class="row1"><span class="nm" id="foeName">-</span><span class="hp" id="foeHp">-</span></div>
+        <div class="bar2"><i id="foeHpBar"></i></div>
+        <div class="row2">공격력 <b id="foeAtk">-</b></div>
+      </div>
+    </div>
+
     <section class="battle" aria-label="전투 화면"><canvas id="battle"></canvas></section>
 
     <div class="bar">
       <div class="chips">
         <span class="chip" id="chipCraft"><span id="chipCraftIcon" class="icon"></span>자동 제작</span>
         <span class="chip" id="chipMerge"><span id="chipMergeIcon" class="icon"></span>자동 합성</span>
+        <span class="chip count"><span id="countIcon" class="icon"></span><b id="countNum">0/8</b></span>
       </div>
       <button class="craft" id="craft" type="button" aria-label="던질 것 만들기">
         <span class="face"><span id="craftIcon" class="icon"></span>만들기 <span id="craftCount">5/5</span><span class="fill" id="craftFill"></span></span>
       </button>
     </div>
 
-    <section class="board" id="board" aria-label="합성 보드"></section>
+    <section class="field" id="field" aria-label="합성 필드. 같은 물건을 끌어다 겹치면 합쳐진다"><canvas id="fieldCv"></canvas></section>
 
     <nav class="dock">
       <button class="tab" id="tabUp" type="button"><span id="upIcon" class="icon"></span>강화<span class="dot" id="upDot" hidden></span></button>

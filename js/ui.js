@@ -4,7 +4,7 @@
   const $ = (s) => document.querySelector(s);
 
   const SAVE_KEY = 'mudeun-deonjyeo-v1';
-  const ui = { game: null, cells: [], drag: null, sheet: null, muted: false };
+  const ui = { game: null, drag: null, sheet: null, muted: false };
 
   /* ---- 그림을 DOM 에 넣기 ---- */
   function spriteCanvas(def, clip = null, frameIdx = 0) {
@@ -72,179 +72,165 @@
     discover: () => [660, 880, 1175].forEach((f, i) => setTimeout(() => beep(f, 0.14, 'triangle', 0.05), i * 80)),
   };
 
-  /* ---- 보드 ---- */
-  function iconScale(cell) {
-    const r = cell.getBoundingClientRect();
-    const dpr = g.devicePixelRatio || 1;
-    return Math.max(1, Math.floor((r.width * 0.8 * dpr) / 20)) / dpr;
-  }
-
-  function buildBoard() {
-    const board = $('#board');
-    board.replaceChildren();
-    ui.cells = [];
-    for (let i = 0; i < P.cols * P.rows; i++) {
-      const cv = document.createElement('canvas');
-      cv.width = 20;
-      cv.height = 20;
-      const cell = el('div', { class: 'cell', 'data-i': i }, [cv, el('span', { class: 'tier' })]);
-      board.append(cell);
-      ui.cells.push(cell);
-    }
-    ui.fxCanvas = el('canvas', { class: 'fx' });
-    board.append(ui.fxCanvas);
-    sizeBoard();
-  }
-
-  function sizeBoard() {
-    if (!ui.cells.length) return;
-    const s = iconScale(ui.cells[0]) * 20;
-    for (const cell of ui.cells) {
-      const cv = cell.querySelector('canvas');
-      cv.style.width = `${s}px`;
-      cv.style.height = `${s}px`;
-    }
-    const r = $('#board').getBoundingClientRect();
-    const dpr = g.devicePixelRatio || 1;
-    ui.fxCanvas.width = Math.round(r.width * dpr);
-    ui.fxCanvas.height = Math.round(r.height * dpr);
-  }
-
+  /* ---- 필드: 물건이 흩어져 있고, 같은 단계 위에 끌어다 놓으면 합쳐진다 ---- */
+  const field = { cv: null, ctx: null, w: 0, h: 0, dpr: 1, k: 2, size: 40, fx: [], hover: -1 };
   let shineClock = 0;
-  function drawCell(i) {
+
+  function sizeField() {
+    const box = $('#field').getBoundingClientRect();
+    const dpr = g.devicePixelRatio || 1;
+    field.dpr = dpr;
+    field.w = Math.max(1, Math.round(box.width * dpr));
+    field.h = Math.max(1, Math.round(box.height * dpr));
+    field.cv.width = field.w;
+    field.cv.height = field.h;
+    field.ctx.imageSmoothingEnabled = false;
+    /* 물건 하나가 화면에서 44~52px 쯤 되도록 정수 배율 */
+    field.k = Math.max(1, Math.round((48 * dpr) / 20));
+    field.size = 20 * field.k;
+  }
+
+  /* 물건 i 의 필드 위 중심 (캔버스 픽셀) */
+  function spot(i) {
+    const p = ui.game.s.pos[i] || [0.5, 0.5];
+    const m = field.size * 0.55;
+    return [m + p[0] * (field.w - m * 2), m + p[1] * (field.h - m * 2)];
+  }
+  function toNorm(x, y) {
+    const m = field.size * 0.55;
+    return [(x - m) / Math.max(1, field.w - m * 2), (y - m) / Math.max(1, field.h - m * 2)];
+  }
+  function order() {
     const game = ui.game;
-    const cell = ui.cells[i];
-    const tier = game.s.board[i];
-    const locked = i >= game.slots;
-    cell.classList.toggle('locked', locked);
-    cell.classList.toggle('has', !locked && tier > 0);
-    const cv = cell.querySelector('canvas');
-    const label = cell.querySelector('.tier');
-    const cx = cv.getContext('2d');
-    cx.clearRect(0, 0, 20, 20);
-    if (locked) {
-      label.textContent = '';
-      cv.style.visibility = 'hidden';
-      if (!cell.querySelector('.lockicon')) {
-        const lk = uiIcon('lock', 'icon x2 lockicon');
-        cell.append(lk);
-      }
-      return;
+    const ids = [];
+    for (let i = 0; i < game.slots; i++) if (game.s.board[i]) ids.push(i);
+    return ids.sort((a, b) => (game.s.pos[a] ? game.s.pos[a][1] : 0) - (game.s.pos[b] ? game.s.pos[b][1] : 0));
+  }
+  /* 화면 좌표(CSS px)에서 가장 위에 그려진 물건 */
+  function itemAt(cx, cy, skip = -1) {
+    const r = field.cv.getBoundingClientRect();
+    const x = (cx - r.left) * field.dpr;
+    const y = (cy - r.top) * field.dpr;
+    const ids = order().reverse();
+    for (const i of ids) {
+      if (i === skip) continue;
+      const [sx, sy] = spot(i);
+      if (Math.abs(x - sx) < field.size * 0.48 && Math.abs(y - sy) < field.size * 0.48) return i;
     }
-    const lk = cell.querySelector('.lockicon');
-    if (lk) lk.remove();
-    cv.style.visibility = 'visible';
-    label.textContent = tier ? tier : '';
-    if (!tier) return;
+    return -1;
+  }
+
+  let tierText = new Map();
+  function tierLabel(t) {
+    if (!TG.pixelText) return null;
+    if (!tierText.has(t)) {
+      const r = TG.pixelText(String(t), '#ffffff', '#17121e');
+      tierText.set(t, r.canvas || TG.toCanvas(r));
+    }
+    return tierText.get(t);
+  }
+
+  function drawItem(i, x, y, scale = 1, alpha = 1) {
+    const game = ui.game;
+    const tier = game.s.board[i];
     const def = TG.itemDef(tier);
     const clip = def.clips.shine ? 'shine' : 'icon';
     const c = TG.clip(def, clip, def.palettes ? def.palettes[0] : {}, 1, 'p0');
-    const k = Math.floor(shineClock * 6 + i * 1.7) % c.n;
-    cx.drawImage(c.frames[k].canvas, Math.round(10 - c.ax), Math.round(10 - c.ay));
-  }
-  function drawBoard() {
-    for (let i = 0; i < ui.cells.length; i++) drawCell(i);
-  }
-  function flash(i, cls) {
-    const cell = ui.cells[i];
-    if (!cell) return;
-    cell.classList.remove(cls);
-    void cell.offsetWidth;
-    cell.classList.add(cls);
+    const fr = c.frames[Math.floor(shineClock * 6 + i * 1.7) % c.n];
+    const k = field.k * scale;
+    const ctx = field.ctx;
+    ctx.globalAlpha = alpha;
+    /* 바닥 그림자 */
+    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.beginPath();
+    ctx.ellipse(x, y + field.size * 0.36 * scale, field.size * 0.3 * scale, field.size * 0.09 * scale, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.drawImage(fr.canvas, Math.round(x - c.ax * k), Math.round(y - c.ay * k), c.w * k, c.h * k);
+    const lab = tierLabel(tier);
+    if (lab) ctx.drawImage(lab, Math.round(x + field.size * 0.18), Math.round(y + field.size * 0.12), lab.width * Math.max(1, Math.floor(field.k / 2)), lab.height * Math.max(1, Math.floor(field.k / 2)));
+    ctx.globalAlpha = 1;
   }
 
-  /* 보드 위 효과 (합성 고리, 새 물건 퐁) */
-  const boardFx = [];
-  function addBoardFx(name, i) {
+  function addFieldFx(name, i) {
     const def = TG.SPR.fx[name];
     if (!def) return;
-    boardFx.push({ def, i, t: 0, dur: name === 'discover' ? 0.9 : 0.45 });
+    const [x, y] = spot(i);
+    field.fx.push({ def, x, y, t: 0, dur: name === 'discover' ? 0.9 : 0.45 });
   }
-  function drawBoardFx(dt) {
-    const c = ui.fxCanvas;
-    if (!c) return;
-    const x = c.getContext('2d');
-    x.imageSmoothingEnabled = false;
-    x.clearRect(0, 0, c.width, c.height);
-    const br = $('#board').getBoundingClientRect();
-    const dpr = g.devicePixelRatio || 1;
-    for (let k = boardFx.length - 1; k >= 0; k--) {
-      const f = boardFx[k];
+
+  function drawField(dt) {
+    const ctx = field.ctx;
+    const game = ui.game;
+    ctx.clearRect(0, 0, field.w, field.h);
+    const d = ui.drag;
+    for (const i of order()) {
+      if (d && d.from === i) continue;
+      const [x, y] = spot(i);
+      const pulse = field.pop && field.pop.i === i ? 1 + 0.35 * Math.max(0, 1 - (performance.now() - field.pop.at) / 260) : 1;
+      if (d && d.target === i) {
+        ctx.fillStyle = 'rgba(255,207,74,0.25)';
+        ctx.beginPath();
+        ctx.arc(x, y, field.size * 0.55, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      drawItem(i, x, y, pulse);
+    }
+    /* 효과 */
+    for (let n = field.fx.length - 1; n >= 0; n--) {
+      const f = field.fx[n];
       f.t += dt;
       if (f.t >= f.dur) {
-        boardFx.splice(k, 1);
+        field.fx.splice(n, 1);
         continue;
       }
       const clip = Object.keys(f.def.clips)[0];
       const cc = TG.clip(f.def, clip, (f.def.palettes || [{}])[0], 1, 'p0');
       const fr = cc.frames[Math.min(cc.n - 1, Math.floor((f.t / f.dur) * cc.n))];
-      const r = ui.cells[f.i].getBoundingClientRect();
-      const scale = Math.max(1, Math.floor((r.width * dpr) / Math.max(cc.w, 20)));
-      const cx = (r.left + r.width / 2 - br.left) * dpr;
-      const cy = (r.top + r.height / 2 - br.top) * dpr;
-      x.drawImage(fr.canvas, Math.round(cx - cc.ax * scale), Math.round(cy - cc.ay * scale), cc.w * scale, cc.h * scale);
+      const k = field.k;
+      ctx.drawImage(fr.canvas, Math.round(f.x - cc.ax * k), Math.round(f.y - cc.ay * k), cc.w * k, cc.h * k);
     }
+    /* 끌고 있는 물건은 손가락 위에 조금 크게 */
+    if (d && d.from < game.slots && game.s.board[d.from]) drawItem(d.from, d.x, d.y, 1.18);
   }
 
-  /* ---- 드래그로 옮기고 합치기 (터치와 마우스 공통) ---- */
-  function cellAt(x, y) {
-    for (let i = 0; i < ui.cells.length; i++) {
-      const r = ui.cells[i].getBoundingClientRect();
-      if (x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) return i;
-    }
-    return -1;
+  function fieldPoint(e) {
+    const r = field.cv.getBoundingClientRect();
+    return [(e.clientX - r.left) * field.dpr, (e.clientY - r.top) * field.dpr];
   }
   function onDown(e) {
-    const i = cellAt(e.clientX, e.clientY);
-    if (i < 0 || i >= ui.game.slots || !ui.game.s.board[i]) return;
+    const i = itemAt(e.clientX, e.clientY);
+    if (i < 0) return;
     e.preventDefault();
-    const src = ui.cells[i].querySelector('canvas');
-    const ghost = document.createElement('canvas');
-    ghost.width = 20;
-    ghost.height = 20;
-    ghost.getContext('2d').drawImage(src, 0, 0);
-    ghost.className = 'ghost';
-    const size = parseFloat(src.style.width) * 1.15;
-    ghost.style.width = `${size}px`;
-    ghost.style.height = `${size}px`;
-    document.body.append(ghost);
-    ui.drag = { from: i, ghost, size, x0: e.clientX, y0: e.clientY, moved: false, target: -1 };
-    ui.cells[i].classList.add('dragging');
-    moveGhost(e.clientX, e.clientY);
-    $('#board').setPointerCapture(e.pointerId);
-  }
-  function moveGhost(x, y) {
-    const d = ui.drag;
-    d.ghost.style.left = `${x - d.size / 2}px`;
-    d.ghost.style.top = `${y - d.size / 2}px`;
+    const [x, y] = fieldPoint(e);
+    const [sx, sy] = spot(i);
+    ui.drag = { from: i, x, y, dx: sx - x, dy: sy - y, target: -1 };
+    ui.drag.x = sx;
+    ui.drag.y = sy;
+    field.cv.setPointerCapture(e.pointerId);
   }
   function onMove(e) {
     const d = ui.drag;
     if (!d) return;
-    if (Math.hypot(e.clientX - d.x0, e.clientY - d.y0) > 6) d.moved = true;
-    moveGhost(e.clientX, e.clientY);
-    const t = cellAt(e.clientX, e.clientY);
-    if (t !== d.target) {
-      if (d.target >= 0) ui.cells[d.target].classList.remove('target');
-      d.target = t;
-      if (t >= 0 && t !== d.from && t < ui.game.slots) ui.cells[t].classList.add('target');
-    }
+    const [x, y] = fieldPoint(e);
+    d.x = x + d.dx;
+    d.y = y + d.dy - field.size * 0.15;
+    const t = itemAt(e.clientX, e.clientY, d.from);
+    d.target = t >= 0 && ui.game.s.board[t] === ui.game.s.board[d.from] ? t : -1;
   }
   function onUp(e) {
     const d = ui.drag;
     if (!d) return;
     ui.drag = null;
-    d.ghost.remove();
-    ui.cells[d.from].classList.remove('dragging');
-    if (d.target >= 0) ui.cells[d.target].classList.remove('target');
-    const t = cellAt(e.clientX, e.clientY);
-    if (t >= 0 && t !== d.from) {
-      const r = ui.game.move(d.from, t);
-      if (r === 'merge') flash(t, 'merge');
-      handleEvents();
-      drawBoard();
-      save();
+    const game = ui.game;
+    const t = itemAt(e.clientX, e.clientY, d.from);
+    if (t >= 0 && game.s.board[t] === game.s.board[d.from] && game.merge(d.from, t)) {
+      field.pop = { i: t, at: performance.now() };
+    } else {
+      const [nx, ny] = toNorm(d.x, d.y);
+      game.place(d.from, nx, ny);
     }
+    handleEvents();
+    save();
   }
 
   /* ---- 위쪽 줄과 제작 버튼 ---- */
@@ -260,6 +246,28 @@
     $('#craft').classList.toggle('empty', ch < 1);
     $('#chipCraft').classList.toggle('on', game.s.lv.autoCraft > 0);
     $('#chipMerge').classList.toggle('on', game.s.lv.autoMerge > 0);
+    $('#countNum').textContent = `${game.s.board.slice(0, game.slots).filter(Boolean).length}/${game.slots}`;
+    /* 전투 정보 줄: 내 체력과 공격력, 앞에 있는 적의 이름, 체력, 공격력 */
+    let volley = 0;
+    for (let i = 0; i < game.slots; i++) if (game.s.board[i]) volley += TG.tierAtk(game.s.board[i]) * game.atkMult;
+    $('#meHp').textContent = `${TG.fmt(Math.max(0, game.hero.hp))}/${TG.fmt(game.maxHp)}`;
+    $('#meHpBar').style.width = `${Math.max(0, Math.min(100, (game.hero.hp / game.maxHp) * 100))}%`;
+    $('#meAtk').textContent = TG.fmt(volley);
+    const f = game.front() || game.mobs[0];
+    if (f) {
+      const def = TG.SPR.mob[f.kind] || TG.SPR.mob.slime;
+      $('#foeName').textContent = `${f.giant ? '거대 ' : ''}${def.name || f.kind} Lv.${game.s.stage}`;
+      $('#foeHp').textContent = `${TG.fmt(Math.max(0, f.hp))}/${TG.fmt(f.max)}`;
+      $('#foeHpBar').style.width = `${Math.max(0, Math.min(100, (f.hp / f.max) * 100))}%`;
+      $('#foeAtk').textContent = TG.fmt(f.atk);
+      $('#foe').classList.toggle('giant', !!f.giant);
+    } else {
+      $('#foeName').textContent = game.phase === 'run' ? '다음 스테이지로' : '다음 웨이브';
+      $('#foeHp').textContent = '-';
+      $('#foeHpBar').style.width = '0%';
+      $('#foeAtk').textContent = '-';
+      $('#foe').classList.remove('giant');
+    }
     const canAny = TG.UPGRADES.some((u) => game.canBuy(u.id));
     $('#upDot').hidden = !canAny;
     if (ui.sheet === 'up') refreshUpgrades();
@@ -304,7 +312,6 @@
     if (ui.game.buy(id)) {
       sfx.coin();
       refreshUpgrades();
-      drawBoard();
       updateHud();
       save();
     }
@@ -360,7 +367,6 @@
     ui.resetArm = false;
     ui.game = new TG.Game(null);
     closeSheet();
-    drawBoard();
     toast(null, '새로 시작', '연필 한 자루부터 다시.');
   }
 
@@ -402,13 +408,13 @@
       TG.render.onEvent(e, game);
       switch (e.type) {
         case 'craft':
-          flash(e.slot, 'pop');
-          addBoardFx('craft', e.slot);
+          field.pop = { i: e.slot, at: performance.now() };
+          addFieldFx('craft', e.slot);
           sfx.craft();
           break;
         case 'merge':
-          flash(e.slot, 'merge');
-          addBoardFx('merge', e.slot);
+          field.pop = { i: e.slot, at: performance.now() };
+          addFieldFx('merge', e.slot);
           sfx.merge(e.tier);
           break;
         case 'new':
@@ -417,7 +423,7 @@
             toast(e.tier, `새 물건! ${e.tier}단계 ${it.name}`, it.line);
             sfx.discover();
             const slot = game.s.board.indexOf(e.tier);
-            if (slot >= 0) addBoardFx('discover', slot);
+            if (slot >= 0) addFieldFx('discover', slot);
           }
           break;
         case 'hit':
@@ -438,7 +444,6 @@
           break;
         default:
       }
-      if (e.type === 'craft' || e.type === 'merge') drawBoard();
     }
     game.events.length = 0;
   }
@@ -483,13 +488,13 @@
   function init() {
     ui.game = new TG.Game(load());
     TG.render.init($('#battle'));
-    buildBoard();
-    drawBoard();
-    const board = $('#board');
-    board.addEventListener('pointerdown', onDown);
-    board.addEventListener('pointermove', onMove);
-    board.addEventListener('pointerup', onUp);
-    board.addEventListener('pointercancel', onUp);
+    field.cv = $('#fieldCv');
+    field.ctx = field.cv.getContext('2d');
+    sizeField();
+    field.cv.addEventListener('pointerdown', onDown);
+    field.cv.addEventListener('pointermove', onMove);
+    field.cv.addEventListener('pointerup', onUp);
+    field.cv.addEventListener('pointercancel', onUp);
     $('#craft').addEventListener('click', () => {
       if (ui.game.craft() < 0) beep(120, 0.08, 'square', 0.02);
       handleEvents();
@@ -508,12 +513,12 @@
     });
     g.addEventListener('resize', () => {
       TG.render.fit();
-      sizeBoard();
+      sizeField();
     });
     document.addEventListener('visibilitychange', save);
     setInterval(save, 4000);
 
-    for (const [id, name] of [['goldIcon', 'coin'], ['craftIcon', 'craft'], ['upIcon', 'atk'], ['dexIcon', 'dex'], ['setIcon', 'stage'], ['chipCraftIcon', 'autoCraft'], ['chipMergeIcon', 'autoMerge']]) {
+    for (const [id, name] of [['goldIcon', 'coin'], ['craftIcon', 'craft'], ['upIcon', 'atk'], ['dexIcon', 'dex'], ['setIcon', 'stage'], ['chipCraftIcon', 'autoCraft'], ['chipMergeIcon', 'autoMerge'], ['countIcon', 'slots'], ['meAtkIcon', 'atk']]) {
       const slot = document.getElementById(id);
       if (slot) slot.replaceWith(Object.assign(uiIcon(name), { id }));
     }
@@ -538,9 +543,8 @@
       if (hudT > 0.1) {
         hudT = 0;
         updateHud();
-        drawBoard();
       }
-      drawBoardFx(dt);
+      drawField(dt);
       requestAnimationFrame(frame);
     }
     requestAnimationFrame(frame);

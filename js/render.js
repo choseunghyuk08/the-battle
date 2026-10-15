@@ -292,27 +292,7 @@
     }
     ctx.restore();
 
-    /* 주인공 체력 */
-    const hpw = 46;
-    const ratio = Math.max(0, game.hero.hp / game.maxHp);
-    ctx.fillStyle = '#17121e';
-    ctx.fillRect(3, 3, hpw + 4, 7);
-    ctx.fillStyle = '#4a1a24';
-    ctx.fillRect(5, 5, hpw, 3);
-    ctx.fillStyle = ratio > 0.3 ? '#6fd36f' : '#ff5d6c';
-    ctx.fillRect(5, 5, Math.round(hpw * ratio), 3);
-
-    /* 거대 몬스터 체력 */
-    const giant = game.mobs.find((m) => m.giant);
-    if (giant) {
-      const gw = 70;
-      ctx.fillStyle = '#17121e';
-      ctx.fillRect(W - gw - 7, 3, gw + 4, 7);
-      ctx.fillStyle = '#4a2a14';
-      ctx.fillRect(W - gw - 5, 5, gw, 3);
-      ctx.fillStyle = '#ff9a3a';
-      ctx.fillRect(W - gw - 5, 5, Math.round((gw * Math.max(0, giant.hp)) / giant.max), 3);
-    }
+    /* 체력은 위쪽 정보 줄에 나온다 */
     if (game.phase === 'dead') {
       ctx.fillStyle = `rgba(10,6,20,${Math.min(0.55, (P.deadTime - game.phaseT) * 0.5)})`;
       ctx.fillRect(0, 0, W, H);

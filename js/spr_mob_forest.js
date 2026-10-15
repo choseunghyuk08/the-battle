@@ -562,7 +562,6 @@
       if (split > 0) {
         /* 쓰러진 반쪽이 땅을 파고들지 않게, 가장 낮은 점을 구해서 그만큼 들어 올린다 */
         const ang = side * (split * 58 + p.fall * 16);
-        const tx = side * (split * 1.6 + p.fall * 0.8);
         const ty = 3.4 * Math.min(1, split + p.fall) + 0.6 * p.sink;
         const A = side < 0 ? armEnd(p.armL, -6.6, -5.6) : armEnd(p.armR, 6.4, -6.0);
         const pts = [[side * 8, 0.6], [side * 6.8, TOP - 2.4], [0.4, TOP - 2.4], [0.4, 0.6], [side * 9.6, 4.6], [side * 7.2, 4.4], [A.ex, A.ey + 1.4], [A.hx, A.hy + 2.2], [A.hx - 2, A.hy + 1], [A.hx + 2, A.hy + 1]];
