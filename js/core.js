@@ -91,7 +91,7 @@
     bearStop: 16, // 곰이 있으면 몬스터가 곰 앞 이만큼에서 멈춘다
     blockAnim: 0.35,
     bashAnim: 0.5,
-    bashAt: 0.45,
+    bashAt: 0.42, // 곰 그림의 hit 과 맞춘다
     knock: 26, // 방패로 밀쳐내는 거리 (거대는 절반)
     dragonX: 30,
     dragonY: 40, // 아기 용이 떠 있는 높이 (땅에서)
@@ -918,7 +918,7 @@
         m.atkT = 0;
         m.cd = 0.3;
       }
-      this.events.push({ type: 'bash', x: P.bearX + 10 });
+      this.events.push({ type: 'bash', x: P.bearX + 22 });
     }
     tickPets(dt) {
       const pm = this.pets.monkey;
