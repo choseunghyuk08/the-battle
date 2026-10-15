@@ -274,11 +274,13 @@
         const data = new Uint8ClampedArray(main);
         if (outline) {
           const [r, gg, bl] = rgbOf(outline);
+          /* 이미 외곽선 색인 점(부품 외곽선) 바깥에는 한 겹 더 두르지 않는다 -> 늘 1점 */
+          const solid = (j) => main[j + 3] >= 200 && !(main[j] === r && main[j + 1] === gg && main[j + 2] === bl);
           for (let y = 0; y < H; y++) {
             for (let x = 0; x < W; x++) {
               const i = (y * W + x) * 4;
               if (main[i + 3] >= 200) continue;
-              if ((x > 0 && main[i - 1] >= 200) || (x < W - 1 && main[i + 7] >= 200) || (y > 0 && main[i - W * 4 + 3] >= 200) || (y < H - 1 && main[i + W * 4 + 3] >= 200)) {
+              if ((x > 0 && solid(i - 4)) || (x < W - 1 && solid(i + 4)) || (y > 0 && solid(i - W * 4)) || (y < H - 1 && solid(i + W * 4))) {
                 data[i] = r;
                 data[i + 1] = gg;
                 data[i + 2] = bl;
