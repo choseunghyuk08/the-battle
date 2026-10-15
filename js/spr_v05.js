@@ -120,11 +120,9 @@
     UI[name] = { id: `ui.${name}`, name: label, w: 16, h: 16, ax: 8, ay: 8, outline: null, clips: { icon: 1 }, draw: (b) => draw(b, b.tone) };
   };
   const P = (b, fn) => b.part(fn, true);
-  const SH = { hi: 0.4, lo: -0.3 };
 
   const GOLD = '#ffcf40';
   const GOLD2 = '#d8921f';
-  const GOLD3 = '#ffe58a';
   const STEEL = '#c9d3e0';
   const STEEL2 = '#7d8aa0';
   const WOOD = '#b0703a';
