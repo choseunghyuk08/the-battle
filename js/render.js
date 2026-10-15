@@ -272,18 +272,7 @@
       put(r.fr, r.c, x, GROUND, false);
     }
 
-    /* 주인공 (분노 중이면 뒤에 불꽃 오라) */
-    if (game.raging && !loopFx('rage', P.heroX, GROUND, clock, 12)) {
-      ctx.fillStyle = 'rgba(255,90,40,0.25)';
-      ctx.fillRect(P.heroX - 12, GROUND - 38, 24, 38);
-    }
-    const hero = TG.SPR.hero.main;
-    const a = game.hero.act;
-    const loops = { idle: 6, reload: 9, win: 11, run: 13 };
-    const hr = loops[a.kind] ? frame(hero, a.kind, 0, 1, { time: a.t, fps: loops[a.kind] }) : frame(hero, a.kind, 0, 1, { progress: Math.min(0.999, a.t / a.dur) });
-    put(hr.fr, hr.c, P.heroX, GROUND, a.kind === 'hurt' && a.t < 0.08);
-
-    /* 바나나: 원숭이 손에서 화면 끝까지 빙글빙글 */
+    /* 바나나: 원숭이 손에서 화면 끝까지 빙글빙글 (주인공 뒤로 지나간다) */
     for (const b of game.bananas) {
       const y = GROUND - 16 - Math.sin(Math.min(1, (b.x - P.monkeyX) / 40) * Math.PI * 0.5) * 3;
       const def = TG.SPR.pet.banana;
@@ -299,6 +288,17 @@
       }
       ctx.restore();
     }
+    /* 주인공 (분노 중이면 뒤에 불꽃 오라) */
+    if (game.raging && !loopFx('rage', P.heroX, GROUND, clock, 12)) {
+      ctx.fillStyle = 'rgba(255,90,40,0.25)';
+      ctx.fillRect(P.heroX - 12, GROUND - 38, 24, 38);
+    }
+    const hero = TG.SPR.hero.main;
+    const a = game.hero.act;
+    const loops = { idle: 6, reload: 9, win: 11, run: 13 };
+    const hr = loops[a.kind] ? frame(hero, a.kind, 0, 1, { time: a.t, fps: loops[a.kind] }) : frame(hero, a.kind, 0, 1, { progress: Math.min(0.999, a.t / a.dur) });
+    put(hr.fr, hr.c, P.heroX, GROUND, a.kind === 'hurt' && a.t < 0.08);
+
 
     /* 날아가는 물건: 손에서 목표까지 포물선을 그리며 돈다 */
     for (const p of game.proj) {
