@@ -73,7 +73,7 @@
     shopSize: 3,
     shopRefreshRuby: 5,
     offlineMax: 8 * 3600,
-    offlineRate: 0.5, // 자리 비운 동안은 켜 둔 것의 이만큼 번다
+    offlineRate: 0.7, // 자리 비운 동안은 켜 둔 것의 이만큼 번다
 
     /* v0.3 */
     monkeyX: 28,
@@ -138,7 +138,7 @@
   /* 강화 목록. cost(L) 은 L 레벨에서 L+1 레벨로 올리는 값이고, 끝이면 null */
   const AUTO_COST = [100, 300, 900, 2700, 8100];
   const AUTO_COST2 = [200, 600, 1800, 5400, 16200];
-  const AUTO_GAP = [0, 5, 4, 3.2, 2.6, 2];
+  const AUTO_GAP = [0, 3, 2.2, 1.6, 1.2, 1];
   TG.UPGRADES = [
     { id: 'atk', name: '공격력', max: 9999, cost: (L) => Math.ceil(10 * P.upCostGrow ** L), desc: (L) => `던질 것의 공격력 x${TG.fmtMult(P.atkUp ** L)}` },
     { id: 'hp', name: '체력', max: 9999, cost: (L) => Math.ceil(10 * P.upCostGrow ** L), desc: (L) => `체력 ${TG.fmt(Math.round(P.hpBase * P.hpUp ** L))}` },
