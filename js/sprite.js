@@ -241,8 +241,8 @@
           for (let y = 0; y < H; y++) {
             for (let x = 0; x < W; x++) {
               const i = (y * W + x) * 4;
-              if (layer[i + 3]) continue;
-              if ((x > 0 && layer[i - 1]) || (x < W - 1 && layer[i + 7]) || (y > 0 && layer[i - W * 4 + 3]) || (y < H - 1 && layer[i + W * 4 + 3])) {
+              if (layer[i + 3] >= 200) continue;
+              if ((x > 0 && layer[i - 1] >= 200) || (x < W - 1 && layer[i + 7] >= 200) || (y > 0 && layer[i - W * 4 + 3] >= 200) || (y < H - 1 && layer[i + W * 4 + 3] >= 200)) {
                 cur[i] = r;
                 cur[i + 1] = gg;
                 cur[i + 2] = bl;
@@ -251,15 +251,25 @@
             }
           }
         }
+        /* 반투명 점은 아래 그림과 섞는다 */
         for (let i = 3; i < layer.length; i += 4) {
-          if (!layer[i]) continue;
-          cur[i - 3] = layer[i - 3];
-          cur[i - 2] = layer[i - 2];
-          cur[i - 1] = layer[i - 1];
-          cur[i] = layer[i];
+          const la = layer[i];
+          if (!la) continue;
+          if (la === 255 || !cur[i]) {
+            cur[i - 3] = layer[i - 3];
+            cur[i - 2] = layer[i - 2];
+            cur[i - 1] = layer[i - 1];
+            cur[i] = la;
+            continue;
+          }
+          const a = la / 255;
+          const ba = cur[i] / 255;
+          const oa = a + ba * (1 - a);
+          for (let c = 1; c <= 3; c++) cur[i - c] = (layer[i - c] * a + cur[i - c] * ba * (1 - a)) / oa;
+          cur[i] = oa * 255;
         }
       },
-      /* 바깥 외곽선을 두르고 { w, h, data } 로 돌려준다 */
+      /* 바깥 외곽선을 두르고 { w, h, data } 로 돌려준다. 외곽선은 불투명한 점 둘레에만 생긴다 (반투명 그림자, 빛에는 없다) */
       finish() {
         const data = new Uint8ClampedArray(main);
         if (outline) {
@@ -267,8 +277,8 @@
           for (let y = 0; y < H; y++) {
             for (let x = 0; x < W; x++) {
               const i = (y * W + x) * 4;
-              if (main[i + 3]) continue;
-              if ((x > 0 && main[i - 1]) || (x < W - 1 && main[i + 7]) || (y > 0 && main[i - W * 4 + 3]) || (y < H - 1 && main[i + W * 4 + 3])) {
+              if (main[i + 3] >= 200) continue;
+              if ((x > 0 && main[i - 1] >= 200) || (x < W - 1 && main[i + 7] >= 200) || (y > 0 && main[i - W * 4 + 3] >= 200) || (y < H - 1 && main[i + W * 4 + 3] >= 200)) {
                 data[i] = r;
                 data[i + 1] = gg;
                 data[i + 2] = bl;
