@@ -277,50 +277,119 @@
     spark(b, tipB[0], tipB[1], twk(live, ph, 0), '#fff4c0', 0.8);
   }
 
-  /* ---- 113 편곤: 나무 자루 끝에 쇠사슬, 사슬 끝에 쇠 마디. 쇠 마디가 휘둘려 한 박자 늦게 따라온다 ---- */
+  /* 끝으로 가며 굵기가 변하는 굵은 막대 (칸 좌표): 점마다 색을 정해서 왼쪽 위 빛을 받는 쪽이 밝고 반대쪽이 어둡다. cols = [어두움, 바탕, 밝음] */
+  const bar = (b, x0, y0, x1, y1, w0, w1, cols) => {
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const L2 = dx * dx + dy * dy || 1e-9;
+    const L = Math.sqrt(L2);
+    let nx = -dy / L;
+    let ny = dx / L;
+    if (nx + ny > 0) {
+      nx = -nx;
+      ny = -ny;
+    }
+    const m = Math.max(w0, w1) / 2 + 1;
+    field(b, Math.min(x0, x1) - m, Math.min(y0, y1) - m, Math.max(x0, x1) + m, Math.max(y0, y1) + m, (x, y) => {
+      const t = clamp(((x - x0) * dx + (y - y0) * dy) / L2);
+      const hw = lerp(w0, w1, t) / 2;
+      if (Math.hypot(x - (x0 + dx * t), y - (y0 + dy * t)) > hw) return null;
+      const v = ((x - (x0 + dx * t)) * nx + (y - (y0 + dy * t)) * ny) / Math.max(hw, 0.4);
+      return v > 0.34 ? cols[2] : v < -0.38 ? cols[0] : cols[1];
+    });
+  };
+
+  /* ---- 113 편곤: 세 부분이 한눈에 갈린다. 굵은 나무 자루 - 굵은 사슬 마디 (고리가 번갈아) - 가시 달린 짧은 쇠 곤봉.
+     shine: 쇠 곤봉이 휘둘려 한 박자 늦게 따라오고, 사슬이 출렁인다 ---- */
   function pyeongon(b, ph, live) {
     const P = live ? ph : 0.15;
     const th = P * TAU;
-    const R = [6.8, 10.4];
-    const swing = (live ? Math.sin(th) : 0.3) * 15;
-    const lag = (live ? Math.sin(th - 0.9) : 0.1) * 15;
-    const A = (-22 + swing) * DEG;
-    const A2 = (-22 + lag) * DEG;
-    const J = [R[0] + Math.cos(A) * 5.6, R[1] + Math.sin(A) * 5.6];
-    const cp = [R[0] + Math.cos(A2) * 3.2 + Math.sin(A2) * 5.4, R[1] + Math.sin(A2) * 3.2 - Math.cos(A2) * 5.4];
-    const ch = bez(R, cp, J);
-    const hang = -22 + (swing * 0.6 + lag * 0.4);
+    const swing = live ? Math.sin(th) : 0.2;
+    const lag = live ? Math.sin(th - 0.9) : 0.1;
+    /* 자루 끝 고리와 곤봉 붙는 자리 */
+    const J = [6.9, 13.1];
+    const H0 = [11.7 + lag * 0.4, 8.1 - lag * 0.2];
+    const ang = (-45 + lag * 9) * DEG;
+    const d = [Math.cos(ang), Math.sin(ang)];
+    const n = [d[1], -d[0]];
+    const HL = 4.8;
+    const H1 = [H0[0] + d[0] * HL, H0[1] + d[1] * HL];
+    const ch = bez(J, [11.4 + swing * 0.8, 14.0 - swing * 0.4], H0);
     const body = (bb) => {
-      /* 자루 */
+      /* 자루: 굵은 나무, 감은 띠, 아래 끝의 쇠 마개 */
       bb.part(() => {
-        const hd = bez([3.8, 16.4], [5.3, 13.6], [6.8, 10.6]);
-        rib(bb, hd, 0, 1, 2.8, 2.4, WOOD, 10);
-        for (const t of [0.2, 0.38, 0.56]) band(bb, hd, t, 1.3, 0.8, '#2a1a14');
-        const e = hd(0.02);
-        bb.disc(e[0], e[1], 1.7, '#d09a2a', { hi: 0.3, lo: -0.3 });
-        const t = hd(0.97);
-        bb.disc(t[0], t[1], 1.9, '#7a88b0', { hi: 0.35, lo: -0.3 });
+        bar(bb, 3.8, 16.2, 6.4, 13.6, 3.4, 3.2, ['#5a3416', '#b27a3a', '#eab870']);
+        bb.disc(3.8, 16.2, 1.7, '#e0a828', { hi: 0.35, lo: -0.3 });
+        bb.disc(6.9, 13.1, 1.4, '#8a9ccc', { hi: 0.35, lo: -0.3 });
       }, true);
-      /* 사슬: 고리가 번갈아 밝고 어둡다 */
-      bb.part(() => {
-        rib(bb, ch, 0, 1, 1.5, 1.5, ['#4e5e92', '#8a9ccc', '#c4d2f4'], 10);
-      }, true);
-      for (let k = 0; k < 5; k++) {
-        const p = ch((k + 0.5) / 5.2);
-        bb.px(p[0] - 0.4, p[1] - 0.4, k % 2 ? '#2c3560' : '#f4f8ff');
-        if (k % 2 === 0) bb.px(p[0] + 0.2, p[1] + 0.2, '#e4ecff');
+      for (const [x, y] of [[4.8, 14.8], [5.4, 14.2]]) {
+        bb.px(x, y + 0.6, '#2a1a10');
+        bb.px(x + 1, y, '#2a1a10');
       }
-      /* 쇠 마디: 어두운 쇠에 밝은 띠 */
+      bb.px(6.4, 12.2, '#eef4ff');
+      /* 사슬: 굵은 마디 다섯이 번갈아 둥글게, 납작하게. 처져서 U 자로 걸린다 */
       bb.part(() => {
-        frame(bb, J[0], J[1], hang, () => {
-          bb.rrect(0.0, -2.0, 6.0, 4.0, 1.2, '#4e5e92', { hi: 0.35, lo: -0.3 });
-          bb.rect(1.4, -2.0, 1.0, 4.0, '#1c2240', { shade: false });
-          bb.rect(4.2, -2.0, 1.0, 4.0, '#1c2240', { shade: false });
-          bb.rect(0.5, -1.6, 5.2, 0.9, '#d4e0fc', { shade: false });
-          bb.rect(0.7, 1.0, 4.8, 0.7, '#2c3560', { shade: false });
-          for (const u of [0.9, 3.2, 5.4]) bb.px(u, 0, '#f0c040');
-        });
+        for (let k = 0; k < 5; k++) {
+          const t = 0.12 + k * 0.19;
+          const p = ch(t);
+          const q = ch(t + 0.04);
+          const tx = q[0] - p[0];
+          const ty = q[1] - p[1];
+          const tl = Math.hypot(tx, ty) || 1;
+          if (k % 2 === 0) {
+            bb.ell(p[0], p[1], 1.6, 1.5, '#dce6ff', { hi: 0.3, lo: -0.3 });
+          } else {
+            bb.line(p[0] - (tx / tl) * 1.5, p[1] - (ty / tl) * 1.5, p[0] + (tx / tl) * 1.5, p[1] + (ty / tl) * 1.5, 1.8, '#5a6a9c', { shade: false });
+          }
+        }
       }, true);
+      for (let k = 0; k < 5; k += 2) {
+        const p = ch(0.12 + k * 0.19);
+        bb.px(p[0] - 0.4, p[1] - 0.4, '#f4f8ff');
+        bb.px(p[0] + 0.1, p[1] + 0.1, '#262e50');
+      }
+      /* 곤봉: 짧고 굵은 쇠 마디에 가시 */
+      bb.part(() => {
+        bar(bb, H0[0], H0[1], H1[0], H1[1], 3.6, 5.2, ['#161c38', '#2c3868', '#6272b4']);
+        /* 가시: 양옆 셋씩 + 끝 하나 */
+        for (const s of [0.4, 0.66, 0.92]) {
+          const c = [H0[0] + d[0] * HL * s, H0[1] + d[1] * HL * s];
+          const hw = lerp(3.6, 5.2, s) / 2;
+          for (const sg of [-1, 1]) {
+            const base = [c[0] + n[0] * sg * (hw - 0.3), c[1] + n[1] * sg * (hw - 0.3)];
+            bb.poly(
+              [
+                [base[0] - d[0] * 1.2, base[1] - d[1] * 1.2],
+                [base[0] + n[0] * sg * 1.8 + d[0] * 0.4, base[1] + n[1] * sg * 1.8 + d[1] * 0.4],
+                [base[0] + d[0] * 1.2, base[1] + d[1] * 1.2],
+              ],
+              '#e4ecff',
+              { shade: false }
+            );
+          }
+        }
+        bb.poly(
+          [
+            [H1[0] - n[0] * 1.1, H1[1] - n[1] * 1.1],
+            [H1[0] + d[0] * 1.8, H1[1] + d[1] * 1.8],
+            [H1[0] + n[0] * 1.1, H1[1] + n[1] * 1.1],
+          ],
+          '#e4ecff',
+          { shade: false }
+        );
+      }, true);
+      /* 곤봉의 띠와 번쩍임 */
+      for (const s of [0.3, 0.55, 0.8]) {
+        const c = [H0[0] + d[0] * HL * s, H0[1] + d[1] * HL * s];
+        const hw = lerp(3.6, 5.2, s) / 2;
+        bb.line(c[0] - n[0] * hw * 0.7, c[1] - n[1] * hw * 0.7, c[0] + n[0] * hw * 0.7, c[1] + n[1] * hw * 0.7, 0.7, '#1c2240', { shade: false });
+      }
+      bb.px(H0[0] + d[0] * 2.4 - n[0] * 0.7 - 0.5, H0[1] + d[1] * 2.4 - n[1] * 0.7 - 0.5, '#ffffff');
+      for (const s of [0.4, 0.66, 0.92]) {
+        const c = [H0[0] + d[0] * HL * s, H0[1] + d[1] * HL * s];
+        const hw = lerp(3.6, 5.2, s) / 2;
+        bb.px(c[0] - n[0] * (hw + 1.4), c[1] - n[1] * (hw + 1.4), '#ffffff');
+      }
     };
     aura(b, ph, live, 113, '#9ab8ff', '#e0e8ff');
     body(b);
@@ -328,11 +397,9 @@
     /* 휘두른 자리의 바람 줄 */
     const sgn = swing >= lag ? 1 : -1;
     for (let k = 0; k < 3; k++) {
-      const a = A - sgn * (0.3 + k * 0.17);
-      dot(b, R[0] + Math.cos(a) * (10.2 - k * 0.6), R[1] + Math.sin(a) * (10.2 - k * 0.6), '#e8f0ff', 0.75 - k * 0.2);
+      dot(b, H0[0] + 2.2 - k * 1.4, H0[1] + 3.2 + sgn * 0.6 + k * 0.9, '#e8f0ff', 0.7 - k * 0.2);
     }
-    const hp = [R[0] + Math.cos(A) * 11.4, R[1] + Math.sin(A) * 11.4];
-    spark(b, hp[0], hp[1], twk(live, ph, 2) > 0 ? 1 : 0, '#ffffff', 0.7);
+    spark(b, H1[0] + d[0] * 2.4 + 0.4, H1[1] + d[1] * 2.4, twk(live, ph, 2) > 0 ? 1 : 0, '#ffffff', 0.7);
   }
 
   /* ---- 114 철퇴: 가시 돋은 쇠공에 나무 자루. 가시 끝이 번쩍 ---- */

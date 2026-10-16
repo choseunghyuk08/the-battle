@@ -305,57 +305,82 @@
     });
   }
 
-  /* ---- 103 쇠스랑: 나무 자루 끝에 굵은 쇠갈퀴 셋이 부채꼴로 뻗는다. 갈퀴 끝에 흙덩이가 걸렸다.
-     shine: 빛이 갈퀴를 훑고, 흙덩이가 하나 떨어지고, 풀잎이 흔들린다 ---- */
+  /* 한 줄로 이어지는 굵은 막대 (화면 좌표): 끝으로 가며 굵기가 변하고 (w0 -> w1), 왼쪽 위 빛을 받아 밝은 줄과 어두운 줄이 갈린다.
+     cols = [어두움, 바탕, 밝음]. 칸 안에서 점마다 색을 정해서 또렷하다 */
+  const bar = (b, x0, y0, x1, y1, w0, w1, cols) => {
+    const dx = x1 - x0;
+    const dy = y1 - y0;
+    const L2 = dx * dx + dy * dy || 1e-9;
+    const L = Math.sqrt(L2);
+    let nx = -dy / L;
+    let ny = dx / L;
+    if (nx + ny > 0) {
+      nx = -nx;
+      ny = -ny;
+    }
+    const m = Math.max(w0, w1) / 2 + 1;
+    field(b, Math.min(x0, x1) - m, Math.min(y0, y1) - m, Math.max(x0, x1) + m, Math.max(y0, y1) + m, (x, y) => {
+      const t = clamp(((x - x0) * dx + (y - y0) * dy) / L2);
+      const hw = lerp(w0, w1, t) / 2;
+      const px = x0 + dx * t;
+      const py = y0 + dy * t;
+      if (Math.hypot(x - px, y - py) > hw) return null;
+      const v = ((x - px) * nx + (y - py) * ny) / Math.max(hw, 0.4);
+      return v > 0.34 ? cols[2] : v < -0.38 ? cols[0] : cols[1];
+    });
+  };
+  const STEEL3 = ['#4a5676', '#98a4c4', '#e4ecff'];
+  const WOOD3 = ['#6a4220', '#b8803e', '#ecb874'];
+
+  /* ---- 103 쇠스랑: 긴 나무 자루 끝에서 굵고 긴 쇠갈퀴 셋이 벌어진다. 갈퀴 끝이 밝게 번쩍인다.
+     shine: 빛이 갈퀴를 훑고, 흙 부스러기가 떨어진다 ---- */
   function earthRake(b, ph, live) {
     const P = live ? ph : 0.15;
-    const th = P * TAU;
-    const O = [7.6, 12.4];
-    const A = -45;
-    const tines = [[-4.8, 8.2], [0, 9.6], [4.8, 8.2]];
+    const O = [9.0, 12.4];
+    const A = -70;
+    const T = (u, v) => turn(O[0], O[1], A, u, v);
     const body = (bb) => {
-      frame(bb, O[0], O[1], A, () => {
-        bb.part(() => {
-          /* 자루 */
-          bb.rect(-7.6, -1.1, 9.8, 2.2, '#a06a34', { shade: false });
-          bb.rect(-7.6, -1.1, 9.8, 0.7, '#dca464', { shade: false });
-          bb.rect(-7.6, 0.7, 9.8, 0.4, '#5a3818', { shade: false });
-          bb.rect(-4.4, -1.1, 0.6, 2.2, '#6a4220', { shade: false });
-          /* 쇠 목과 가로대 */
-          bb.rect(0.4, -1.9, 2.2, 3.8, '#b0602c', { hi: 0.3, lo: -0.3 });
-          bb.rect(1.8, -6.1, 2.6, 12.2, '#6a7292', { hi: 0.3, lo: -0.34 });
-          bb.line(2.3, -5.6, 2.3, 5.6, 0.6, '#b4c0dc', { shade: false });
-          /* 갈퀴 셋: 굵고 끝이 뾰족하다 */
-          tines.forEach(([v, ul]) => {
-            bb.line(3.8, v, ul - 1.8, v * 1.03, 1.9, '#a4b0cc', { hi: 0.3, lo: -0.3 }, 1.5);
-            bb.line(ul - 1.8, v * 1.03, ul, v * 1.06, 1.5, '#a4b0cc', { hi: 0.3, lo: -0.3 }, 0.4);
-          });
-        }, true);
-        for (const [v, ul] of tines) bb.line(4.4, v - 0.7, ul - 1.4, v - 0.6, 0.55, '#f2f8ff', { shade: false });
-        bb.px(2.9, -5.5, '#d4def4');
-        bb.px(2.9, 5.1, '#d4def4');
-        bb.px(1, -1.1, '#ffc080');
-      });
+      bb.part(() => {
+        /* 자루: 길고 굵은 나무 */
+        const h0 = T(-5.8, 0);
+        const h1 = T(2.2, 0);
+        bar(bb, h0[0], h0[1], h1[0], h1[1], 3.0, 2.8, WOOD3);
+        /* 쇠 목 */
+        const c0 = T(0.8, 0);
+        const c1 = T(3.6, 0);
+        bar(bb, c0[0], c0[1], c1[0], c1[1], 3.4, 3.4, ['#5a3a20', '#a8642e', '#e09c58']);
+        /* 가로대 */
+        const r0 = T(3.2, -6.2);
+        const r1 = T(3.2, 6.2);
+        bar(bb, r0[0], r0[1], r1[0], r1[1], 2.6, 2.6, STEEL3);
+        /* 갈퀴 셋: 굵고 길고 끝이 뾰족하다 */
+        for (const [v0, v1, tu] of [[-4.8, -5.4, 8.2], [0, 0, 10.4], [4.8, 5.4, 10.8]]) {
+          const a = T(3.2, v0);
+          const e = T(tu, v1);
+          bar(bb, a[0], a[1], e[0], e[1], 3.0, 0.5, STEEL3);
+        }
+      }, true);
+      /* 갈퀴 끝 번쩍 */
+      for (const [v1, tu] of [[-5.4, 7.8], [0, 10.0], [5.4, 10.4]]) {
+        const e = T(tu, v1);
+        bb.px(e[0], e[1], '#ffffff');
+      }
+      /* 자루 감개와 나뭇결 */
+      for (const u of [-3.6, -2.8]) {
+        const q = T(u, 0);
+        bb.px(q[0] + 0.4, q[1], '#3a2412');
+      }
     };
     aura(b, ph, live, 2 / 9, '#9ad86a', '#e8f0a0');
     body(b);
     if (live) sweep(b, body, 0.707, -0.707, lerp(-10, 12, ph), 1.5, 0.5, '#f4fff0');
-    /* 흙덩이 둘 (하나는 떨어진다) 과 풀잎 */
-    const mid = turn(O[0], O[1], A, 9.2, 0);
-    const side = turn(O[0], O[1], A, 2.6, -6.6);
-    const fall = live ? clamp((P - 0.2) / 0.7) : 0;
-    const clod = (x, y, a) => {
-      b.part(() => b.ell(x, y, 1.5, 1.3, '#7a4a2c', { hi: 0.28, lo: -0.3 }), true);
-      dot(b, x - 0.6, y - 0.6, '#b48458', a);
-    };
-    if (!live || fall <= 0.05) clod(mid[0] + 0.6, mid[1] + 2, 1);
-    else if (fall < 0.95) clod(mid[0] + 0.6 + fall * 0.8, mid[1] + 2 + fall * fall * 7, 1 - fall * 0.6);
-    clod(side[0] - 0.2, side[1] - 0.2, 1);
-    const sw = live ? Math.sin(th) * 0.6 : 0;
-    const gp = turn(O[0], O[1], A, 4.6, -4.8);
-    b.line(gp[0], gp[1], gp[0] - 0.4 + sw, gp[1] - 2.6, 0.9, '#58c05a', { shade: false }, 0.3);
-    b.line(gp[0] + 0.5, gp[1] + 0.2, gp[0] + 1.4 + sw * 0.6, gp[1] - 2, 0.8, '#3f9a48', { shade: false }, 0.3);
-    const tp = turn(O[0], O[1], A, 9.6, 0);
+    /* 흙 부스러기: 갈퀴 사이로 떨어진다 */
+    for (let k = 0; k < 3; k++) {
+      const s = live ? (P + k / 3) % 1 : [0.3, 0.55, 0.8][k];
+      const g = T(5.4 + k * 1.6, (k - 1) * 2.4);
+      dot(b, g[0] + 0.8, g[1] + 1.2 + s * 5, k % 2 ? '#b48458' : '#7a4a2c', Math.sin(s * Math.PI) * 0.95);
+    }
+    const tp = T(9.8, 0);
     spark(b, tp[0] + 0.5, tp[1] - 0.5, twk(live, ph, 1) > 0 ? 1 : 0, '#f4fff0', 0.9);
   }
 
@@ -421,37 +446,76 @@
     spark(b, bm[0] + 0.5, bm[1] - 2.4, twk(live, ph, 2) > 0 ? 1 : 0, '#fff8d0', 0.85);
   }
 
-  /* ---- 105 꽹과리: 작은 놋 징 (밝은 노랑 얼굴, 짙은 테두리, 도드라진 가운데). 오른쪽 위에서 채가 내려와 친다.
-     shine: 채가 물러났다가 쳐서, 소리 고리가 작게 두 겹 번진다 ---- */
+  /* ---- 105 꽹과리: 살짝 비스듬한 놋 접시 (가운데 볼록, 테두리 턱, 아래에 보이는 두께) 와 끈 고리. 오른쪽 위에 채가 따로 떠 있다.
+     shine: 채가 물러났다가 쳐서 접시가 떨리고, 소리 고리 한 줄이 아래로 번진다 ---- */
   function smallGong(b, ph, live) {
     const P = live ? ph : 0.5;
     const th = P * TAU;
-    const C = [7.6, 11.2];
-    const R = 5.2;
-    const hit = live ? 0.5 + 0.5 * Math.cos(th) : 0.15;
+    const C = [8.4, 11.8];
+    const A = -16;
+    const RX = 7.6;
+    const RY = 4.4;
+    const hit = live ? 0.5 + 0.5 * Math.cos(th) : 0.35;
     const sinceHit = (P + 0.5) % 1;
-    const vib = live ? Math.sin(sinceHit * 14) * (1 - sinceHit) ** 2 * 0.5 : 0.2;
-    const d = 4.6 + 3.6 * hit ** 1.6;
-    const kn = [C[0] + d * 0.707, C[1] - d * 0.707];
-    const body = (bb) => gongFace(bb, C, R + vib * 0.3, { lip: '#5a2c08', rim: '#a8601a', face: '#ffd84a', dent: '#c8841a', boss: '#ffe680', spec: '#fff6c8' });
+    const vib = live ? Math.sin(sinceHit * 14) * (1 - sinceHit) ** 2 * 0.35 : 0;
+    const body = (bb) => {
+      bb.part(() => {
+        field(bb, 1, 1, 19, 19, (x, y) => {
+          const [u, v] = unturn(C[0] + vib, C[1], A, x, y);
+          const nx = u / RX;
+          const ny = v / RY;
+          const e = nx * nx + ny * ny;
+          const eLip = nx * nx + ((v - 1.8) / RY) ** 2;
+          if (e > 1) {
+            if (eLip > 1) return null;
+            /* 두께: 아래쪽에 어두운 놋 */
+            return u < -2.5 ? '#a8661a' : u < 3 ? '#7a420e' : '#4a2406';
+          }
+          const lam = -0.6 * nx - 0.7 * ny + 0.45;
+          /* 바깥 테두리 (밝다), 어두운 홈, 한 단 낮은 얼굴 */
+          if (e > 0.72) return lam > 0.2 ? '#fff6b0' : lam > -0.3 ? '#f4bc2c' : '#c07418';
+          if (e > 0.6) return '#7a420e';
+          /* 가운데 볼록 */
+          if (e < 0.07) return lam > 0.2 ? '#ffffff' : '#fff0a0';
+          if (e < 0.14) return lam > 0.0 ? '#ffe45a' : '#d89a20';
+          if (e < 0.2) return '#a8601a';
+          if (e > 0.38 && e < 0.44) return '#c88418';
+          return lam > 0.35 ? '#fcd44a' : '#e8a828';
+        });
+      }, true);
+      /* 끈 고리: 왼쪽 위에 걸린 붉은 끈 */
+      bb.part(() => {
+        const n = 14;
+        for (let k = 0; k < n; k++) {
+          const a0 = (k / n) * TAU;
+          const a1 = ((k + 1) / n) * TAU;
+          bb.line(4.2 + Math.cos(a0) * 1.8, 4.6 + Math.sin(a0) * 2.1, 4.2 + Math.cos(a1) * 1.8, 4.6 + Math.sin(a1) * 2.1, 1.2, '#d8443a', { shade: false });
+        }
+      }, true);
+      bb.px(2.8, 4.0, '#ff9a8a');
+      bb.px(3.6, 2.8, '#ffb4a0');
+      bb.px(5.6, 6.0, '#8a1e1a');
+    };
     aura(b, ph, live, 4 / 9, '#ffd84a', '#fff4b0');
-    /* 소리 고리 (친 자리 반대쪽 위로) */
-    for (let k = 0; k < 2; k++) {
-      const s = live ? (P + 0.5 + k / 2) % 1 : 0.35 + k * 0.4;
-      const r = R + 1.3 + s * 3;
-      arcDots(b, C[0], C[1], r, r, 120, 215, s < 0.4 ? '#fff6c8' : '#ffe08a', Math.min(1, s * 6) * (1 - s * 0.7), 0.4);
+    /* 소리 고리 한 줄: 접시 아래쪽으로 번진다 */
+    {
+      const s = live ? (P + 0.5) % 1 : 0.45;
+      const r = 8.4 + s * 1.2;
+      arcDots(b, C[0] + 1, C[1] - 0.5, r, r * 0.72, 10, 80, s < 0.4 ? '#fff6c8' : '#ffe08a', Math.min(1, s * 6) * (1 - s * 0.6), 0.4);
     }
     body(b);
     if (live) sweep(b, body, 0.707, -0.707, lerp(-9, 9, ph), 1.4, 0.5, '#fffbe0');
-    /* 채: 흰 나무 자루, 붉은 끈, 끝의 둥근 머리 */
+    /* 채: 접시와 떨어져 있는 막대. 쳤다가 물러난다 */
+    const gap = 0.6 + 2.4 * hit ** 1.5;
+    const hx = 11.6 + gap * 0.707;
+    const hy = 6.0 - gap * 0.707;
     b.part(() => {
-      rod(b, 17.2, 2.6, kn[0] - 0.6, kn[1] + 0.6, 1.8, 1.4, ['#efe0b8', '#ffffff', '#a08a5a']);
-      b.disc(kn[0], kn[1], 1.9, '#c8783a', { hi: 0.3, lo: -0.3 });
+      bar(b, hx + 0.9, hy - 0.9, 17.6, 1.8, 2.2, 2.9, ['#8a6a38', '#f4e6c0', '#ffffff']);
+      b.disc(hx, hy, 2.0, '#b8482a', { hi: 0.32, lo: -0.3 });
     }, true);
-    dot(b, kn[0] - 0.8, kn[1] - 0.8, '#f0c090');
-    b.line(16.4, 3.4, 15.2, 5.6, 0.9, '#e0443a', { shade: false });
-    dot(b, 15.2, 6, '#e0443a');
-    if (live && hit < 0.1) spark(b, kn[0] - 2, kn[1] + 1.8, 1, '#ffffff', 0.9);
+    dot(b, hx - 0.8, hy - 0.8, '#f4b080');
+    dot(b, 15.4, 4.2, '#e0443a');
+    if (live && hit < 0.1) spark(b, hx - 2.6, hy + 2, 1, '#ffffff', 0.9);
   }
 
   /* ---- 106 징: 붉은 끈으로 걸이대에 매단 큰 청동 징 (진한 구릿빛). 두꺼운 테두리, 아래 오른쪽에서 채가 친다.
