@@ -391,88 +391,103 @@
     void th;
   }
 
-  /* ---- 97 윷가락: 반으로 쪼갠 둥근 나무 막대 네 개가 부채꼴로 펼쳐지며 날아간다. 둥근 면은 밝은 나무, 평평한 면은 어둡고 눈금 줄이 보인다. 날며 돌아서 면이 바뀐다 ---- */
+  /* ---- 97 윷가락: 반으로 쪼갠 둥근 나무 막대 네 개가 서로 떨어져 네 갈래로 펼쳐지며 날아간다. 둥근 면은 밝은 나무에 결, 평평한 면은 어둡고 눈금 줄이 보인다.
+     둘이 번갈아 놓이고, 날며 돌아서 면이 바뀐다 ---- */
+    /* 네 갈래: 가운데에서 네 모퉁이로 흩어지는 막대. [가운데에서 놓인 방향(도), 막대 축 각도(도), 거리, 길이, 둥근 면이 보이는가, 돌아가는 차례] */
+  const YUT = [
+    [-48, -20, 5.4, 8.0, true, 0.0],
+    [42, 62, 5.4, 8.0, false, 0.5],
+    [132, 160, 5.4, 8.0, true, -0.3],
+    [222, 242, 5.4, 8.0, false, 0.2],
+  ];
   function yutSticks(b, ph, live) {
     const P = live ? ph : 0.1;
     const th = P * TAU;
     halo(b, 97, '#ffe8a8', beat(live, ph));
-    /* 부채꼴: 꼭지 (2.4, 17.8) 에서 네 개가 갈라져 오른쪽 위로 날아간다. 둥근 면과 평평한 면이 번갈아 놓인다 */
-    const O = [2.4, 17.8];
-    const step = 24 + (live ? Math.sin(th) * 1.5 : 0);
-    for (let k = 0; k < 4; k++) {
-      const o = k * 1.7;
-      const flat = k % 2 === 1;
-      const ang = -45 + (k - 1.5) * step + (live ? Math.sin(th + o) * 2.5 : 0);
-      const rc = 9.3 + (live ? Math.cos(th + o) * 0.6 : 0);
-      const cx = O[0] + Math.cos(ang * DEG) * rc;
-      const cy = O[1] + Math.sin(ang * DEG) * rc;
-      const L = 10.2 + (k % 2 ? 0.6 : 0);
-      const wd = live ? 2.5 + 0.4 * Math.abs(Math.cos(th + o)) : 2.8;
+    YUT.forEach(([dir, ang0, rho, L, roundUp, o]) => {
+      const cx0 = 10 + Math.cos(dir * DEG) * rho;
+      const cy0 = 10 + Math.sin(dir * DEG) * rho;
+      const spin = Math.cos(th + o);
+      const ang = ang0 + (live ? Math.sin(th + o * 2) * 2.5 : 0);
+      const cx = cx0 + (live ? Math.cos(th + o) * 0.3 : 0);
+      const cy = cy0 + (live ? Math.sin(th + o) * 0.3 : 0);
+      /* 돌아서 얇아졌다가 반대 면이 나온다 (그림 한 장은 늘 처음 면) */
+      const wd = live ? 1.7 + 1.2 * Math.abs(spin) : 2.9;
+      const round = live ? (spin >= 0) === roundUp : roundUp;
+      const dx = Math.cos(ang * DEG);
+      const dy = Math.sin(ang * DEG);
       /* 뒤에 남는 바람 줄 */
-      const tail = [cx - Math.cos(ang * DEG) * (L / 2 + 1.2), cy - Math.sin(ang * DEG) * (L / 2 + 1.2)];
-      b.line(tail[0], tail[1], tail[0] - Math.cos(ang * DEG) * 2.4, tail[1] - Math.sin(ang * DEG) * 2.4, 0.7, '#fff2d0', { shade: false, alpha: 0.3 + 0.2 * (live ? Math.sin(th + o) : 0) });
+      const tx = cx - dx * (L / 2 + 1.6);
+      const ty = cy - dy * (L / 2 + 1.6);
+      b.line(tx, ty, tx - dx * 2, ty - dy * 2, 0.7, '#fff2d0', { shade: false, alpha: 0.28 + 0.15 * (live ? Math.sin(th + o) : 0) });
       b.part(() => {
         field(b, 1, 1, 19, 19, (x, y) => {
           const [u, v] = loc(x, y, cx, cy, ang);
           const r = wd / 2;
           const uu = Math.max(0, Math.abs(u) - (L / 2 - r));
           if (uu * uu + v * v > r * r) return null;
-          if (flat) {
-            /* 평평한 면: 어둡고 눈금 줄 */
-            if ([-3, -0.4, 2.2].some((t) => Math.abs(u - t) < 0.45)) return '#24120a';
-            return v < -r * 0.35 ? '#d8a460' : v > r * 0.4 ? '#5a3418' : '#a06a36';
+          const t = v / r;
+          if (!round) {
+            /* 평평한 면: 어둡고 가로 눈금 줄 셋 */
+            if ([-2.6, 0, 2.6].some((q) => Math.abs(u - q) < 0.5) && Math.abs(t) < 0.9) return '#2a1408';
+            return t < -0.35 ? '#e0b068' : t > 0.4 ? '#70441e' : '#b07a3c';
           }
-          /* 둥근 면: 위가 밝고 아래가 어둡다 */
-          return v < -r * 0.3 ? (u < -L / 2 + 1.4 ? '#fffbe0' : '#fff0c0') : v > r * 0.45 ? '#b87838' : '#ecc070';
+          /* 둥근 면: 위가 밝고 아래가 어둡다, 길이로 결 */
+          const grain = Math.abs(t - 0.05) < 0.25 && (Math.floor((u + 8) * 1.2) % 3 === 0);
+          if (t < -0.3) return u < -L / 2 + 1.6 ? '#ffffff' : '#fff6d0';
+          if (t > 0.45) return '#c88a40';
+          return grain ? '#c89040' : '#f2c878';
         });
       }, true);
-    }
-    twinkles(b, ph, live, [[16.8, 3.2, '#fff2c0'], [3.4, 5.4, '#ffe4a0']]);
+    });
+    twinkles(b, ph, live, [[16.8, 3.6, '#fff2c0'], [3.4, 15.6, '#ffe4a0']]);
   }
 
-  /* ---- 98 솥뚜껑: 납작한 검은 쇠 원판을 비스듬히 위에서 본 모습. 얇은 밝은 테두리, 가운데 서 있는 고리 손잡이, 뜨거워서 위로 김이 오른다 ---- */
-  const IRON_PAL = { W: '#ffffff', H: '#d4dcfa', S: '#8892c4', M: '#4a527c', D: '#2e3252', m: '#3c4370', d: '#22263e', k: '#10111c' };
-  const MAP_LID_IRON = [
+  /* ---- 98 솥뚜껑: 검은 쇠 뚜껑을 옆에서 본 모습. 차가운 청회색 윤기가 도는 둥근 지붕, 지붕보다 넓은 납작한 쇠 턱, 가운데 우뚝 선 큰 고리 손잡이. 뜨거워서 김이 세 줄기로 오른다 ---- */
+  const LID_PAL = { W: '#f0f6ff', H: '#bccae8', S: '#7a8cb8', M: '#434d7a', m: '#2a3052', d: '#1a1e34', k: '#0e1020', D: '#2a3052' };
+  const MAP_POT_DISC = [
     '....HHHHHSSS....',
     '.HHmmmmddddkdSS.',
     'HmmmmmddddddddkS',
     'HmmmddddddddddkS',
     'HmddddddddddkkdS',
-    'SSSddddddddddDDD',
-    '.MMMSSSSDDDDDDD.',
+    'SMMmddddddddddMM',
+    '.MMMSSSSMMMMMMM.',
     '....MMMMdddd....',
   ];
-  const MAP_RING = [
-    '.HHHH.',
-    'H....S',
-    'H....S',
-    'H....S',
-    'S....D',
-    '.SDDD.',
-    '..SD..',
+  const MAP_POT_RING = [
+    '..HHHS..',
+    '.WHMMSM.',
+    'HM....SD',
+    'HM....SD',
+    'HM....SD',
+    'MS....SD',
+    'MSSSSSDD',
   ];
   function potLid(b, ph, live) {
     const P = live ? ph : 0.12;
-    halo(b, 98, '#ffa860', beat(live, ph));
-    const tilt = (x) => Math.round((7.5 - x) * 0.05);
+    halo(b, 98, '#8aa0e8', beat(live, ph));
     b.part(() => {
-      stamp(b, MAP_LID_IRON, IRON_PAL, 2, 9, tilt);
-      stamp(b, MAP_RING, IRON_PAL, 7, 6, (x) => tilt(x + 5));
+      stamp(b, MAP_POT_DISC, LID_PAL, 2, 9);
+      stamp(b, MAP_POT_RING, LID_PAL, 6, 4);
     }, true);
-    /* 테두리에 남은 열기 */
-    for (const [x, y] of [[14.4, 17.4], [16.8, 15.4], [6.0, 17.6]]) dot(b, x, y, '#ff9a50', 0.55 + (live ? 0.3 * Math.sin(P * TAU + x) : 0.1));
-    /* 김: 손잡이 양옆으로 두 줄기가 오른다 */
-    for (let k = 0; k < 2; k++) {
-      for (let j = 0; j < 3; j++) {
-        const s = (P + j / 3 + k * 0.5) % 1;
-        const x = 4.6 + k * 10.4 + Math.sin(s * TAU + k * 2.6) * 0.9;
-        const y = 7.4 - s * 5.4;
-        const a = Math.sin(s * Math.PI) * 0.9;
-        dot(b, x, y, '#ffffff', a);
-        dot(b, x + 1, y, '#fff0e0', a * 0.7);
+    /* 쇠의 차가운 윤기 */
+    b.px(4, 11, LID_PAL.W);
+    b.px(3, 12, LID_PAL.H);
+    b.px(8, 5, LID_PAL.W);
+    /* 김: 세 줄기가 뭉게뭉게 곧게 올라 커지며 흩어진다 (왼쪽 한 줄, 오른쪽 두 줄) */
+    [[4.0, 0, 8.4, 0.8], [15.2, 0.4, 6.2, 0.7], [16.8, 0.75, 8.6, 0.9]].forEach(([x0, off, rise, amp], k) => {
+      for (let j = 0; j < 4; j++) {
+        const s = (P + j / 4 + off) % 1;
+        const x = x0 + Math.sin(s * TAU * 0.75 + k * 2.1) * amp;
+        const y = 10.6 - s * rise;
+        const r = 1.1 + 0.8 * s;
+        const a = Math.min(1, s * 5) * (1 - s * s * 0.65);
+        b.disc(x, y, r, '#e8f0ff', { shade: false, alpha: a });
+        b.disc(x - 0.3, y - 0.3, r * 0.6, '#ffffff', { shade: false, alpha: a });
       }
-    }
-    twinkles(b, ph, live, [[16.4, 4.4, '#ffd4a0']]);
+    });
+    twinkles(b, ph, live, [[16.6, 3.4, '#d8e8ff']]);
   }
 
   /* ---- 99 빗자루: 싸리 빗자루. 쓸고 간 자리에 반짝이는 가루가 남는다 ---- */
