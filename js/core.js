@@ -566,6 +566,24 @@
   ];
   TG.SET_KIND = { atk: '공격력', gold: '골드', hp: '체력' };
 
+  /* 땅 특성: 땅마다 이점 하나, 불리한 점 하나 (스테이지와 보스전에서만). x 는 곱하는 값 */
+  TG.LAND_KEYS = { atk: '공격력', thr: '던지는 속도', mobSpd: '몬스터 이동 속도', mobHp: '몬스터 체력', taken: '받는 피해', gold: '골드', sap: '사파이어 획득' };
+  TG.LAND_RULES = [
+    { name: '평온한 들', up: null, down: null },
+    { name: '열매 철', up: { k: 'gold', x: 1.2 }, down: { k: 'mobSpd', x: 1.1 } },
+    { name: '어두운 굴', up: { k: 'atk', x: 1.1 }, down: { k: 'thr', x: 0.9 } },
+    { name: '뜨거운 땅', up: { k: 'atk', x: 1.15 }, down: { k: 'taken', x: 1.2 } },
+    { name: '찬 바람', up: { k: 'mobSpd', x: 0.8 }, down: { k: 'thr', x: 0.9 } },
+    { name: '별가루', up: { k: 'sap', x: 1.5 }, down: { k: 'mobHp', x: 1.1 } },
+    { name: '모래 바람', up: { k: 'gold', x: 1.3 }, down: { k: 'taken', x: 1.15 } },
+    { name: '질척한 땅', up: { k: 'mobSpd', x: 0.7 }, down: { k: 'mobHp', x: 1.25 } },
+    { name: '깊은 물', up: { k: 'atk', x: 1.2 }, down: { k: 'thr', x: 0.85 } },
+    { name: '센 바람', up: { k: 'thr', x: 1.15 }, down: { k: 'taken', x: 1.15 } },
+    { name: '쇠 갑옷', up: { k: 'atk', x: 1.2 }, down: { k: 'mobHp', x: 1.2 } },
+    { name: '눈알의 시선', up: { k: 'sap', x: 2 }, down: { k: 'taken', x: 1.3 } },
+  ];
+  TG.landEffectText = (e) => `${TG.LAND_KEYS[e.k]} ${e.x > 1 ? '+' : '-'}${Math.round(Math.abs(e.x - 1) * 100)}%`;
+
   TG.tierAtk = (n) => Math.round(P.atk0 * P.atkGrow ** (n - 1));
 
   const newState = () => ({
@@ -712,7 +730,7 @@
       return P.slotsStart + this.s.lv.slots;
     }
     get atkMult() {
-      return this.atkPool * (1 + P.sapAtkPct * this.s.lv.fAtk + (this.setAll ? P.setAllBonus : 0));
+      return this.atkPool * (1 + P.sapAtkPct * this.s.lv.fAtk + (this.setAll ? P.setAllBonus : 0)) * this.landMod('atk');
     }
     /* 합산 %: 골드, 루비, 유물, 엔진, 칭호를 한 데 더한다 */
     get atkPool() {
@@ -785,7 +803,7 @@
       return this.setDone.every(Boolean);
     }
     get goldMult() {
-      return 1 + 0.15 * this.s.lv.rGold + this.rv('clover') + this.setPct('gold') + (this.s.lv.pig ? PET.pigGold(this.s.lv.pig, this.s.stars.pig) : 0);
+      return (1 + 0.15 * this.s.lv.rGold + this.rv('clover') + this.setPct('gold') + (this.s.lv.pig ? PET.pigGold(this.s.lv.pig, this.s.stars.pig) : 0)) * this.landMod('gold');
     }
     get abSlots() {
       return P.abSlotsAt.filter((x) => this.s.best >= x).length;
@@ -950,6 +968,15 @@
     theme() {
       return TG.THEMES[this.mapIndex()];
     }
+    /* 지금 땅 특성의 곱 (스테이지와 보스전에서만 켜진다) */
+    landMod(key) {
+      if (this.mode !== 'stage' && this.mode !== 'boss') return 1;
+      const r = TG.LAND_RULES[this.mapIndex()];
+      let x = 1;
+      if (r.up && r.up.k === key) x *= r.up.x;
+      if (r.down && r.down.k === key) x *= r.down.x;
+      return x;
+    }
     /* 땅 번호: 페이즈마다 땅이 하나씩 (12곳을 차례로, 다 돌면 처음부터) */
     mapIndex(stage = this.s.stage) {
       return (TG.phaseOf(stage).p - 1) % TG.THEMES.length;
@@ -969,6 +996,9 @@
 
     startStage() {
       const n = this.s.stage;
+      const land = this.mapIndex();
+      if (this.lastLand !== undefined && this.lastLand !== land && this.mode === 'stage') this.events.push({ type: 'land-enter', i: land });
+      this.lastLand = land;
       this.hero = { hp: this.maxHp, act: { kind: 'idle', t: 0, dur: 1 } };
       this.wave = 0;
       this.mobs = [];
@@ -1658,7 +1688,7 @@
       const kinds = th.mobs;
       const kind = giant ? kinds[(n + this.phaseNo) % kinds.length] : kinds[Math.floor(this.rng() * kinds.length)];
       const dm = this.mode === 'defend' ? P.defendTierHp ** (this.defendLvl - 1) : 1;
-      const hp = P.mobHp(n) * (giant ? P.giantHp : 1) * dm;
+      const hp = P.mobHp(n) * (giant ? P.giantHp : 1) * dm * this.landMod('mobHp');
       this.mobs.push({
         id: (this.mobId = (this.mobId || 0) + 1),
         kind,
@@ -1733,7 +1763,8 @@
       this.petQ.push({ kind: 'fire', t: P.breathAnim * P.breathAt });
     }
     /* 곰: 맞는 피해를 줄이고, 확률로 앞쪽 몬스터들을 방패로 밀쳐낸다 */
-    bearHit(dmg) {
+    bearHit(dmg0) {
+      const dmg = dmg0 * this.landMod('taken');
       const L = this.s.lv.bear;
       if (!L) return dmg;
       const pb = this.pets.bear;
@@ -1903,7 +1934,7 @@
       const gold = Math.ceil(P.mobGold(n) * (m.giant ? P.giantGold : 1) * this.goldMult);
       this.s.gold += gold;
       this.s.stats.kills++;
-      if (this.rng() < P.sapDrop * (m.giant ? P.sapGiantK : 1)) {
+      if (this.rng() < P.sapDrop * (m.giant ? P.sapGiantK : 1) * this.landMod('sap')) {
         this.s.sapphire++;
         this.s.stats.sapphire++;
         this.events.push({ type: 'sapphire', x: m.x });
@@ -2147,7 +2178,7 @@
           }
         } else if (m.x > stop + 0.01) {
           m.state = 'walk';
-          m.x = Math.max(stop, m.x - P.mobSpeed * mdt);
+          m.x = Math.max(stop, m.x - P.mobSpeed * this.landMod('mobSpd') * mdt);
         } else {
           m.state = 'idle';
           if (m.cd > 0) m.cd -= mdt;
@@ -2187,7 +2218,7 @@
           if (this.reloadT <= 0) {
             this.queue = this.boardTiers();
             const rage = this.raging ? 0.5 : 1;
-            const fast = rage * (1 - this.rv('shoes')) * (this.mode === 'chase' ? P.chaseSpeed : 1);
+            const fast = (rage * (1 - this.rv('shoes')) * (this.mode === 'chase' ? P.chaseSpeed : 1)) / this.landMod('thr');
             this.gap = Math.min(P.throwGap * fast, (P.volley * fast) / Math.max(1, this.queue.length));
             this.throwT = 0;
           }

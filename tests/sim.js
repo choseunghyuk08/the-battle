@@ -1014,6 +1014,32 @@ function testV18() {
   assert(h.atkMult > h.atkPool * (1 + TG.P.setAllBonus * 0.99), '전부 모으면 최종 +10%');
   assert.strictEqual(new TG.Game(h.snapshot(), seeded(183)).setAll, true, '저장해도 남는다');
 }
+function testV19() {
+  /* 땅 특성: 12곳에 규칙이 있고, 스테이지에서만 곱해지고, 땅이 바뀌면 알린다 */
+  assert.strictEqual(TG.LAND_RULES.length, TG.THEMES.length);
+  for (const r of TG.LAND_RULES.slice(1)) assert(r.up && r.down && r.up.k !== r.down.k || (r.up.k === r.down.k && false), '이점과 불리가 다른 항목');
+  for (const r of TG.LAND_RULES) for (const e of [r.up, r.down]) if (e) assert(TG.LAND_KEYS[e.k] && e.x > 0, `항목 이름 ${r.name}`);
+  const g = new TG.Game(null, seeded(190));
+  assert.strictEqual(g.landMod('gold'), 1, '들판은 특성 없음');
+  g.s.stage = 65; /* 숲: 골드 x1.2, 몬스터 이동 x1.1 */
+  g.startStage();
+  assert.strictEqual(g.mapIndex(), 1);
+  assert(g.events.some((e) => e.type === 'land-enter' && e.i === 1), '땅 바뀜 알림');
+  assert.strictEqual(g.landMod('gold'), 1.2);
+  assert.strictEqual(g.landMod('mobSpd'), 1.1);
+  const base = g.goldMult / 1.2;
+  assert(Math.abs(base - 1) < 1e-9 || base > 0.99);
+  g.mode = 'mine';
+  assert.strictEqual(g.landMod('gold'), 1, '광산에서는 꺼진다');
+  g.mode = 'stage';
+  g.s.stage = 257; /* 화산: 공격 x1.15, 받는 피해 x1.2 */
+  g.startStage();
+  assert.strictEqual(g.landMod('atk'), 1.15);
+  assert.strictEqual(g.landMod('taken'), 1.2);
+  assert(Math.abs(g.bearHit(100) - 120) < 1e-9, '받는 피해 +20%');
+  assert.strictEqual(TG.landEffectText({ k: 'sap', x: 1.5 }), '사파이어 획득 +50%');
+  assert.strictEqual(TG.landEffectText({ k: 'mobSpd', x: 0.7 }), '몬스터 이동 속도 -30%');
+}
 function testV12() {
   /* 150단계까지 이름이 있고, 150 을 둘 합치면 별이 붙는다 (151 = ★1) */
   assert.strictEqual(TG.ITEMS.length, 150);
@@ -1231,6 +1257,7 @@ if (process.argv.includes('--pace')) {
   testV13();
   testV14();
   testV18();
+  testV19();
   testStory();
   console.log('\nall tests passed');
 }

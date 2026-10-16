@@ -841,6 +841,15 @@
     }
     return cv;
   }
+  function landRuleRow(i) {
+    const r = TG.LAND_RULES[i];
+    if (!r.up) return el('div', { class: 'landrule' }, [el('b', { text: r.name }), el('span', { text: '특성 없음' })]);
+    return el('div', { class: 'landrule' }, [
+      el('b', { text: r.name }),
+      el('span', { class: 'lr-up', text: `이점 ${TG.landEffectText(r.up)}` }),
+      el('span', { class: 'lr-down', text: `불리 ${TG.landEffectText(r.down)}` }),
+    ]);
+  }
   function landGiftRow(p) {
     const game = ui.game;
     const g = game.landGift(p);
@@ -878,6 +887,7 @@
           slot,
           ...(p >= 2 ? [landGiftRow(p)] : []),
           el('div', { class: 'ln', text: `${TG.fmt(from)}~${TG.fmt(to)} 스테이지` }),
+          landRuleRow(i),
           mobs,
         ]),
       );
@@ -1437,6 +1447,11 @@
           toast(null, `코스튬 · ${TG.COSTUMES[e.i]}`, '칭호 탭에서 골라 입어요.');
           sfx.discover();
           break;
+        case 'land-enter': {
+          const r = TG.LAND_RULES[e.i];
+          toast(null, `${TG.THEMES[e.i].name} · ${r.name}`, r.up ? `이점 ${TG.landEffectText(r.up)}, 불리 ${TG.landEffectText(r.down)}` : '특성이 없는 땅이에요.');
+          break;
+        }
         case 'set': {
           const st = TG.ITEM_SETS[e.i];
           toast(null, `세트 완성 · ${st.name}`, `${TG.SET_KIND[st.kind]} +${Math.round(P.setBonus * 100)}%`);

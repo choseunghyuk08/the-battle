@@ -555,3 +555,8 @@ button.back { appearance: none; width: 100%; border: 2px solid var(--line); back
 .setrow small { margin-left: auto; font-size: 12px; color: var(--ink-3); }
 .setrow.done b { color: var(--gold); }
 .setrow.done small { color: var(--gold); }
+.landrule { grid-column: 1 / span 2; display: flex; flex-wrap: wrap; gap: 4px 10px; align-items: baseline; font-size: 13px; }
+.landrule b { font-size: 14px; }
+.landrule .lr-up { color: #7bd88f; }
+.landrule .lr-down { color: var(--bad); }
+.landrule span:first-of-type:last-of-type { color: var(--ink-3); }
