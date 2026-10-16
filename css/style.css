@@ -444,5 +444,5 @@ button { font-family: inherit; color: inherit; }
 .modal p { margin: 0; color: var(--ink-2); font-size: 15px; line-height: 1.5; }
 .modal p b { color: var(--gold); font-weight: 400; }
 .modal button.primary { appearance: none; border: 0; border-radius: 10px; padding: 10px 28px; background: var(--gold); color: #2a1e06; font-size: 17px; cursor: pointer; box-shadow: 0 3px 0 #9a7a20; }
-.info .side { min-width: 0; overflow: hidden; }
+.info .side { min-width: 0; overflow: hidden; grid-template-columns: minmax(0, 1fr); }
 .side .row1 .hp { white-space: nowrap; flex: none; font-size: 13px; }
