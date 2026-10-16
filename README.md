@@ -36,13 +36,16 @@ index.html          화면 뼈대 (스크립트 순서가 곧 로딩 순서)
 css/style.css       레이아웃, 색 토큰
 js/format.js        숫자 표기 (만/억/조…), 시간 표기
 js/items.js         던질 것 60단계 이름, 대사, 색
+js/story.js         이야기 데이터 (장면, 대사, 프롤로그 만화 대본)
 js/core.js          게임 규칙 전부 (수치 P, 강화, 테마, Game 클래스). DOM 없음
 js/sprite.js        픽셀아트 래스터라이저 TG.builder, 프레임 캐시 TG.clip
 js/spr_*.js         그림 정의 (주인공, 몬스터 테마별, 물건, 배경, 이펙트, 아이콘)
+js/comic.js         프롤로그 만화 장면 그리기
 js/render.js        전투 캔버스 그리기
 js/ui.js            필드 드래그, HUD, 시트(강화/상점/도감/설정), 저장
 js/main.js          시작, 게임 루프
 docs/design.md      기획서 (규칙, 수치, 밸런스, 버전 계획)
+docs/story.md       이야기 대본과 세계관
 docs/art_guide.md   스프라이트 그리는 법 (그림 작업자용)
 docs/reference/     참고 자료 (표창키우기2 정리)
 tests/              node 테스트, 시뮬레이터, 스프라이트 검사
