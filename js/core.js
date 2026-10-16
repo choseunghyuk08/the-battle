@@ -162,7 +162,7 @@
     bossEnrageAt: 0.5, // 체력이 이 비율 아래면 격노
     bossEnrageAtk: 1.8,
     bossRegen: 0.008, // 재생: 초당 최대 체력의 이만큼
-    engSlotsAt: [20, 80, 160], // 각인 칸이 열리는 최고 스테이지
+    engSlotsAt: [20, 60, 120, 200, 280], // 각인 칸이 열리는 최고 스테이지
     engMult: 2.2, // 각인한 물건이 맞을 때 능력 확률 배율
     engCost: (t) => Math.ceil(12 * 1.13 ** t), // 조각
     skStarLv: [10, 25, 40], // 스킬 각성 별이 열리는 스킬 레벨
@@ -173,6 +173,17 @@
     relicFuseCost: [200, 500, 1000], // 루비
     relicFuseFodder: 5, // 재료 유물이 내려가는 레벨
     titleBonus: 0.01, // 칭호 하나당 모든 피해
+
+    /* v0.8 */
+    bossWallGap: 12, // 얼음 벽이 서는 간격
+    bossWallHp: 0.12, // 벽 체력 = 보스 최대 체력의 이만큼
+    bossChargeGap: 10, // 돌진을 준비하는 간격
+    bossChargeTime: 1.2, // 준비하는 시간 (이때 기절시키면 취소)
+    bossChargeMult: 2.5, // 돌진 한 번의 피해 (보스 공격력 배율)
+    defendTierMax: 12,
+    defendTierHp: 1.18, // 방어전 단계마다 몬스터 체력과 공격력
+    defendTierGap: 0.95, // 나오는 간격
+    defendTierReward: 0.25, // 보상
   });
 
   P.mobHp = (n) => Math.round(P.mobHp0 * P.mobHpGrow ** (n - 1));
@@ -380,6 +391,8 @@
     { id: 'shield', name: '방벽', desc: '가끔 피해를 거의 막아요' },
     { id: 'enrage', name: '격노', desc: '체력이 절반 아래면 더 세게 때려요' },
     { id: 'regen', name: '재생', desc: '체력이 조금씩 차올라요' },
+    { id: 'charge', name: '돌진', desc: '힘을 모았다가 크게 때려요. 기절시키면 막혀요' },
+    { id: 'wall', name: '얼음 벽', desc: '앞에 벽을 세워 던진 것을 막아요' },
   ];
   TG.bossTrait = (k) => (k <= 1 ? null : TG.BOSS_TRAITS[(k - 2) % TG.BOSS_TRAITS.length]);
 
@@ -397,6 +410,7 @@
     { id: 'pets', name: '든든한 일행', cond: '동료 6명 모두', ok: (g) => ['monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole'].every((k) => g.s.lv[k] > 0) },
     { id: 'relics', name: '손때 수집가', cond: '유물 10종', ok: (g) => Object.keys(g.s.relics).length >= 10, costume: 6 },
     { id: 'defend', name: '방패막이', cond: '방어전 3번 승리', ok: (g) => g.s.stats.defends >= 3 },
+    { id: 'wall', name: '철벽', cond: '방어전 6단계', ok: (g) => g.s.defendTier >= 6 },
     { id: 'star', name: '번개의 손', cond: '스킬 각성 별 3개', ok: (g) => Object.values(g.s.skStar).reduce((a, b) => a + b, 0) >= 3 },
     { id: 'engrave', name: '새기는 사람', cond: '각인 3칸 모두', ok: (g) => g.s.eng.filter(Boolean).length >= 3 },
     { id: 'ice', name: '빙하 건너기', cond: '스테이지 120', ok: (g) => g.s.best >= 120, costume: 5 },
@@ -489,6 +503,7 @@
     costume: 0, // 고른 코스튬
     titleSeen: {}, // 알린 칭호
     defendCd: 0,
+    defendTier: 0, // 방어전을 이긴 가장 높은 단계
     abEquip: [], // 장착한 특수능력
     ore: 0, // 철광석 (광산에서 얻고 동료 진화에 쓴다)
     relics: {}, // 유물 id -> 레벨
@@ -530,7 +545,7 @@
         if (!hadStory) this.seedStory(save);
         this.s.gold = Math.max(0, Number(this.s.gold) || 0);
         this.s.charges = Math.max(0, Math.min(P.craftMax, Number(this.s.charges) || 0));
-        for (const k of ['ruby', 'shards', 'bossCd', 'ore', 'mineCd', 'volt', 'chaseCd', 'defendCd']) this.s[k] = Math.max(0, Number(this.s[k]) || 0);
+        for (const k of ['ruby', 'shards', 'bossCd', 'ore', 'mineCd', 'volt', 'chaseCd', 'defendCd', 'defendTier']) this.s[k] = Math.max(0, Number(this.s[k]) || 0);
         this.s.stars = Object.fromEntries(Object.keys(s.stars).map((k) => [k, Math.max(0, Math.min(P.evoCost.length, Math.floor(Number((save.stars || {})[k]) || 0)))]));
         this.s.boss = Math.max(1, Math.floor(this.s.boss) || 1);
         this.s.skillCd = Object.fromEntries(Object.keys(s.skillCd).map((k) => [k, Math.max(0, Number((save.skillCd || {})[k]) || 0)]));
@@ -860,10 +875,11 @@
       if (this.mode === 'defend') {
         this.wave = P.waves;
         this.defendT = P.defendTime;
+        this.defendLvl = Math.min(P.defendTierMax, this.s.defendTier + 1);
         this.defendKills = 0;
         this.defendN = 0;
         this.defendSpawnT = 0.6;
-        this.events.push({ type: 'defend-start' });
+        this.events.push({ type: 'defend-start', lvl: this.defendLvl });
         return;
       }
       if (this.mode === 'boss') {
@@ -887,7 +903,7 @@
     }
     spawnBoss() {
       const b = this.bossInfo();
-      this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind: b.kind, pal: 2 + Math.floor(this.s.boss / TG.THEMES.length), x: P.spawnX + 6, hp: b.hp, max: b.hp, atk: b.atk, giant: true, boss: true, trait: b.trait ? b.trait.id : null, tT: b.trait && b.trait.id === 'shield' ? P.bossShieldGap * 0.6 : P.bossSummonGap * 0.5, state: 'walk', t: 0, atkT: 0, cd: 0, hurt: 0 });
+      this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind: b.kind, pal: 2 + Math.floor(this.s.boss / TG.THEMES.length), x: P.spawnX + 6, hp: b.hp, max: b.hp, atk: b.atk, giant: true, boss: true, trait: b.trait ? b.trait.id : null, tT: b.trait && b.trait.id === 'shield' ? P.bossShieldGap * 0.6 : b.trait && b.trait.id === 'charge' ? P.bossChargeGap * 0.5 : b.trait && b.trait.id === 'wall' ? P.bossWallGap * 0.5 : P.bossSummonGap * 0.5, state: 'walk', t: 0, atkT: 0, cd: 0, hurt: 0 });
       this.events.push({ type: 'boss-start', boss: this.s.boss, kind: b.kind, trait: b.trait ? b.trait.id : null });
     }
     canBoss() {
@@ -959,6 +975,41 @@
         }
       } else if (m.trait === 'regen') {
         m.hp = Math.min(m.max, m.hp + m.max * P.bossRegen * dt);
+      } else if (m.trait === 'wall') {
+        m.tT -= dt;
+        if (m.tT <= 0 && !this.mobs.some((x) => x.wall)) {
+          m.tT = P.bossWallGap;
+          const base = this.s.lv.bear ? P.bearX + P.bearStop : P.heroX + P.mobRange;
+          const hp = m.max * P.bossWallHp;
+          this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind: 'wall', pal: 0, x: base, hp, max: hp, atk: 0, giant: false, wall: true, state: 'idle', t: this.rng(), atkT: 0, cd: 99, hurt: 0 });
+          m.x = Math.max(m.x, base + P.mobSpace + 10);
+          this.events.push({ type: 'wall', x: base });
+        } else if (m.tT <= 0) m.tT = 1;
+      } else if (m.trait === 'charge') {
+        if (m.charge > 0) {
+          if (m.st && m.st.stun > 0) {
+            m.charge = 0;
+            m.tT = P.bossChargeGap * 0.6;
+            this.events.push({ type: 'charge-cancel', x: m.x });
+          } else {
+            m.charge -= dt;
+            if (m.charge <= 0) {
+              m.charge = 0;
+              m.tT = P.bossChargeGap;
+              const dmg = this.bearHit(m.atk * P.bossChargeMult);
+              this.hero.hp -= dmg;
+              this.events.push({ type: 'hurt', dmg });
+              this.events.push({ type: 'charge-slam', x: m.x });
+              if (this.hero.act.kind !== 'throw') this.act('hurt', 0.3);
+            }
+          }
+        } else if (m.x <= P.heroX + P.mobRange + 36) {
+          m.tT -= dt;
+          if (m.tT <= 0) {
+            m.charge = P.bossChargeTime;
+            this.events.push({ type: 'charge-start', x: m.x });
+          }
+        }
       }
     }
     spawnMinion(x) {
@@ -988,18 +1039,22 @@
       this.defendSpawnT -= dt;
       if (this.defendSpawnT > 0 || this.mobs.length >= P.defendCap) return;
       const p = 1 - this.defendT / P.defendTime;
-      this.defendSpawnT = P.defendGap0 + (P.defendGap1 - P.defendGap0) * p;
+      this.defendSpawnT = (P.defendGap0 + (P.defendGap1 - P.defendGap0) * p) * P.defendTierGap ** (this.defendLvl - 1);
       this.spawnMob(++this.defendN % P.defendGiantEvery === 0);
     }
     defendEnd(win) {
       const kills = this.defendKills;
-      const ruby = Math.round((kills / P.defendKillsPerRuby) * (win ? 1 : 0.5) * (1 + this.rv('ring')));
-      const gold = win ? Math.ceil(P.mobGold(this.s.stage) * kills * 0.5 * this.goldMult) : 0;
+      const tierK = 1 + P.defendTierReward * (this.defendLvl - 1);
+      const ruby = Math.round((kills / P.defendKillsPerRuby) * (win ? 1 : 0.5) * (1 + this.rv('ring')) * tierK);
+      const gold = win ? Math.ceil(P.mobGold(this.s.stage) * kills * 0.5 * this.goldMult * tierK) : 0;
       this.s.ruby += ruby;
       this.s.gold += gold;
       this.s.defendCd = win ? P.defendCd : P.defendFailCd;
-      if (win) this.s.stats.defends++;
-      this.events.push({ type: 'defend-end', win, kills, ruby, gold });
+      if (win) {
+        this.s.stats.defends++;
+        this.s.defendTier = Math.max(this.s.defendTier, this.defendLvl);
+      }
+      this.events.push({ type: 'defend-end', win, kills, ruby, gold, lvl: this.defendLvl });
       this.proj = [];
       this.queue = [];
       this.pending = [];
@@ -1435,7 +1490,8 @@
       const th = this.theme();
       const kinds = th.mobs;
       const kind = giant ? kinds[(Math.floor(n / P.themeLen) + this.variant()) % kinds.length] : kinds[Math.floor(this.rng() * kinds.length)];
-      const hp = P.mobHp(n) * (giant ? P.giantHp : 1);
+      const dm = this.mode === 'defend' ? P.defendTierHp ** (this.defendLvl - 1) : 1;
+      const hp = P.mobHp(n) * (giant ? P.giantHp : 1) * dm;
       this.mobs.push({
         id: (this.mobId = (this.mobId || 0) + 1),
         kind,
@@ -1443,7 +1499,7 @@
         x: P.spawnX + (giant ? 10 : 0),
         hp,
         max: hp,
-        atk: P.mobAtk(n) * (giant ? 2 : 1),
+        atk: P.mobAtk(n) * (giant ? 2 : 1) * dm,
         giant,
         state: 'walk',
         t: this.rng(),
@@ -1666,6 +1722,7 @@
         this.spawnTank(m.k + 1, P.chaseX + 40);
         return;
       }
+      if (m.wall) return;
       if (m.ore) {
         const got = Math.max(1, Math.round(this.oreReward(m.k) * (1 + this.rv('pickaxe') + (this.s.lv.mole ? PET.moleOre(this.s.lv.mole, this.s.stars.mole) : 0))));
         this.s.stats.ore += got;
@@ -1922,7 +1979,7 @@
         } else {
           m.state = 'idle';
           if (m.cd > 0) m.cd -= mdt;
-          if (rank < maxRank && m.cd <= 0) {
+          if (rank < maxRank && m.cd <= 0 && !m.wall) {
             m.state = 'attack';
             m.atkT = 0;
             m.struck = false;

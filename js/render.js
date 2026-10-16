@@ -280,6 +280,13 @@
         addFx('summonPuff', e.x, GROUND, 0.5);
         shake = Math.max(shake, 0.1);
         break;
+      case 'charge-slam':
+        addFx('chargeSlam', P.heroX + 12, GROUND, 0.5);
+        shake = Math.max(shake, 0.4);
+        break;
+      case 'wall':
+        shake = Math.max(shake, 0.12);
+        break;
       case 'shield':
       case 'enrage':
         shake = Math.max(shake, e.type === 'enrage' ? 0.3 : 0.1);
@@ -336,6 +343,10 @@
         }
         if (m.enraged && !loopFx('bossRage', m.x, GROUND, clock)) {
           ctx.fillStyle = 'rgba(255,60,40,0.2)';
+          ctx.fillRect(Math.round(m.x - def.w * 0.6), Math.round(GROUND - def.h * 1.8), Math.round(def.w * 1.2), Math.round(def.h * 1.8));
+        }
+        if (m.charge > 0 && !loopFx('bossCharge', m.x, GROUND, clock)) {
+          ctx.fillStyle = `rgba(255,50,40,${0.15 + 0.15 * Math.sin(clock * 24)})`;
           ctx.fillRect(Math.round(m.x - def.w * 0.6), Math.round(GROUND - def.h * 1.8), Math.round(def.w * 1.2), Math.round(def.h * 1.8));
         }
         if (m.trait === 'regen' && m.hp < m.max && !loopFx('bossHeal', m.x, GROUND, clock)) {

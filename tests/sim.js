@@ -531,7 +531,7 @@ function testV07() {
 
   /* 보스 특성: 첫 보스는 없고 이후 네 가지가 돌아간다 */
   assert.strictEqual(TG.bossTrait(1), null);
-  assert.deepStrictEqual([2, 3, 4, 5, 6].map((k) => TG.bossTrait(k).id), ['summon', 'shield', 'enrage', 'regen', 'summon']);
+  assert.deepStrictEqual([2, 3, 4, 5, 6, 7, 8].map((k) => TG.bossTrait(k).id), ['summon', 'shield', 'enrage', 'regen', 'charge', 'wall', 'summon']);
   const mkBoss = (k) => {
     const b = new TG.Game(null, seeded(72 + k));
     b.s.boss = k;
@@ -672,6 +672,118 @@ function testV07() {
   assert.strictEqual(bg.s.costume, 0, '못 연 코스튬은 되돌린다');
   assert.strictEqual(bg.s.title, 'base');
   console.log('v0.7 ok');
+}
+
+function testV08() {
+  /* 각인 칸은 다섯 개까지 */
+  const e = new TG.Game(null, seeded(90));
+  e.s.best = 300;
+  assert.strictEqual(e.engSlots, 5);
+  e.s.seen[5] = true;
+  e.s.ab.stun = 2;
+  e.s.shards = 1e6;
+  assert.strictEqual(e.engrave(4, 5, 'stun'), 'ok');
+  assert.deepStrictEqual(new TG.Game(JSON.parse(JSON.stringify(e.snapshot())), seeded(1)).s.eng[4], { tier: 5, id: 'stun' });
+
+  /* 방어전 단계: 이길 때마다 한 단계 오르고, 단계가 높으면 몬스터가 세고 보상이 크다 */
+  const run = (tier, seed) => {
+    const d = new TG.Game(null, seeded(seed));
+    d.s.stage = d.s.best = 50;
+    d.s.defendTier = tier;
+    d.startStage();
+    d.s.board.fill(20, 0, 8);
+    d.s.lv.hp = 80;
+    d.s.lv.atk = 80;
+    assert(d.startDefend());
+    const first = d.events.find((x) => x.type === 'defend-start');
+    let hp0 = 0;
+    let end = null;
+    for (let t = 0; t < 60 && !end; t += 0.05) {
+      d.tick(0.05);
+      if (!hp0 && d.mobs.length) hp0 = d.mobs[0].max;
+      end = d.events.find((x) => x.type === 'defend-end') || null;
+      d.events.length = 0;
+    }
+    return { d, end, hp0, lvl: first ? first.lvl : d.defendLvl };
+  };
+  const a = run(0, 91);
+  const b = run(5, 91);
+  assert.strictEqual(a.d.defendLvl, 1);
+  assert.strictEqual(b.d.defendLvl, 6);
+  assert(a.end.win && a.d.s.defendTier === 1, '이기면 1단계 클리어');
+  assert(b.hp0 > a.hp0 * 1.18 ** 4, '단계가 높으면 몬스터 체력이 크다');
+  assert.strictEqual(new TG.Game(JSON.parse(JSON.stringify(a.d.snapshot())), seeded(1)).s.defendTier, 1);
+
+  /* 얼음 벽: 보스 앞에 서고 던진 것을 막는다. 부서져도 보상은 없다 */
+  const mk = (k) => {
+    const g = new TG.Game(null, seeded(92 + k));
+    g.s.boss = k;
+    g.s.board[0] = 5;
+    g.s.lv.hp = 500;
+    g.mode = 'boss';
+    g.startStage();
+    return g;
+  };
+  const w = mk(7);
+  assert.strictEqual(w.mobs[0].trait, 'wall');
+  const boss = w.mobs[0];
+  boss.hp = boss.max = 1e12;
+  w.s.board.fill(0);
+  let walls = 0;
+  const gold0 = w.s.gold;
+  for (let t = 0; t < 10; t += 0.05) {
+    w.tick(0.05);
+    walls += w.events.filter((x) => x.type === 'wall').length;
+    w.events.length = 0;
+  }
+  assert(walls >= 1);
+  const wall = w.mobs.find((m) => m.wall);
+  assert(wall && w.front() === wall, '벽이 맨 앞');
+  assert(Math.abs(wall.max - boss.max * TG.P.bossWallHp) < 1);
+  const hpb = w.hero.hp;
+  for (let t = 0; t < 4; t += 0.05) w.tick(0.05);
+  assert.strictEqual(w.hero.hp, hpb, '벽이 서 있는 동안 보스는 못 때린다');
+  w.hitMob(wall, wall.max + 1);
+  assert(!w.mobs.includes(wall));
+  assert.strictEqual(w.s.gold, gold0, '벽은 골드를 안 준다');
+  assert.strictEqual(w.s.stats.kills, 0);
+
+  /* 돌진: 준비하고 때린다. 준비 중에 기절시키면 취소 */
+  const c = mk(6);
+  const cb = c.mobs[0];
+  assert.strictEqual(cb.trait, 'charge');
+  cb.hp = cb.max = 1e12;
+  c.s.board.fill(0);
+  cb.x = 70;
+  cb.state = 'idle';
+  cb.cd = 99;
+  let started = false;
+  let slam = null;
+  for (let t = 0; t < 12 && !slam; t += 0.05) {
+    c.tick(0.05);
+    if (c.events.some((x) => x.type === 'charge-start')) started = true;
+    slam = c.events.find((x) => x.type === 'charge-slam') || null;
+    c.events.length = 0;
+  }
+  assert(started && slam, '준비 후에 때린다');
+  const c2 = mk(6);
+  const cb2 = c2.mobs[0];
+  cb2.hp = cb2.max = 1e12;
+  c2.s.board.fill(0);
+  cb2.x = 70;
+  cb2.state = 'idle';
+  cb2.cd = 99;
+  let cancel = false;
+  let slam2 = false;
+  for (let t = 0; t < 12; t += 0.05) {
+    c2.tick(0.05);
+    if (cb2.charge > 0) cb2.st = { stun: 2 };
+    cancel = cancel || c2.events.some((x) => x.type === 'charge-cancel');
+    slam2 = slam2 || c2.events.some((x) => x.type === 'charge-slam');
+    c2.events.length = 0;
+  }
+  assert(cancel && !slam2, '기절하면 돌진이 막힌다');
+  console.log('v0.8 ok');
 }
 
 function testStory() {
@@ -824,6 +936,7 @@ if (process.argv.includes('--pace')) {
   testV05();
   testV06();
   testV07();
+  testV08();
   testStory();
   console.log('\nall tests passed');
 }

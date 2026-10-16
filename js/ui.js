@@ -238,7 +238,7 @@
     const game = ui.game;
     const th = game.theme();
     $('#stageNum').textContent = `스테이지 ${game.s.stage}`;
-    $('#stageSub').textContent = game.mode === 'chase' ? `추격전 · 남은 시간 ${Math.ceil(game.chaseT)}초 · 볼트 +${game.chaseGot}` : game.mode === 'mine' ? `광산 · 남은 시간 ${Math.ceil(game.mineT)}초 · 철광석 +${game.mineGot}` : game.mode === 'boss' ? `보스전 ${game.s.boss} · 남은 시간 ${Math.ceil(game.bossT)}초` : game.mode === 'defend' ? `방어전 · 남은 시간 ${Math.ceil(game.defendT)}초 · 처치 ${game.defendKills}` : game.phase === 'run' ? `${th.name} · 다음 스테이지로` : `${th.name} · 웨이브 ${Math.max(1, game.wave)}/${P.waves}`;
+    $('#stageSub').textContent = game.mode === 'chase' ? `추격전 · 남은 시간 ${Math.ceil(game.chaseT)}초 · 볼트 +${game.chaseGot}` : game.mode === 'mine' ? `광산 · 남은 시간 ${Math.ceil(game.mineT)}초 · 철광석 +${game.mineGot}` : game.mode === 'boss' ? `보스전 ${game.s.boss} · 남은 시간 ${Math.ceil(game.bossT)}초` : game.mode === 'defend' ? `방어전 ${game.defendLvl}단계 · 남은 시간 ${Math.ceil(game.defendT)}초 · 처치 ${game.defendKills}` : game.phase === 'run' ? `${th.name} · 다음 스테이지로` : `${th.name} · 웨이브 ${Math.max(1, game.wave)}/${P.waves}`;
     $('#goldNum').textContent = TG.fmt(game.s.gold);
     $('#rubyNum').textContent = TG.fmt(game.s.ruby);
     /* 스킬과 보스 버튼: 남은 대기 시간만큼 어둡게 덮는다 */
@@ -267,7 +267,7 @@
     const defendOpen = game.s.best >= P.defendOpen;
     cdView($('#defendBtn'), game.s.defendCd, game.s.defendCd > P.defendFailCd ? P.defendCd : P.defendFailCd, game.canDefend());
     $('#defendBtn').classList.toggle('locked', !defendOpen);
-    $('#defendLabel').textContent = game.mode === 'defend' ? `${Math.ceil(game.defendT)}초` : defendOpen ? '방어' : `${P.defendOpen}부터`;
+    $('#defendLabel').textContent = game.mode === 'defend' ? `${Math.ceil(game.defendT)}초` : defendOpen ? (game.s.defendTier ? `방어 ${Math.min(P.defendTierMax, game.s.defendTier + 1)}` : '방어') : `${P.defendOpen}부터`;
     const title = TG.TITLES.find((t) => t.id === game.s.title);
     if ($('#meName').textContent !== title.name) $('#meName').textContent = title.name;
     const chaseOpen = game.s.best >= P.chaseOpen;
@@ -1239,12 +1239,12 @@
           break;
         }
         case 'defend-start':
-          toast(null, '방어전', `${P.defendTime}초 동안 몰려오는 몬스터를 버텨요.`);
+          toast(null, `방어전 ${e.lvl}단계`, `${P.defendTime}초 동안 몰려오는 몬스터를 버텨요.`);
           sfx.discover();
           break;
         case 'defend-end':
-          if (e.win) toast(null, `방어전 끝 · 루비 +${e.ruby}`, `${e.kills}마리를 막아냈어요. 골드 +${TG.fmt(e.gold)}`);
-          else toast(null, '방어전 실패', `${e.kills}마리까지 버텼어요. 루비 +${e.ruby}`);
+          if (e.win) toast(null, `방어전 ${e.lvl}단계 끝 · 루비 +${e.ruby}`, `${e.kills}마리를 막아냈어요. 골드 +${TG.fmt(e.gold)}`);
+          else toast(null, `방어전 ${e.lvl}단계 실패`, `${e.kills}마리까지 버텼어요. 루비 +${e.ruby}`);
           break;
         case 'title': {
           const t = TG.TITLES.find((x) => x.id === e.id);
