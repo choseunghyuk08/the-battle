@@ -311,64 +311,87 @@
     spark(b, 15.2, 4, twk(live, ph, 0), '#fff6c8', 0.8);
   }
 
-  /* ---- 143 빨랫줄 바람: 줄 끝에서 불던 바람. 꼬인 빨랫줄에 줄무늬 수건이 집게로 걸려 바람에 부풀고, 바람 곡선이 휘돈다.
-     shine: 수건이 나부끼고 바람이 줄을 따라 흐른다 ---- */
+  /* ---- 143 빨랫줄 바람: 줄 하나에 집게 둘로 걸린 흰 천이 바람에 한쪽으로 펄럭인다. 천에는 주름이 지고, 바람 곡선 서너 줄이 끝을 말며 흐른다.
+     shine: 천 아랫단이 물결치고 주름이 따라 흔들리고, 바람 곡선이 줄을 따라 흐른다 ---- */
   function laundryWind(b, ph, live) {
     const P = live ? ph : 0.2;
     const th = P * TAU;
     aura(b, ph, live, 2 / 8, '#c8f4ff', '#a8ffe8', ['#e8fff4', '#c8f4ff', '#ffffff']);
-    /* 바람 곡선 */
-    const gust = (y0, amp, off, c, a) => {
-      for (let k = 0; k <= 28; k++) {
-        const t = k / 28;
-        const x = 1.5 + t * 17;
-        const y = y0 - t * 6 + Math.sin(t * 7 - th + off) * amp * (0.4 + t);
-        const dash = 0.5 + 0.5 * Math.cos((t - P) * TAU * 1.5 + off);
-        if (dash < 0.35) continue;
-        dot(b, x, y, c, a * Math.min(1, t * 4, (1 - t) * 4) * (0.5 + 0.5 * dash));
+    /* 바람 곡선: 오른쪽으로 흐르다 끝에서 동그랗게 말린다 */
+    const gust = (x0, x1, y0, amp, off, c, a, curl) => {
+      let prev = null;
+      for (let k = 0; k <= 24; k++) {
+        const t = k / 24;
+        const x = lerp(x0, x1, t);
+        const y = y0 + Math.sin(t * 5.2 - th + off) * amp * (0.5 + 0.5 * t);
+        const dash = 0.5 + 0.5 * Math.cos((t - P) * TAU + off);
+        const al = a * Math.min(1, t * 5, (1 - t) * 4 + 0.35) * (0.6 + 0.4 * dash);
+        if (prev && (!live || dash > 0.18)) {
+          b.line(prev[0], prev[1], x, y, 1, c, { shade: false, alpha: al });
+        }
+        prev = [x, y];
       }
+      if (curl) arcDots(b, prev[0], prev[1] - curl, curl, curl, 90, -170, c, a * 0.95, 0.3);
     };
-    gust(17.8, 1.1, 0, '#dffff0', 0.9);
-    gust(6.4, 0.9, 1.7, '#c8f4ff', 0.7);
-    /* 줄: 양쪽 고리에 걸려 가운데가 처진다 */
-    const f = bezier([2.6, 7.4], [10, 10.6], [17.4, 6.8]);
+    /* 줄: 양쪽 끝에 매이고 가운데가 처진다. 천 위에 얹혀 보인다 */
+    const f = bezier([2.6, 4.6], [10, 7.2], [17.4, 4.8]);
+    const U0 = 0.24;
+    const U1 = 0.78;
+    /* 천: 줄에 매달려 오른쪽으로 날린다. 오른쪽일수록 높이 들리고 많이 기운다 */
+    const NK = 8;
+    const top = [];
+    const bot = [];
+    for (let k = 0; k <= NK; k++) {
+      const s = k / NK;
+      const q = f(lerp(U0, U1, s));
+      const H = 8.4 - 4.0 * s ** 1.1 + 1.2 * Math.sin(s * 6.5 - th) * (0.4 + 0.6 * s);
+      const lean = 0.2 + 2.6 * s ** 1.3 + (live ? 0.5 * Math.sin(th - s * 2.2) * s : 0);
+      top.push([q[0], q[1] + 0.2]);
+      bot.push([q[0] + lean, q[1] + 0.2 + H]);
+    }
+    const cloth = top.concat(bot.slice().reverse());
+    b.part(() => {
+      field(b, 1, 1, 19, 19, (x, y) => {
+        let inside = false;
+        for (let i = 0, j = cloth.length - 1; i < cloth.length; j = i++) {
+          const a = cloth[i];
+          const c = cloth[j];
+          if (a[1] > y !== c[1] > y && x < ((c[0] - a[0]) * (y - a[1])) / (c[1] - a[1]) + a[0]) inside = !inside;
+        }
+        if (!inside) return null;
+        /* 주름: 비스듬히 휘어 내리는 세로 물결 (골은 푸르스름, 등은 하얗다) */
+        const fold = Math.sin(x * 1.6 + y * 0.28 - th + Math.sin(y * 0.5 + th) * 0.5);
+        if (fold < -0.62) return '#8aa4d8';
+        if (fold < -0.15) return '#cddcf4';
+        if (fold > 0.7) return '#ffffff';
+        return '#eef3ff';
+      });
+    }, true);
+    /* 줄 (천 위) */
     ribbon(b, f, 1.7, 1.7, INK, { shade: false }, 16);
     ribbon(b, f, 1, 1, '#f0c878', { shade: false }, 16);
     for (let k = 1; k < 16; k += 2) {
       const p = f(k / 16);
       dot(b, p[0], p[1] + 0.2, '#a87a38', 0.9);
     }
-    /* 줄 끝 매듭 */
-    for (const [hx, hy] of [[2.6, 7.4], [17.4, 6.8]]) {
+    for (const [hx, hy] of [[2.6, 4.6], [17.4, 4.8]]) {
       b.disc(hx, hy, 1.1, '#a87a38', { shade: false });
       dot(b, hx - 0.4, hy - 0.4, '#f0c878', 1);
     }
-    /* 수건: 위 가장자리가 줄에 붙고 바람에 부푼다 */
-    const TL = f(0.2);
-    const TR = f(0.8);
-    const fl = (u, yy) => Math.sin(th - u * 2.2 + yy * 0.4) * 0.7;
-    const hang = 7.4;
-    const lean = 1.6 + (live ? Math.sin(th) * 0.9 : 0.3);
-    const pts = [[TL[0], TL[1] + 0.4], [TR[0], TR[1] + 0.4]];
-    for (let k = 0; k <= 6; k++) {
-      const u = k / 6;
-      pts.push([lerp(TR[0], TL[0], u) + lean * (1 - 0.3 * u) + fl(u * 3, 0.6) * 0.5, lerp(TR[1], TL[1], u) + hang + fl(u * 3, 1)]);
-    }
-    b.part(() => {
-      b.poly(pts, '#f4f8ff');
-    }, true);
-    /* 수건 줄무늬: 줄에서 아래로 */
-    for (const u of [0.3, 0.7]) {
-      const x0 = lerp(TL[0], TR[0], u);
-      const y0 = lerp(TL[1], TR[1], u) + 0.6;
-      b.line(x0, y0, x0 + lean * (1 - 0.3 * (1 - u)) + fl((1 - u) * 3, 0.6) * 0.5, y0 + hang - 0.6 + fl((1 - u) * 3, 1), 0.9, '#4f8ae0', { shade: false });
-    }
     /* 집게 둘 */
-    for (const pp of [TL, TR]) {
-      b.rect(pp[0] - 0.7, pp[1] - 1, 1.4, 3, '#c07a30', { shade: false });
-      b.rect(pp[0] - 0.7, pp[1] - 1, 1.4, 0.8, '#6a4a28', { shade: false });
+    for (const kk of [1, 7]) {
+      const q = f(lerp(U0, U1, kk / NK));
+      b.rect(q[0] - 1.0, q[1] - 1.7, 2.0, 4.4, '#d49a48', { shade: false });
+      b.rect(q[0] - 1.0, q[1] - 1.7, 0.8, 4.4, '#f0c070', { shade: false });
+      b.rect(q[0] - 1.0, q[1] - 2.1, 2.0, 0.9, '#6a4a28', { shade: false });
+      b.rect(q[0] - 0.1, q[1] + 0.9, 0.5, 1.8, '#6a4a28', { shade: false });
+      b.rect(q[0] - 1.0, q[1] + 2.7, 2.0, 0.5, INK, { shade: false });
     }
-    spark(b, 15.8, 15.4, twk(live, ph, 1), '#e8fff8', 0.75);
+    /* 바람 곡선 (천 위가 아니라 천이 비운 자리로) */
+    gust(3.2, 14.4, 15.2, 0.8, 1.6, '#4cc8ff', 1, 1.4);
+    gust(5.2, 16.2, 17.1, 0.6, 3.1, '#7adcff', 1, 0);
+    gust(9.6, 17.0, 12.8, 0.9, 4.4, '#4cc8ff', 1, 1.2);
+    spark(b, 16.2, 15.2, twk(live, ph, 1), '#e8fff8', 0.75);
   }
 
   /* ---- 144 아이들 웃음: 웃는 얼굴 둘. 빨간 머리띠 꼬마와 삐죽 머리 친구가 눈을 감고 웃고, 입에서 소리 고리와 음표가 번진다.
@@ -609,47 +632,62 @@
     spark(b, 3.6, 15.2, twk(live, ph, 0), '#ffe9a0', 0.8);
   }
 
-  /* ---- 148 마지막 한 번의 숨: 처음 던진 손이 쉬며 쉰 숨. 은하 알갱이가 박힌 숨결 두 가닥이 가운데 진주빛 불씨에서 소용돌이로 풀려 나간다.
-     shine: 숨결이 한 칸의 절반 (180도) 돌아 모양이 똑같이 이어지고 가운데가 숨 쉰다 ---- */
-  const GAL = ['#150e46', '#34249a', '#6a3ab8', '#b848c8', '#68d8f8', '#e8fbff'];
+  /* ---- 148 마지막 한 번의 숨: 처음 던진 손이 쉬며 내쉰 숨. 따뜻한 흰색과 분홍의 둥근 입김 덩이들이 왼쪽 아래에서 오른쪽 위로
+     점점 커지며 길게 퍼지고, 덩이마다 별가루가 박혀 있다. 맨 끝 덩이는 별가루로 흩어진다.
+     shine: 입김 덩이들이 한 칸씩 밀려 나가며 커지고, 새 덩이가 왼쪽에서 피어난다 (한 바퀴 돌면 처음과 똑같이 이어진다) ---- */
+  const BREATH_DUST = ['#fff0b0', '#bff4ff', '#ffffff', '#ffc4e4', '#ffe9a0'];
+  /* 입김 덩이 하나의 둥근 덩어리 배치 (반지름 r 에 곱하는 값: x, y, 크기) */
+  const PUFF = [[0, 0.1, 0.78], [-0.62, 0.22, 0.58], [0.64, 0.12, 0.6], [-0.18, -0.52, 0.6], [0.34, -0.4, 0.5], [0.05, 0.5, 0.55]];
   function lastBreath(b, ph, live) {
-    const P = live ? ph : 0.25;
-    const th = P * TAU;
-    const pu = live ? 0.5 + 0.5 * Math.cos(th) : 0.6;
+    const P = live ? ph : 0.35;
     aura(b, ph, live, 7 / 8, '#ffe0f0', '#a0f0ff', ['#ffffff', '#ffe9a0', '#d8c8ff', '#bff4ff']);
-    const C = [10, 10];
-    /* 밤하늘 같은 어둠 한 겹 (흰 숨결이 또렷하게) */
-    b.disc(10, 10, 6.4, '#150f3c', { shade: false, alpha: 0.55 });
-    /* 숨결 두 가닥: 굵게 시작해서 가늘게 흩어진다. 안쪽 흰빛이 바깥에서 청록과 분홍으로 번진다 */
-    for (let arm = 0; arm < 2; arm++) {
-      const a0 = (arm * 180 + 200 - P * 180) * DEG;
-      const pts = [];
-      for (let k = 0; k <= 24; k++) {
-        const t = k / 24;
-        const a = a0 + t * 3.0;
-        const r = 1.8 + t * 4.6;
-        pts.push([C[0] + Math.cos(a) * r, C[1] + Math.sin(a) * r, t]);
+    /* 입김이 지나는 길: 왼쪽 아래에서 오른쪽 위로 휘어 오른다 */
+    const at = (s) => [3.4 + 11.4 * s, 13.2 - 6.4 * s + 1.0 * Math.sin(s * TAU)];
+    const NP = 4;
+    const list = [];
+    for (let k = 0; k < NP; k++) {
+      const s = (k + P) / NP;
+      list.push({ s });
+    }
+    /* 오래된 (큰) 덩이부터 그려서 새 덩이가 앞에 온다 */
+    list.sort((p, q) => q.s - p.s);
+    for (const it of list) {
+      const s = it.s;
+      const c = at(s);
+      const r = 0.55 + 2.8 * s ** 0.8;
+      /* 맨 끝: 덩이가 풀려 별가루만 남는다 */
+      if (s > 0.9) {
+        const f = (s - 0.9) / 0.1;
+        for (let j = 0; j < 5; j++) {
+          const a = j * 1.3 + 0.4;
+          dot(b, c[0] + Math.cos(a) * r * (0.5 + f * 0.6), c[1] + Math.sin(a) * r * (0.45 + f * 0.5) - f * 0.8, BREATH_DUST[j % 5], (1 - f) * 0.9);
+        }
+        continue;
       }
       b.part(() => {
-        for (let k = 1; k < pts.length; k++) {
-          const t = pts[k][2];
-          b.line(pts[k - 1][0], pts[k - 1][1], pts[k][0], pts[k][1], lerp(3.2, 1, t), mix('#f8f4ff', hsl(185 + arm * 120 + t * 40, 0.8, 0.86), clamp(t * 1.2)), { shade: false });
-        }
+        for (const [ox, oy, rr] of PUFF) b.disc(c[0] + ox * r + 0.5, c[1] + oy * r + 0.6, rr * r, '#ffa8d0', { shade: false });
+        for (const [ox, oy, rr] of PUFF) b.disc(c[0] + ox * r, c[1] + oy * r, rr * r, '#fff0f4', { shade: false });
+        for (const [ox, oy, rr] of PUFF) b.disc(c[0] + ox * r - 0.3, c[1] + oy * r - 0.4, rr * r * 0.62, WHITE, { shade: false });
       }, true);
-      /* 숨결 속 은하 알갱이 */
-      for (let k = 2; k < pts.length - 3; k += 3) {
-        const c = GAL[2 + ((k + arm) % 4)];
-        b.px(pts[k][0] - 0.5, pts[k][1] - 0.5, c, 0.95);
+      /* 안에 박힌 별가루 (덩이가 밀려 나가도 같은 자리에 박혀 있어서 한 바퀴 돌면 처음과 이어진다) */
+      const nd = r < 1.6 ? 1 : r < 2.6 ? 3 : 5;
+      for (let j = 0; j < nd; j++) {
+        const a = j * 2.3 + 0.5;
+        const q = 0.28 + 0.34 * ((j * 7) % 5) / 4;
+        const tw = 0.6 + 0.4 * Math.cos(P * TAU * 2 + j * 1.9);
+        dot(b, c[0] + Math.cos(a) * r * q * 1.25, c[1] + Math.sin(a) * r * q, BREATH_DUST[j % 5], tw);
       }
+      /* 큰 덩이는 십자 별 하나 */
+      if (s > 0.55) spark(b, c[0] + 0.5, c[1] - 0.4, twk(live, ph, 0) > 0 ? 1 : 0, '#fffbe0', 0.95);
     }
-    /* 가운데 진주빛 불씨 */
-    b.part(() => {
-      b.disc(C[0], C[1], 1.7 + pu * 0.35, '#f4ecff');
-    }, true);
-    b.disc(C[0], C[1], 0.9 + pu * 0.2, '#bff4ff', { shade: false });
-    dot(b, C[0] - 1.4, C[1] - 1.6, WHITE, 1);
-    spark(b, 15.8, 15, twk(live, ph, 1), '#d8f8ff', 0.8);
+    /* 입김 앞에 흩날리는 별가루 */
+    for (let j = 0; j < 4; j++) {
+      const t = live ? (P + j / 4) % 1 : 0.2 + j * 0.2;
+      const q = at(clamp(0.1 + t * 0.9, 0, 1));
+      dot(b, q[0] + 1.2 + j * 0.3, q[1] + 3 - t * 0.8 + ((j % 2) ? 1.2 : -0.4), BREATH_DUST[j], Math.sin(t * Math.PI) * 0.8);
+    }
     spark(b, 4, 4.4, twk(live, ph, 4), '#ffe9a0', 0.7);
+    spark(b, 15.8, 16, twk(live, ph, 1), '#d8f8ff', 0.8);
   }
 
   /* ---- 149 이름 없는 이름: 아직 아무것도 적히지 않은 이름표. 금 테를 두른 종이에 빛이 일렁이고 무지개 빛이 천천히 흐른다. 마음에 들어 하는 눈치.

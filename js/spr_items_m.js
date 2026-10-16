@@ -339,81 +339,73 @@
     dot(b, CX + Math.cos(oa + 3.14) * 8.4, CY + Math.sin(oa + 3.14) * 3.4 - 1.6, '#bcd0ff', 0.6);
   }
 
-  /* ---- 124 구름 채찍: 나무 손잡이에서 가는 푸른 끈이 크게 휘어 올라가고, 끈 중간에 구름이 매듭처럼 묶였다. 끝은 먹구름.
-     shine: 끈이 물결치며 구름이 따라 흔들리고, 매듭에서 비가 내리고, 끝 먹구름이 번쩍 ---- */
+  /* ---- 124 구름 채찍: 나무 손잡이에서 굵은 푸른 채찍이 크게 S 로 휘어 올라가고, 끝에 작은 구름이 달렸다. 구름에서 번개 한 줄기가 내리친다.
+     shine: S 곡선이 물결처럼 흐르고, 끝 구름이 따라 흔들리고, 번개가 번쩍 ---- */
   function cloudWhip(b, ph, live) {
-    const th = (live ? ph : 0.02) * TAU;
+    const th = (live ? Math.sin(ph * TAU) * 0.75 : 0.0);
     const fi = live ? Math.round(ph * 6) % 6 : 0;
-    const P0 = [6.4, 13.8];
-    const P1 = [15.4, 5.2];
+    const P0 = [6.8, 12.6];
+    const P1 = [14.6, 5.2];
     const dx = P1[0] - P0[0];
     const dy = P1[1] - P0[1];
     const len = Math.hypot(dx, dy);
     const nx = -dy / len;
     const ny = dx / len;
+    /* 채찍 중심선: 대각선 위에서 위아래로 한 번씩 크게 굽는다 (양 끝은 거의 고정) */
     const pos = (t) => {
-      const off = 3.4 * Math.sin(t * TAU * 1.0 - th) * (0.2 + 0.8 * t);
-      return [clamp(P0[0] + dx * t + nx * off, 3.6, 15.2), clamp(P0[1] + dy * t + ny * off, 4.6, 16.4)];
+      const off = 3.6 * Math.sin(t * TAU - th) * Math.sin(Math.PI * t) ** 0.8;
+      return [P0[0] + dx * t + nx * off, P0[1] + dy * t + ny * off];
     };
     aura(b, ph, live, 3 / 9, '#9ab8ff', '#e8f0ff', ['#ffffff', '#c8dcff', '#bff0ff'], 0.6);
-    /* 비 */
-    [[0.4, 0.5], [0.7, 0.1], [0.7, 0.58], [0.4, 0.0]].forEach(([t, o], k) => {
-      const c = pos(t);
-      const s = live ? (ph + o) % 1 : (0.2 + o) % 1;
-      const y = c[1] + 2.4 + s * 6;
-      const x = c[0] + (k % 2 ? 1.2 : -1.2);
-      const al = Math.sin(s * Math.PI) * 0.95;
-      dot(b, x, y, '#cfeeff', al);
-      dot(b, x, y + 1, '#6ac0ff', al * 0.8);
-    });
     /* 손잡이 */
     const ang = Math.atan2(dy, dx) / DEG;
     frame(b, P0[0], P0[1], ang, () => {
       b.part(() => {
-        b.rect(-3.6, -1.1, 4.2, 2.2, '#8a5a30', { hi: 0.3, lo: -0.3 });
-        for (const u of [-2.8, -1.8, -0.8]) b.rect(u, -1.2, 0.5, 2.4, '#5a3a1c', { shade: false });
-        b.disc(-3.9, 0, 1.4, '#dfe8ff');
-        b.rect(0.4, -1.6, 1.1, 3.2, '#dfe8ff', { shade: false });
+        b.rect(-3.8, -1.3, 4.5, 2.6, '#8a5a30', { hi: 0.3, lo: -0.3 });
+        for (const u of [-2.9, -1.9, -0.9]) b.rect(u, -1.4, 0.55, 2.8, '#4a2c12', { shade: false });
+        b.disc(-4.0, 0, 1.5, '#ffd870');
+        b.rect(0.5, -1.9, 1.2, 3.8, '#dfe8ff', { shade: false });
       }, true);
     });
-    /* 끈: 굵은 밧줄. 밝은 하늘색에 꼬임 무늬 */
-    const N = 26;
-    const t0 = 0.04;
-    const tt = (k) => t0 + (1 - t0) * (k / N);
+    /* 채찍: 굵은 끈. 끝으로 갈수록 가늘고, 꼬임 마디가 지나간다 */
+    const N = 30;
+    const T0 = 0.06;
+    const tt = (k) => T0 + (1 - T0) * (k / N);
+    const wd = (k) => 2.2 - 0.7 * (k / N);
     b.part(() => {
       for (let k = 0; k < N; k++) {
         const p = pos(tt(k));
         const q = pos(tt(k + 1));
-        b.line(p[0], p[1], q[0], q[1], 2.2 - 0.4 * (k / N), '#7a9cf0', { shade: false });
+        b.line(p[0], p[1], q[0], q[1], wd(k), '#6f94ee', { shade: false });
       }
     }, true);
     for (let k = 0; k < N; k++) {
       const p = pos(tt(k));
       const q = pos(tt(k + 1));
-      b.line(p[0] - 0.3, p[1] - 0.35, q[0] - 0.3, q[1] - 0.35, 0.8, k % 3 === 0 ? '#ffffff' : '#c4e8ff', { shade: false });
+      /* 밝은 윗면 */
+      b.line(p[0] - 0.35, p[1] - 0.4, q[0] - 0.35, q[1] - 0.4, wd(k) * 0.45, k % 4 < 2 ? '#ffffff' : '#c4e8ff', { shade: false });
     }
-    /* 구름 매듭 둘과 끝의 먹구름: 따로따로 외곽선 */
-    const puff = (c, r, white, shade, ol) => {
-      b.part(() => {
-        b.ell(c[0], c[1] + r * 0.5, r * 1.3, r * 0.7, white, { hi: 0.25, lo: -0.3 });
-        b.disc(c[0] - r * 0.65, c[1] + r * 0.05, r * 0.75, white, { hi: 0.3, lo: -0.3 });
-        b.disc(c[0] + r * 0.7, c[1] + r * 0.15, r * 0.68, white, { hi: 0.3, lo: -0.3 });
-        b.disc(c[0] - r * 0.05, c[1] - r * 0.3, r * 0.82, white, { hi: 0.3, lo: -0.3 });
-      }, ol);
-      b.ell(c[0] + r * 0.45, c[1] + r * 0.62, r * 0.85, r * 0.3, shade, { shade: false, alpha: 0.6 });
-      dot(b, c[0] - r * 0.6, c[1] - r * 0.7, WHITE, 0.95);
-    };
-    puff(pos(0.4), 1.5, '#f4f6ff', '#8a98d8', true);
-    puff(pos(0.7), 1.7, '#f4f6ff', '#8a98d8', true);
-    puff(pos(0.95), 1.9, '#9aa8e0', '#4a5aa0', true);
-    /* 끝 먹구름의 번개 */
-    const tp = pos(0.95);
+    /* 끝의 작은 구름 */
+    const tp = pos(1);
+    const CX = tp[0] + 0.2;
+    const CY = tp[1] - 0.2;
+    b.part(() => {
+      b.ell(CX, CY + 1.0, 3.2, 1.6, '#f4f6ff', { hi: 0.25, lo: -0.3 });
+      b.disc(CX - 1.6, CY + 0.1, 1.5, '#f4f6ff', { hi: 0.3, lo: -0.3 });
+      b.disc(CX + 1.6, CY + 0.3, 1.4, '#f4f6ff', { hi: 0.3, lo: -0.3 });
+      b.disc(CX - 0.1, CY - 0.8, 1.8, '#f4f6ff', { hi: 0.3, lo: -0.3 });
+    }, true);
+    b.ell(CX + 0.8, CY + 1.9, 2.4, 0.5, '#8a98d8', { shade: false, alpha: 0.6 });
+    dot(b, CX - 1.4, CY - 1.3, WHITE, 0.95);
+    /* 번개 한 줄기 (구름 밑에서 내리침) */
     const zap = live ? fi === 2 || fi === 3 : true;
-    if (zap) {
-      dot(b, tp[0] + 0.5, tp[1] + 2.8, '#fff4a0');
-      dot(b, tp[0] - 0.3, tp[1] + 3.8, '#fff4a0');
-      dot(b, tp[0] + 0.3, tp[1] + 4.8, '#ffe14a');
-    }
+    const BX = CX + 0.4;
+    const BY = CY + 2.4;
+    b.part(() => {
+      b.poly([[BX + 0.4, BY], [BX + 2.6, BY], [BX + 1.6, BY + 2.1], [BX + 3.0, BY + 2.1], [BX - 0.3, BY + 6.0], [BX + 0.3, BY + 3.3], [BX - 0.9, BY + 3.3]], zap ? '#fff0a0' : '#ffd23a', { hi: 0.35, lo: -0.2 });
+    }, true);
+    if (zap) dot(b, BX + 1.4, BY + 0.6, WHITE);
+    if (zap) glow(b, BX + 1.0, BY + 3.0, 3.0, '#fff4a0', 0.12);
     spark(b, 3.4, 5.6, twk(live, ph, 1) > 0 ? 1 : 0, '#e8f0ff', 0.9);
   }
 

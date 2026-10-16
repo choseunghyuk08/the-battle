@@ -736,32 +736,47 @@
     const pulse = live ? 0.5 + 0.5 * Math.cos(ph * TAU) : 0.7;
     oldLight(b, 9, t0, '#9a60ff', '#7aff9a');
     glow(b, 12, 10, 6.4, '#a8ff80', 0.06 + 0.04 * pulse);
-    const HX = 12.2;
-    const HY = 4.9;
-    const RX = 4.8;
-    const RY = 2;
-    const DEEP = 10.2;
-    const hwAt = (y) => {
-      const t = (y - HY) / DEEP;
-      return t < 0 || t > 1 ? 0 : RX * Math.sqrt(1 - t ** 2.4);
-    };
-    /* 신발: 낡은 푸른 운동화 (코가 왼쪽) */
-    const SHOE = [[9.3, 13.2], [9.1, 11.8], [10.6, 11], [12.4, 10.7], [13.2, 9.6], [15.2, 9.6], [15.6, 13.2]];
+    const HX = 11.2;
+    const HY = 4.6;
+    const RX = 5.4;
+    const RY = 2.1;
+    /* 장화: 그물에 걸린 노란 고무 장화 한 짝 (발목 긴 목, 코가 오른쪽). 초록 그물과 색이 확 갈린다 */
+    const SHOE = [[9, 7.2], [12.6, 7.2], [12.7, 11.6], [14.4, 11.9], [15.8, 12.9], [16.1, 14.2], [15.9, 15.2], [8.2, 15.2], [8.2, 13.8], [8.8, 12.8]];
     const shoeAt = (x, y) => {
-      if (y >= 13.2 && y < 14.2 && x > 9.1 && x < 15.7) return '#f4f0e0';
       if (!inPoly(SHOE, x, y)) return null;
-      if (y < 10.4 && x < 13) return null;
-      if (Math.abs(x - 11.2) < 0.45 && y > 11.6 && y < 12.6) return '#ffffff';
-      return y < 11.7 ? '#86aaf0' : y > 12.7 ? '#3a5cb0' : '#4a74c8';
+      if (y < 8.1) return y < 7.6 ? '#5a2c10' : '#ffe888';
+      if (y >= 14.2) return '#5a3418';
+      if (y < 9.5 && y >= 8.7 && x < 12.7) return '#e0402e';
+      if (x > 14.2 && y > 12.4) return y < 13.4 && x > 14.6 ? '#fff0a0' : '#ffd24a';
+      if (x > 11.4 && y < 11.6) return '#d08a14';
+      if (x < 10.2) return '#ffd24a';
+      return '#f6b828';
+    };
+    /* 그물 주머니: 장화를 넉넉히 감싸고, 테 아래로 깔때기처럼 모인다 */
+    const bagAt = (x, y) => {
+      let dmin = 9;
+      for (let k = 0; k < SHOE.length; k++) {
+        const p = SHOE[k];
+        const q = SHOE[(k + 1) % SHOE.length];
+        dmin = Math.min(dmin, segD(x, y, p[0], p[1], q[0], q[1])[0]);
+      }
+      if (dmin <= 1.9 || inPoly(SHOE, x, y)) return true;
+      const t = (y - HY) / 3.6;
+      return t >= 0 && t <= 1 && Math.abs(x - 10.8) <= lerp(RX - 0.3, 3.9, t);
+    };
+    const meshAt = (x, y) => {
+      const g1 = (x + y + 20) % 3.2;
+      const g2 = (x - y + 20) % 3.2;
+      return g1 < 0.8 || g2 < 0.8 ? (g1 < 0.8 && g2 < 0.8 ? 2 : 1) : 0;
     };
     const body = (bb) => {
       /* 자루: 이끼 낀 나무 */
       bb.part(() => {
-        bb.line(3.4, 16.4, 8.4, 6.4, 1.7, '#6a4a2c', { shade: false });
-        bb.line(3.1, 16.2, 8.1, 6.2, 0.6, '#a8804e', { shade: false });
-        bb.disc(3.3, 16.4, 1.15, '#4a3220', { shade: false });
-        bb.disc(5.4, 12.6, 0.85, '#58b050', { shade: false });
-        bb.disc(6.8, 9.8, 0.7, '#7ad060', { shade: false });
+        bb.line(3.3, 16.6, 7.2, 6.2, 1.7, '#6a4a2c', { shade: false });
+        bb.line(3.0, 16.4, 6.9, 6.0, 0.6, '#a8804e', { shade: false });
+        bb.disc(3.2, 16.6, 1.15, '#4a3220', { shade: false });
+        bb.disc(4.7, 12.8, 0.85, '#58b050', { shade: false });
+        bb.disc(5.8, 9.6, 0.7, '#7ad060', { shade: false });
       }, true);
       /* 테와 그물 주머니 (한 덩어리로 묶어 사이에 외곽선이 끼지 않게) */
       bb.part(() => {
@@ -772,20 +787,20 @@
             const l = -(x - HX) * 0.5 - (y - HY) * 1.4;
             return l > 1.2 ? '#f0cc88' : l < -1.2 ? '#6a4626' : '#b88a52';
           }
-          const hw = hwAt(y);
-          const inBag = hw && Math.abs(x - HX) <= hw;
-          if (!inBag) return e < 0.68 ? '#244034' : null;
           if (e < 0.68) return '#244034';
-          const g1 = (x + y + 20) % 2.6;
-          const g2 = (x - y + 20) % 2.6;
-          const mesh = g1 < 0.55 || g2 < 0.55;
+          if (!bagAt(x, y)) return null;
+          const m = meshAt(x, y);
+          if (m) return m === 2 ? '#ffffe0' : x - HX + (y - HY) * 0.3 < 0 ? '#e6ffb8' : '#b0e080';
+          return '#3a6e4e';
+        });
+      }, true);
+      /* 장화 (그물 앞): 따로 외곽선. 그물 올이 엷게 지나간다 */
+      bb.part(() => {
+        field(bb, 1, 1, 19, 19, (x, y) => {
           const sc = shoeAt(x, y);
-          if (mesh) {
-            const knot = g1 < 0.55 && g2 < 0.55;
-            const c = knot ? '#f6ffd0' : x - HX + (y - HY) * 0.3 < 0 ? '#d8f4a8' : '#9cc474';
-            return sc ? mix(sc, c, 0.6) : c;
-          }
-          return sc || '#2f4d3c';
+          if (!sc) return null;
+          const m = meshAt(x, y);
+          return m ? mix(sc, m === 2 ? '#f6ffd0' : '#c8e8a0', m === 2 ? 0.7 : 0.4) : sc;
         });
       }, true);
     };

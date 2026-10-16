@@ -173,33 +173,58 @@
     }
   };
 
-  /* ---- 71 전갈 침창: 마디진 전갈 꼬리가 그대로 자루, 끝에 번쩍이는 독침이 달렸다. 침끝에 독이 맺혀 떨어진다.
-     shine: 독방울이 맺히고, 늘어나고, 떨어진다. 모래빛 후광과 침에 훑는 빛 ---- */
+  /* ---- 71 전갈 침창: 마디진 전갈 꼬리가 그대로 자루다. 아래 왼쪽에서 곧게 오르다 위에서 갈고리로 굽고, 끝에 붉은 독침이 달렸다.
+     침끝에 독이 맺혀 떨어진다. shine: 독방울이 맺히고, 늘어나고, 떨어진다. 모래빛 후광과 꼬리에 훑는 빛 ---- */
   function scorpionSpear(b, ph, live) {
-    const OX = 8.8;
-    const OY = 11.4;
-    const A = -45;
-    const tip = turn(OX, OY, A, 9.8, -3.6);
+    /* 꼬리 중심선: 점 몇 개를 매끈하게 이은 것 (마지막 점이 독침 밑둥) */
+    const KEY = [[3.0, 17.2], [5.6, 13.8], [8.4, 11.2], [10.0, 8.4], [10.4, 5.6], [12.0, 3.6], [14.6, 3.8]];
+    const path = [];
+    const NS = 48;
+    for (let k = 0; k < NS; k++) {
+      const u = (k / (NS - 1)) * (KEY.length - 1);
+      const i = Math.min(KEY.length - 2, Math.floor(u));
+      const f = u - i;
+      const P = (j) => KEY[clamp(j, 0, KEY.length - 1)];
+      const q = [0, 1].map((c) => 0.5 * (2 * P(i)[c] + (-P(i - 1)[c] + P(i + 1)[c]) * f + (2 * P(i - 1)[c] - 5 * P(i)[c] + 4 * P(i + 1)[c] - P(i + 2)[c]) * f * f + (-P(i - 1)[c] + 3 * P(i)[c] - 3 * P(i + 1)[c] + P(i + 2)[c]) * f * f * f));
+      path.push([q[0], q[1], k / (NS - 1)]);
+    }
+    const NSEG = 7;
+    const END = path[path.length - 1];
+    const tip = [16.8, 9.2];
+    const radius = (t) => 1.25 + 0.45 * Math.sin(Math.min(1, t * 1.15) * Math.PI * 0.8);
+    /* 한 점이 꼬리 어디쯤인지 (가까운 중심선 점, 가운데에서 빛 쪽으로 얼마나 치우쳤나) */
+    const tailAt = (x, y) => {
+      let best = 99;
+      let bt = 0;
+      let bp = null;
+      for (const q of path) {
+        const d = Math.hypot(x - q[0], y - q[1]);
+        if (d < best) {
+          best = d;
+          bt = q[2];
+          bp = q;
+        }
+      }
+      const seg = bt * NSEG;
+      const fr = seg - Math.floor(seg);
+      const w = radius(bt) * (0.8 + 0.2 * Math.sqrt(Math.sin(Math.PI * clamp(fr, 0.04, 0.96))));
+      if (best > w) return null;
+      const lt = ((x - bp[0]) * -0.55 + (y - bp[1]) * -0.83) / w;
+      if (fr < 0.12 || (fr > 0.9 && bt < 0.97)) return '#6a3414';
+      if (lt > 0.4) return '#ffcc6a';
+      if (lt < -0.42) return '#a8581a';
+      return '#e08a2c';
+    };
     const body = (bb) => {
-      frame(bb, OX, OY, A, () => {
-        bb.part(() => {
-          /* 자루: 마디가 진 갑각 */
-          bb.rect(-8.4, -0.95, 10.4, 1.9, '#c8802c', { shade: false });
-          bb.rect(-8.4, -0.95, 10.4, 0.6, '#ffd070', { shade: false });
-          bb.rect(-8.4, 0.55, 10.4, 0.4, '#7a3e14', { shade: false });
-          for (const u of [-6.8, -4.8, -2.8, -0.8]) bb.rect(u, -1.15, 0.6, 2.3, '#5a2a10', { shade: false });
-          bb.poly([[-8.4, -0.95], [-9.4, 0], [-8.4, 0.95]], '#a85a1c', { shade: false });
-          /* 집게 날개: 창날 아래 십자 */
-          for (const sd of [-1, 1]) {
-            bb.poly([[0.6, sd * 0.9], [0.4, sd * 2.4], [1.4, sd * 3.5], [3.8, sd * 3.6], [2.8, sd * 2.6], [2.2, sd * 1.9], [2.4, sd * 0.9]], '#e0701e', { hi: 0.4, lo: -0.3 });
-          }
-          /* 침: 짙은 가시가 위로 굽는다 */
-          const seg = [[2.4, 0, 3.2], [5, -0.1, 3.0], [7.4, -0.8, 2.3], [9, -2, 1.4], [9.8, -3.6, 0.5]];
-          for (let i = 1; i < seg.length; i++) bb.line(seg[i - 1][0], seg[i - 1][1], seg[i][0], seg[i][1], seg[i - 1][2], '#d8384e', { hi: 0.4, lo: -0.3 }, seg[i][2]);
-          bb.line(3, -0.9, 7.2, -1.5, 0.45, '#ff9a6a', { shade: false });
-          bb.line(8.2, -2.2, 9.5, -3.4, 0.4, '#ffe0d0', { shade: false });
-        }, true);
-      });
+      bb.part(() => {
+        field(bb, 1, 1, 19, 19, (x, y) => tailAt(x, y));
+        /* 독침 밑둥 혹: 붉은 주머니 */
+        bb.disc(END[0] + 0.5, END[1] + 0.6, 2.4, '#d8283e', { hi: 0.3, lo: -0.3 });
+        bb.disc(END[0] - 0.2, END[1] - 0.1, 0.8, '#ff8a9a', { shade: false });
+        /* 독침: 아래로 굽은 뾰족 가시 */
+        bb.poly([[END[0] - 0.2, END[1] + 1.5], [END[0] + 2.8, END[1] + 0.9], [tip[0], tip[1]], [END[0] + 1.4, END[1] + 3.8]], '#ff3a52', { hi: 0.4, lo: -0.3 });
+      }, true);
+      bb.px(tip[0] - 0.4, tip[1] - 0.6, '#ffe0e4');
     };
     aura(b, ph, live, 0, '#ff8a1e', '#ffd23a', ['#ffe9b0', '#ffc860']);
     body(b);
@@ -208,91 +233,99 @@
     const s = live ? ph : 0.3;
     const grow = clamp(s / 0.4);
     const fall = clamp((s - 0.4) / 0.6);
-    const dx = tip[0] + 0.5;
-    const dy = tip[1] + 1.2 + grow * 0.7 + fall * fall * 5.4;
+    const dx = tip[0] - 0.2;
+    const dy = tip[1] + 1.6 + grow * 0.5 + fall * fall * 5.0;
     const da = fall > 0 ? 1 - fall * 0.8 : 1;
-    glow(b, dx, dy, 2.6, '#d86aff', 0.12 * da);
+    glow(b, dx, dy, 2.0, '#d86aff', 0.1 * da);
     b.ell(dx, dy, 0.55 + grow * 0.3, 0.7 + grow * 0.5 + fall * 0.5, '#c24aff', { shade: false, alpha: da });
     dot(b, dx - 0.3, dy - 0.3, '#f6d8ff', da);
     if (fall > 0.75) spark(b, dx, 15.5, 0, '#e8a8ff', 0.8);
-    spark(b, tip[0], tip[1], twk(live, ph, 0) > 0 ? 1 : 0, '#fff6d8', 0.9);
+    spark(b, tip[0] - 0.6, tip[1] - 0.8, twk(live, ph, 0) > 0 ? 1 : 0, '#fff6d8', 0.9);
   }
 
-  /* ---- 72 연잎 부채: 둥근 연잎에 잎맥, 대나무 손잡이 끝에 분홍 연꽃 한 송이. 잎 가장자리에서 개구리가 눈만 내밀고 있다.
-     shine: 부채가 한 번 살랑 부치고, 잎 위 물방울이 구르고, 부채질 쪽으로 개구리가 돌아보다 눈을 깜빡. 반딧불이 떠오른다 ---- */
+  /* ---- 72 연잎 부채: 접었다 편 부채꼴 연잎. 잎이 주름선으로 접혀 있고 가장자리가 물결 모양이다. 대나무 손잡이 끝에 분홍 연꽃 한 송이.
+     잎 모서리에 개구리 한 마리가 아주 작게 앉아 있다.
+     shine: 부채가 한 번 살랑 부치고, 잎 위 물방울이 구르고, 개구리가 눈을 깜빡. 반딧불이 떠오른다 ---- */
   function lotusFan(b, ph, live) {
     const t0 = live ? ph : 0.15;
-    const sw = live ? Math.sin(ph * TAU) * 6 : 0;
-    const PV = [4.6, 15.9];
-    const LU = 11.3;
-    const R = 4.9;
-    const edge = (a) => R + 0.4 * Math.sin(7 * a + 0.6);
-    const lp = [];
-    for (let k = 0; k < 30; k++) {
-      const a = (k / 30) * TAU;
-      lp.push([LU + Math.cos(a) * edge(a), Math.sin(a) * edge(a)]);
-    }
+    const sw = live ? Math.sin(ph * TAU) * 5 : 0;
+    const PV = [8.6, 11.4];
+    const R = 9.0;
+    const A0 = -104;
+    const A1 = 12;
+    const NP = 6;
     aura(b, ph, live, 1 / 9, '#7aff9a', '#c88aff', ['#e8ffd0', '#e0c8ff']);
     /* 반딧불 */
     for (let k = 0; k < 3; k++) {
       const t = live ? (ph + k / 3) % 1 : 0.3 + k * 0.25;
       dot(b, 3.4 + k * 6.2 + Math.sin((t + k * 0.4) * TAU) * 1.2, 16.4 - t * 6.8, '#e8ff7a', Math.sin(t * Math.PI) * 0.95);
     }
+    /* 점 하나가 부채 어디인지: 각도(도)와 거리 */
+    const polar = (x, y) => {
+      const a = (Math.atan2(y - PV[1], x - PV[0]) / DEG) - sw;
+      return [a, Math.hypot(x - PV[0], y - PV[1])];
+    };
     const body = (bb) => {
-      frame(bb, PV[0], PV[1], sw - 45, () => {
-        /* 손잡이: 대나무 */
-        bb.part(() => {
-          bb.rect(-0.8, -0.85, 9.6, 1.7, '#9a7a3a', { shade: false });
-          bb.rect(-0.8, -0.85, 9.6, 0.55, '#dcc070', { shade: false });
-          bb.rect(-0.8, 0.5, 9.6, 0.35, '#5a4418', { shade: false });
-          for (const u of [2.2, 5.2]) bb.rect(u, -1, 0.55, 2, '#6a5020', { shade: false });
-        }, true);
-        /* 연잎 */
-        bb.part(() => {
-          bb.poly(lp, '#3fbe6a', { hi: 0.34, lo: -0.38 });
-          bb.ell(LU - 0.8, -1.6, 3.6, 2.4, '#5ed07e', { shade: false, alpha: 0.75 });
-          bb.ell(LU + 0.9, 1.7, 3.8, 1.9, '#1f7a4c', { shade: false, alpha: 0.45 });
-          for (let k = 0; k < 8; k++) {
-            const a = (k / 8) * TAU + 0.2;
-            bb.line(LU, 0, LU + Math.cos(a) * 4.6, Math.sin(a) * 4.6, 0.62, '#14683c', { shade: false });
-            bb.line(LU + Math.cos(a) * 1.2 - 0.2, Math.sin(a) * 1.2 - 0.3, LU + Math.cos(a) * 4.4 - 0.2, Math.sin(a) * 4.4 - 0.3, 0.35, '#b4f8b8', { shade: false, alpha: 0.8 });
-          }
-          bb.disc(LU, 0, 0.9, '#9af0a8', { shade: false });
-        }, true);
-      });
+      /* 손잡이: 대나무 (부채 밑에서 왼쪽 아래로) */
+      bb.part(() => {
+        bb.line(PV[0] + 0.3, PV[1] + 0.3, 4.6, 15.4, 2.1, '#9a7a3a', { shade: false });
+        bb.line(PV[0] - 0.1, PV[1] - 0.4, 4.3, 14.9, 0.7, '#e0c878', { shade: false });
+        bb.rect(6.6, 12.7, 1.2, 1.0, '#5a4418', { shade: false });
+      }, true);
+      /* 연잎: 주름이 접힌 부채꼴 */
+      bb.part(() => {
+        field(bb, 1, 1, 19, 19, (x, y) => {
+          const [a, r] = polar(x, y);
+          if (a < A0 || a > A1 || r < 1.0) return null;
+          const k = ((a - A0) / (A1 - A0)) * NP;
+          const j = Math.floor(k);
+          const f = k - j;
+          /* 가장자리: 주름마다 둥글게 */
+          const edge = R - 1.5 * (1 - Math.sqrt(Math.max(0, Math.sin(Math.PI * clamp(f, 0.02, 0.98)))));
+          if (r > edge) return null;
+          if (r < 2.2) return '#7a5a28';
+          /* 주름 접힘: 왼쪽 면은 밝고 오른쪽 면은 어둡게. 주름 사이 골은 가장 어둡다 */
+          if (f < 0.07 || f > 0.96) return '#14683c';
+          if (r > edge - 0.9) return f < 0.5 ? '#9af0a8' : '#5ed07e';
+          if (f < 0.5) return j % 2 ? '#52cc78' : '#68dc88';
+          return j % 2 ? '#2f9a58' : '#3aae66';
+        });
+      }, true);
     };
     body(b);
+    if (live) sweep(b, body, 0.707, -0.707, lerp(-11, 11, ph), 1.5, 0.45, '#f0fff0');
     /* 연꽃 (손잡이 끝) */
     b.part(() => {
-      const fx = PV[0] - 0.3;
-      const fy = PV[1] + 0.2;
-      b.ell(fx - 1.7, fy - 0.4, 1.0, 1.9, '#ff7ab4', { hi: 0.3 });
-      b.ell(fx + 1.7, fy - 0.4, 1.0, 1.9, '#ff7ab4', { hi: 0.3 });
-      b.ell(fx, fy - 0.8, 1.2, 2.3, '#ffa8d0', { hi: 0.3 });
-      b.ell(fx, fy + 0.5, 2.5, 0.9, '#c84a8c', { shade: false });
+      const fx = 4.0;
+      const fy = 16.0;
+      b.ell(fx - 1.3, fy - 0.4, 0.8, 1.6, '#ff7ab4', { hi: 0.3 });
+      b.ell(fx + 1.3, fy - 0.4, 0.8, 1.6, '#ff7ab4', { hi: 0.3 });
+      b.ell(fx, fy - 0.8, 1.0, 1.9, '#ffa8d0', { hi: 0.3 });
+      b.ell(fx, fy + 0.5, 2.0, 0.8, '#c84a8c', { shade: false });
     }, true);
-    dot(b, PV[0] - 0.3, PV[1] - 1.2, '#fff0f6');
-    if (live) sweep(b, body, 0.707, -0.707, lerp(-11, 11, ph), 1.5, 0.45, '#f0fff0');
-    /* 개구리: 잎 위쪽 가장자리에서 눈만 내민다 (부채질 쪽을 돌아본다) */
-    const fp = turn(PV[0], PV[1], sw - 45, LU + 3.0, -2.6);
+    dot(b, 3.6, 14.8, '#fff0f6');
+    /* 개구리: 잎 위 오른쪽 모서리에 아주 작게 한 마리 */
+    const fp = turn(PV[0], PV[1], sw, 0, 0);
+    const fa = (-10 + sw) * DEG;
+    const fx = fp[0] + Math.cos(fa) * 6.6;
+    const fy = fp[1] + Math.sin(fa) * 6.6;
     const blink = live && Math.round(ph * 6) % 6 === 3;
-    const look = live ? Math.cos(ph * TAU) : 0;
     b.part(() => {
-      b.ell(fp[0], fp[1] + 0.6, 2.7, 1.6, '#b4e040', { hi: 0.3, lo: -0.3 });
-      b.disc(fp[0] - 1.35, fp[1] - 0.5, 1.2, '#c8ee58', { hi: 0.3 });
-      b.disc(fp[0] + 1.35, fp[1] - 0.5, 1.2, '#c8ee58', { hi: 0.3 });
+      b.ell(fx, fy + 0.4, 1.3, 0.8, '#b4e040', { shade: false });
+      b.disc(fx - 0.7, fy - 0.3, 0.6, '#c8ee58', { shade: false });
+      b.disc(fx + 0.7, fy - 0.3, 0.6, '#c8ee58', { shade: false });
     }, true);
-    for (const ex of [-1.35, 1.35]) {
-      if (blink) b.rect(fp[0] + ex - 0.5, fp[1] - 0.5, 1, 1, '#6a9a20', { shade: false });
-      else {
-        dot(b, fp[0] + ex - 0.5, fp[1] - 0.9, WHITE);
-        dot(b, fp[0] + ex - 0.5 - Math.round(look * 0.4) * 1 - 0, fp[1] - 0.2, '#1a1226');
-      }
+    if (!blink) {
+      dot(b, fx - 1, fy - 0.7, '#1a1226');
+      dot(b, fx + 0.4, fy - 0.7, '#1a1226');
     }
     /* 잎 위 물방울: 잎 가운데를 작게 돈다 */
-    const wp = turn(PV[0], PV[1], sw - 45, LU + Math.cos(t0 * TAU) * 2.1, Math.sin(t0 * TAU) * 1.7);
-    b.disc(wp[0], wp[1], 0.85, '#bff4ff', { shade: false, alpha: 0.9 });
-    dot(b, wp[0] - 0.4, wp[1] - 0.4, WHITE);
+    const wa = (-50 + sw + Math.sin(t0 * TAU) * 14) * DEG;
+    const wr = 6 + Math.cos(t0 * TAU) * 1.4;
+    const wx = PV[0] + Math.cos(wa) * wr;
+    const wy = PV[1] + Math.sin(wa) * wr;
+    b.disc(wx, wy, 0.85, '#bff4ff', { shade: false, alpha: 0.9 });
+    dot(b, wx - 0.4, wy - 0.4, WHITE);
   }
 
   /* ---- 73 진주 작살: 청록 자루에 산호빛 끈, 은빛 푸른 작살촉(갈고리 둘). 촉 뒤에 큰 진주가 박혀 무지갯빛으로 일렁인다.
@@ -409,73 +442,65 @@
     spark(b, 3.6, 4, twk(live, ph, 2), '#bff4ff', 0.9);
   }
 
-  /* ---- 75 구름 활: 솜구름이 둥글게 이어져 활이 되었다. 시위는 빗줄기, 화살은 햇살. 아래 구름에서 비가 내리고,
-     활 안쪽 하늘이 개어 작은 무지개가 켜진다. shine: 비가 떨어지고 무지개가 숨 쉬고 햇살 화살촉이 돈다 ---- */
+  /* ---- 75 구름 활: 구름이 뭉쳐 휜 활대. 활대가 아치로 크게 굽고 둘레는 구름 덩어리뿐이다. 양 끝을 잇는 팽팽한 시위에 햇살 화살이 걸려 있다.
+     shine: 구름이 한 박자씩 부풀고, 시위가 떨고, 화살촉에 빛이 맺히고, 비가 내린다 ---- */
   function cloudBow(b, ph, live) {
-    const t0 = live ? ph : 0.3;
     const pulse = live ? 0.5 + 0.5 * Math.cos(ph * TAU) : 0.8;
-    const C = [5.2, 14.8];
-    const R = 10.6;
-    const limb = (s) => {
-      const a = (270 + 92 * s) * DEG;
-      return [C[0] + Math.cos(a) * R, C[1] + Math.sin(a) * R];
-    };
-    const T0 = limb(0.02);
-    const T1 = limb(0.98);
-    const NOCK = [6.6, 13.4];
-    const HEAD = [15.8, 4.4];
+    /* 활 제 좌표 (u: 화살 방향, v: 가로). 화살은 왼쪽 아래에서 오른쪽 위로 난다 */
+    const O = [9.6, 9.8];
+    const ANG = -45;
+    const P = (u, v) => turn(O[0], O[1], ANG, u, v);
+    const VMAX = 7.2;
+    const arc = (v) => 5.6 * (1 - (v / VMAX) ** 2) - 2.4;
+    const quiver = live ? Math.sin(ph * TAU * 2) * 0.45 : 0;
+    const TA = P(arc(-VMAX), -VMAX);
+    const TB = P(arc(VMAX), VMAX);
+    const NOCK = P(-3.8 + quiver * 0.5, 0);
     aura(b, ph, live, 4 / 9, '#8ac8ff', '#ffe890', ['#ffffff', '#fff2b0']);
-    /* 활 안쪽 무지개 (하늘이 갠다) */
-    const cols = ['#ff5a5a', '#ffd23a', '#5ae88a', '#5aa8ff'];
-    cols.forEach((c, k) => {
-      const rr = R - 2.5 - k * 0.7;
-      for (let j = 0; j < 14; j++) {
-        const a0 = (284 + j * 5.8) * DEG;
-        const a1 = (284 + (j + 1) * 5.8) * DEG;
-        b.line(C[0] + Math.cos(a0) * rr, C[1] + Math.sin(a0) * rr, C[0] + Math.cos(a1) * rr, C[1] + Math.sin(a1) * rr, 0.75, c, { shade: false, alpha: 0.55 + 0.4 * pulse });
-      }
-    });
-    /* 시위: 빗줄기 */
-    b.line(T0[0], T0[1], NOCK[0], NOCK[1], 0.8, '#ffffff', { shade: false });
-    b.line(NOCK[0], NOCK[1], T1[0], T1[1], 0.8, '#ffffff', { shade: false });
-    /* 구름 활대 */
-    const lump = (s) => 0.65 + 0.8 * Math.sin(Math.PI * s) ** 0.9;
+    /* 구름 활대: 양 끝은 가늘고 가운데가 두툼한 구름 덩어리 열한 개 */
+    const N = 9;
     const ls = [];
-    for (let k = 0; k <= 13; k++) {
-      const s = k / 13;
-      const p = limb(s);
-      ls.push([p[0], p[1], lump(s)]);
+    for (let k = 0; k < N; k++) {
+      const s = k / (N - 1);
+      const v = -VMAX + 2 * VMAX * s;
+      const c = P(arc(v), v);
+      const r = 0.85 + 0.75 * Math.sin(Math.PI * s) ** 0.8 + (k % 2 ? 0.2 : -0.05) + 0.1 * pulse * Math.sin(k * 1.7);
+      ls.push([c[0], c[1], r]);
     }
     b.part(() => {
-      for (const [x, y, r] of ls) b.disc(x + 0.5, y + 0.6, r, '#a8c4ec', { shade: false });
+      for (const [x, y, r] of ls) b.disc(x + 0.45, y + 0.55, r, '#a8b8ee', { shade: false });
       for (const [x, y, r] of ls) b.disc(x, y, r, '#e4f0ff', { shade: false });
-      for (const [x, y, r] of ls) b.disc(x - 0.35, y - 0.45, r * 0.62, WHITE, { shade: false });
+      for (const [x, y, r] of ls) b.disc(x - 0.35, y - 0.45, r * 0.6, WHITE, { shade: false });
     }, true);
-    /* 구름 아래 그늘 한 줄 */
-    for (const [x, y, r] of ls) if (r > 1.6) dot(b, x + 0.6, y + r * 0.55, '#8aa8dc', 0.9);
-    /* 햇살 화살 */
-    const AX = (t) => [lerp(NOCK[0], HEAD[0], t), lerp(NOCK[1], HEAD[1], t)];
-    b.line(...AX(0.0), ...AX(0.9), 2.2, '#fff0a0', { shade: false, alpha: 0.35 });
-    b.part(() => {
-      b.line(...AX(0.02), ...AX(0.86), 1, '#fff6c8', { shade: false });
-      const F0 = AX(0.02);
-      const F1 = AX(0.2);
-      b.poly([F0, F1, [F1[0] - 1.8, F1[1] - 0.6], [F0[0] - 1.4, F0[1] - 0.5]], '#ffffff', { shade: false });
-      b.poly([F0, F1, [F1[0] + 0.6, F1[1] + 1.8], [F0[0] + 0.5, F0[1] + 1.4]], '#bfe0ff', { shade: false });
-    }, true);
-    b.part(() => {
-      b.poly(starPts(HEAD[0], HEAD[1], 2.1, 1, 8, live ? t0 * 45 : 0), '#ffd23a', { hi: 0.45, lo: -0.25 });
-    }, true);
-    dot(b, HEAD[0], HEAD[1], WHITE);
-    /* 비: 아래쪽 구름에서 떨어진다 */
-    for (let k = 0; k < 5; k++) {
-      const t = live ? (ph * 2 + k / 5) % 1 : 0.1 + k * 0.2;
-      const x = [13, 14.6, 16, 12, 15.4][k] + 0.4;
-      const y = 13 + t * 5 - (k % 2) * 0.8;
-      dot(b, x, y, k % 2 ? '#7ad0ff' : '#c0ecff', (1 - t) * 0.95);
+    /* 시위: 두 끝에서 화살 오늬로 당겨진 선 (뒤에 어두운 선을 깔아 또렷하게) */
+    for (const [w, c, al] of [[1.3, '#ffffff', 1]]) {
+      b.line(TA[0], TA[1], NOCK[0], NOCK[1], w, c, { shade: false, alpha: al });
+      b.line(NOCK[0], NOCK[1], TB[0], TB[1], w, c, { shade: false, alpha: al });
     }
-    if (live && Math.round(ph * 6) % 3 === 0) spark(b, 6.6, 6.2, 1, '#ffffff', 0.9);
-    spark(b, 3.6, 9.6, twk(live, ph, 3), '#ffffff', 0.9);
+    /* 햇살 화살: 오늬에서 활대 가운데를 지나 오른쪽 위로 */
+    const HEAD = P(9.8, 0);
+    const SH = P(7.4, 0);
+    b.line(NOCK[0], NOCK[1], SH[0], SH[1], 2.6, '#1c2a64', { shade: false, alpha: 0.7 });
+    b.part(() => {
+      b.line(NOCK[0], NOCK[1], SH[0], SH[1], 1.2, '#ffe27a', { shade: false });
+      /* 깃: 오늬 쪽 두 장 */
+      const F0 = P(-3.9, 0);
+      const F1 = P(-1.6, 0);
+      b.poly([F0, F1, P(-1.6, -1.7), P(-3.9, -1.1)], '#ffffff', { shade: false });
+      b.poly([F0, F1, P(-1.6, 1.7), P(-3.9, 1.1)], '#9ad0ff', { shade: false });
+    }, true);
+    b.part(() => {
+      b.poly([P(6.9, -2.1), P(6.9, 2.1), HEAD], '#ffd23a', { hi: 0.45, lo: -0.25 });
+    }, true);
+    dot(b, ...P(8.0, -0.6), WHITE);
+    /* 비: 아래쪽 구름에서 떨어진다 */
+    for (let k = 0; k < 3; k++) {
+      const t = live ? (ph * 2 + k / 3) % 1 : 0.15 + k * 0.3;
+      const base = ls[7 + (k % 2)];
+      dot(b, base[0] + 0.4 + k * 0.5, base[1] + base[2] + 0.6 + t * 3.2, k % 2 ? '#7ad0ff' : '#c0ecff', (1 - t) * 0.95);
+    }
+    spark(b, HEAD[0] - 0.4, HEAD[1] + 0.4, live ? (Math.round(ph * 6) % 3 === 0 ? 2 : 1) : 1, '#fffbd0', 0.95);
+    spark(b, 3.4, 16.4, twk(live, ph, 3), '#ffffff', 0.9);
   }
 
   /* ---- 76 번개새 깃창: 짙은 남빛 자루에 노란 번개 상감, 창날이 천둥새의 큰 깃털이다. 깃털 가운데로 번개가 쳐서 갈라진다.
