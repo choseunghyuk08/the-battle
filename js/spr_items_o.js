@@ -14,7 +14,7 @@
      icon: 정지 그림, shine: 같은 그림의 반복 6장 (ph = i / n, 마지막 장 다음에 첫 장이 이어진다).
      shine 움직임: 141 손가락이 숨 쉬듯 펴졌다 오므라듦, 142 햇빛이 구름 윗면을 훑음, 143 줄과 수건이 바람에 나부낌,
      144 웃음에 얼굴이 통통 튀고 소리 고리가 번짐, 145 계단 끝의 푸른 빛이 숨 쉼, 146 푸른 불이 일렁임,
-     147 매듭 끝이 풀려 연기로 흩어짐, 148 숨결이 소용돌이로 흐름, 149 이름표 위로 무지개 빛이 흐름,
+     147 매듭 끝이 풀려 연기로 흩어짐, 148 둥근 덩이마다 한 박자씩 속이 환해지고 별이 깜빡임, 149 이름표 위로 무지개 빛이 흐름,
      150 표창이 한 바퀴 (90도) 돌고 소리 파동 고리가 안에서 바깥으로 번짐 */
 
   const DEG = Math.PI / 180;
@@ -613,92 +613,64 @@
     spark(b, 3.6, 15.2, twk(live, ph, 0), '#ffe9a0', 0.8);
   }
 
-  /* ---- 148 마지막 한 번의 숨: 처음 던진 손이 쉬며 내쉰 따뜻한 입김. 입에서 막 나온 작고 진한 덩이가 왼쪽 아래에서 시작해
-     오른쪽 위로 가며 커지고 투명해지는 몽글한 덩이 네 개로 퍼진다. 덩이끼리는 이어붙지 않고 살짝 떨어져 있으며, 맨 끝은 별가루로 흩어진다.
-     shine: 덩이들이 한 칸씩 밀려 나가며 커지고 옅어지고, 새 덩이가 왼쪽 아래에서 피어난다 (한 바퀴 돌면 처음과 똑같이 이어진다) ---- */
+  /* ---- 148 마지막 한 번의 숨: 처음 던진 손이 쉬며 내쉰 따뜻한 입김. 완전히 둥근 덩이 셋 (지름 4, 6, 8 점) 이 왼쪽 아래에서 오른쪽 위로 휘어 오르며 서로 한 점씩 떨어져 있다.
+     덩이마다 짙은 보라 외곽선, 속은 따뜻한 살구와 분홍, 위쪽에 흰 하이라이트 한 점. 후광 (회색 보라) 과 갈리게 속을 크게, 외곽선을 진하게 둔다.
+     끝에는 십자 모양 4점 별 둘. 지름은 외곽선까지 센다 (16 x 16 안에 한 점씩 띄워 셋을 놓으려면 그래야 한다).
+     shine: 덩이마다 한 박자씩 늦게 속이 환해지며 빛이 왼쪽 아래에서 오른쪽 위로 지나가고, 별 둘이 번갈아 반짝이며 별가루가 깜빡인다 ---- */
   const BREATH_DUST = ['#fff0b0', '#bff4ff', '#ffffff', '#ffc4e4', '#ffe9a0'];
-  /* 입김 덩이 하나의 둥근 덩어리 배치 (반지름 r 에 곱하는 값: x, y, 크기) */
-  const PUFF = [[0, 0.05, 0.8], [-0.55, 0.3, 0.52], [0.58, 0.2, 0.55], [-0.12, -0.5, 0.56], [0.36, -0.38, 0.46]];
+  /* 둥근 덩이 모양 (# 가 덩이, 가장자리 한 줄이 외곽선, 안쪽이 속): 지름 4, 6, 8 */
+  const PUFF_SHAPE = {
+    4: ['.##.', '####', '####', '.##.'],
+    6: ['..##..', '.####.', '######', '######', '.####.', '..##..'],
+    8: ['..####..', '.######.', '########', '########', '########', '########', '.######.', '..####..'],
+  };
+  /* [왼쪽 위 칸 x, y, 지름, 속 색 (밝음, 바탕, 그늘)]: 왼쪽 아래에서 오른쪽 위로, 갈수록 크고 옅다 */
+  const PUFFS = [
+    [2, 14, 4, ['#ffd8b8', '#ff9470', '#e86478']],
+    [7, 11, 6, ['#ffe0c8', '#ffa888', '#f07c8c']],
+    [10, 2, 8, ['#ffece0', '#ffbca0', '#f490a4']],
+  ];
+  /* 십자 모양 4점 별: s = 0 가운데 한 점, 1 십자 흐리게, 2 십자 또렷하게 */
+  const star4 = (b, x, y, s, c) => {
+    if (s >= 1) for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) dot(b, x + dx, y + dy, c, s >= 2 ? 1 : 0.55);
+    dot(b, x, y, WHITE, 1);
+  };
   function lastBreath(b, ph, live) {
     const P = live ? ph : 0.35;
     aura(b, ph, live, 7 / 8, '#ffe0f0', '#a0f0ff', ['#ffffff', '#ffe9a0', '#d8c8ff', '#bff4ff']);
-    /* 입김이 지나는 길: 왼쪽 아래에서 오른쪽 위로 살짝 휘어 오른다. 덩이가 커질수록 간격도 넓어서 서로 닿지 않는다 */
-    const NP = 3;
-    const SX0 = 3.4;
-    const SY0 = 15.4;
-    const SX1 = 16.2;
-    const SY1 = 4.2;
-    const rOf = (s) => 1.15 + 2.1 * s;
-    const arc = (s) => (3.03 * s + 2.31 * s * s) / 5.34;
-    const at = (s) => {
-      const t = arc(s);
-      return [lerp(SX0, SX1, t) + 0.7 * Math.sin(t * Math.PI), lerp(SY0, SY1, t) + 0.7 * Math.sin(t * Math.PI)];
-    };
-    const list = [];
-    for (let k = 0; k < NP; k++) list.push((k + P) / NP);
-    /* 오래된 (큰) 덩이부터 그려서 새 덩이가 앞에 온다 */
-    list.sort((p, q) => q - p);
-    for (const s of list) {
-      const c = at(s);
-      const r = rOf(s);
-      /* 맨 끝: 덩이가 풀려 별가루만 남는다 */
-      if (s > 0.9) {
-        const f = (s - 0.9) / 0.1;
-        for (let j = 0; j < 6; j++) {
-          const a = j * 1.1 + 0.4;
-          dot(b, c[0] + Math.cos(a) * r * (0.5 + f * 0.7), c[1] + Math.sin(a) * r * (0.45 + f * 0.6) - f * 0.8, BREATH_DUST[j % 5], (1 - f) * 0.9);
+    PUFFS.forEach(([x0, y0, d, cols], k) => {
+      const rows = PUFF_SHAPE[d];
+      const has = (i, j) => j >= 0 && j < d && i >= 0 && i < d && rows[j][i] === '#';
+      const r = d / 2;
+      /* 한 박자씩 늦게 환해진다 (icon 은 가운데 덩이가 가장 환하다) */
+      const g = live ? 0.5 + 0.5 * Math.cos((P - k / 3) * TAU) : [0.2, 0.7, 0.3][k];
+      for (let j = 0; j < d; j++) {
+        for (let i = 0; i < d; i++) {
+          if (!has(i, j)) continue;
+          const dx = i + 0.5 - r;
+          const dy = j + 0.5 - r;
+          const lam = (-dx * 0.55 - dy * 0.85) / r;
+          const inner = has(i - 1, j) && has(i + 1, j) && has(i, j - 1) && has(i, j + 1);
+          let c;
+          if (!inner) {
+            c = lam > 0.5 ? '#7a48c0' : lam > -0.3 ? '#52289a' : '#321268';
+          } else {
+            c = lam > 0.42 ? cols[0] : lam > -0.28 ? cols[1] : cols[2];
+            c = mix(c, WHITE, 0.4 * g * g);
+          }
+          b.rect(x0 + i, y0 + j, 1, 1, c, { shade: false });
         }
-        continue;
       }
-      /* 처음엔 작고 진하고 (따뜻한 살구색), 갈수록 커지고 하얗고 투명해진다 */
-      const near = clamp((0.55 - s) / 0.55, 0, 1);
-      const base = mix('#fff8f0', '#ffd6bc', near);
-      const shade = mix('#f0d4ec', '#f59a82', near);
-      const bits = PUFF.map(([ox, oy, rr]) => [c[0] + ox * r, c[1] + oy * r, rr * r]);
-      /* 덩이 안쪽 점마다 색 (왼쪽 위가 밝고 오른쪽 아래가 살구색) 과 덩이 안인지 */
-      const probe = (x, y) => {
-        let best = null;
-        for (const [bx, by, br] of bits) {
-          const d = Math.hypot(x - bx, y - by) / br;
-          if (d <= 1 && (!best || d < best[0])) best = [d, bx, by, br];
-        }
-        if (!best) return null;
-        const lam = (-(x - best[1]) * 0.55 - (y - best[2]) * 0.65) / best[3] + 0.18 - 0.35 * best[0];
-        return lam > 0.42 ? WHITE : lam > -0.12 ? base : shade;
-      };
-      /* 가까운 덩이는 진한 테두리에 속이 꽉 차 있고, 멀수록 테두리가 하얘지고 속이 비친다 (한 덩이가 밀려 나가는 동안 끊김 없이 바뀐다) */
-      const fade = clamp((s - 0.4) / 0.5, 0, 1);
-      const rimW = clamp((s - 0.3) / 0.35, 0, 1);
-      const rim = mix(INK, '#a07ad0', rimW);
-      field(b, c[0] - r * 1.6, c[1] - r * 1.6, c[0] + r * 1.6, c[1] + r * 1.6, (x, y) => {
-        const col = probe(x, y);
-        if (col) return [col, 1 - 0.18 * fade];
-        if (probe(x - 1, y) || probe(x + 1, y) || probe(x, y - 1) || probe(x, y + 1)) return [rim, 1 - 0.15 * rimW];
-        return null;
-      });
-      const dens = 1 - 0.2 * fade;
-      /* 안에 박힌 별가루 (덩이가 밀려 나가도 같은 자리에 박혀 있어서 한 바퀴 돌면 처음과 이어진다) */
-      const nd = r < 1.6 ? 1 : r < 2.4 ? 2 : 4;
-      for (let j = 0; j < nd; j++) {
-        const a = j * 2.3 + 0.5;
-        const q = 0.28 + 0.34 * ((j * 7) % 5) / 4;
-        const tw = 0.6 + 0.4 * Math.cos(P * TAU * 2 + j * 1.9);
-        dot(b, c[0] + Math.cos(a) * r * q * 1.25, c[1] + Math.sin(a) * r * q, BREATH_DUST[j % 5], tw * dens);
-      }
-      /* 큰 덩이는 십자 별 하나 */
-      if (s > 0.5) spark(b, c[0] + 0.5, c[1] - 0.4, twk(live, ph, 0) > 0 ? 1 : 0, '#fffbe0', 0.95);
-    }
-    /* 맨 끝에서 흩어져 날리는 별가루 */
-    for (let j = 0; j < 5; j++) {
-      const t = live ? (P + j / 5) % 1 : 0.1 + j * 0.2;
-      const q = at(0.8 + 0.2 * t);
-      dot(b, q[0] + 1.3 + (j % 3) * 0.9 - t * 0.3, q[1] - 0.6 + ((j * 5) % 4) * 0.9 - 1.8 * t, BREATH_DUST[j % 5], Math.sin(t * Math.PI) * 0.85);
-    }
-    /* 입김 끝에서 흩어지는 별가루 (십자 둘) */
-    spark(b, 16, 5.6 + (live ? 0.6 * Math.sin(P * TAU) : 0), twk(live, ph, 0) > 0 ? 1 : 0, '#fff6c8', 0.95);
-    spark(b, 14.2, 3.4, twk(live, ph, 3) > 0 ? 1 : 0, '#d8f8ff', 0.9);
-    spark(b, 4, 4.4, twk(live, ph, 4), '#ffe9a0', 0.7);
-    spark(b, 15.8, 16, twk(live, ph, 1), '#d8f8ff', 0.8);
+      /* 위쪽에 흰 하이라이트 한 점 (속 맨 윗줄 왼쪽) */
+      b.rect(x0 + (d === 4 ? 1 : 2), y0 + 1, 1, 1, WHITE, { shade: false });
+    });
+    /* 끝에서 흩어지는 별가루: 십자 별 둘과 깜빡이는 알갱이 */
+    star4(b, 15, 13, live ? twk(live, ph, 0) : 2, '#ffd23c');
+    star4(b, 7, 4, live ? twk(live, ph, 3) : 2, '#ffe27a');
+    [[13, 11, 0], [16, 10, 2], [8, 7, 1], [5, 9, 3]].forEach(([x, y, o], j) => {
+      const t = live ? (P + o / 4) % 1 : 0.3 + o * 0.15;
+      dot(b, x, y, BREATH_DUST[j % 5], Math.sin(t * Math.PI) * 0.9);
+    });
   }
 
   /* ---- 149 이름 없는 이름: 아직 아무것도 적히지 않은 이름표. 금 테를 두른 종이에 빛이 일렁이고 무지개 빛이 천천히 흐른다. 마음에 들어 하는 눈치.

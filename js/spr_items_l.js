@@ -10,7 +10,7 @@
      오를수록 고리가 또렷하고 빛줄기가 길어져서 121 이후의 별 가루 고리로 이어진다.
      무기가 한눈에 읽히는 게 먼저: 대각선으로 놓고 실루엣을 크게, 쇠는 밝은 면과 어두운 면을 확실히 나눈다.
      icon: 정지 그림, shine: 같은 그림의 반복 6장 (ph = i / n, 마지막 장 다음에 첫 장이 이어진다).
-     shine 움직임: 111 칼집에서 칼이 빛나며 짧은 소리 줄, 112 시위가 당겨졌다 놓임, 113 쇠 마디가 휘둘러짐,
+     shine 움직임: 111 칼집에서 칼이 빛나며 짧은 소리 줄, 112 시위가 당겨졌다 놓임, 113 곤봉이 한 칸 내려앉고 사슬이 출렁임,
      114 가시 끝이 번쩍, 115 막는 빛이 방패 위를 훑음, 116 붉은 술이 흔들리고 바람이 갈라짐,
      117 깃털이 바람에 떨림, 118 두 칼이 흔들리는데 한 자루는 반 박자 늦음, 119 깃발이 물결침, 120 술과 뿔 끝이 반짝 */
 
@@ -277,84 +277,71 @@
     spark(b, tipB[0], tipB[1], twk(live, ph, 0), '#fff4c0', 0.8);
   }
 
-  /* ---- 113 편곤: 세 부분이 한눈에 갈린다. 왼쪽에 곧게 선 굵은 나무 자루 (붉은 감개), 위로 가로질러 걸린 굵고 밝은 쇠 사슬 (둥근 마디 둘 사이로 납작한 마디가 꿰어 있다), 오른쪽으로 늘어진 가시 달린 검은 쇠 곤봉 (놋 장식).
-     마디와 덩어리마다 어두운 외곽선을 따로 둘러 뒤 후광과 섞이지 않는다. 사이는 비어서 세 부분이 갈린다.
-     shine: 곤봉이 시계추처럼 흔들려 한 박자 늦게 따라오고, 사슬 가운데 마디가 출렁인다 ---- */
+  /* ---- 113 편곤: 자루, 처진 사슬, 쇠 곤봉이 한눈에 갈린다. 왼쪽 위에 짧은 나무 자루 (붉은 감개와 금 마개), 거기서 사슬이 아래로 처졌다가 오른쪽 위로 올라가고,
+     오른쪽 위에 짧고 굵은 어두운 쇠 곤봉이 하얀 가시를 사방으로 내민다. 사슬은 밝은 은회색 둥근 고리 다섯이 한 칸씩 띄어 매달려 있다.
+     고리와 덩어리마다 어두운 외곽선이 따로 있어 뒤 후광과 섞이지 않는다.
+     shine: 곤봉이 한 칸 내려앉았다 올라오고 사슬이 한 박자 늦게 출렁인다 ---- */
   const FLAIL_PAL = {
-    W: '#ffffff', L: '#e4ecff', S: '#a8b8e4', D: '#5a6aa0', k: '#10132a',
-    w: '#eab870', o: '#b27a3a', r: '#6a4220', P: '#ff8a7a', R: '#c8382e', q: '#7a1c18',
-    G: '#f4c038', g: '#a87818',
-    h: '#8a9cd4', n: '#38457a', N: '#161c38',
+    G: '#f4c038', g: '#a87818', Y: '#fff0a0',
+    w: '#d89a58', o: '#8a5228', R: '#e0443a', r: '#8a1c18',
+    W: '#ffffff', L: '#dce6ff', S: '#a4b4e4', D: '#6c7cb8',
+    H: '#dce6ff', h: '#a0b2ec', n: '#6074b0', N: '#404c88', k: '#2a3262',
   };
-  /* 점 그림 찍기: 글자마다 색, '.' 은 비운다. 줄마다 옆으로 옮길 수 있다 (dx(행)) */
-  const stamp = (b, rows, ox, oy, dx) => {
+  /* 점 그림 찍기: 글자마다 색, '.' 은 비운다 */
+  const stamp = (b, rows, ox, oy) => {
     rows.forEach((row, y) => {
-      const sh = dx ? dx(y) : 0;
-      for (let x = 0; x < row.length; x++) if (FLAIL_PAL[row[x]]) b.rect(ox + x + sh, oy + y, 1, 1, FLAIL_PAL[row[x]], { shade: false });
+      for (let x = 0; x < row.length; x++) if (FLAIL_PAL[row[x]]) b.rect(ox + x, oy + y, 1, 1, FLAIL_PAL[row[x]], { shade: false });
     });
   };
-  const MAP_FL_RING = [
-    '.WLS.',
-    'WkkkD',
-    'LkkkD',
-    '.SDD.',
-  ];
-  const MAP_FL_BAR = [
-    'WLLLLS',
-    'SDDDDD',
-  ];
   const MAP_FL_HANDLE = [
-    'LSD',
-    'wor',
-    'wor',
-    'PRq',
-    'wor',
-    'wor',
-    'PRq',
-    'wor',
-    'wor',
-    'GGg',
+    '.YG.',
+    'GGGg',
+    '.wo.',
+    '.Rr.',
+    '.wo.',
+    'GGgg',
   ];
-  const MAP_FL_CLUB = [
-    '..LSD...',
-    '..hnN...',
-    '..hnN...',
-    '.LhhnNL.',
-    'WLhGnNLW',
-    '.LhhnNL.',
-    '.LhGnNL.',
-    'WLhhnNLW',
-    '..hnnN..',
-    '..LWNL..',
-    '...W....',
+  const MAP_FL_BEAD = [
+    'WL',
+    'SD',
   ];
+  const MAP_FL_HEAD = [
+    '.HhN.',
+    'HhnnN',
+    'hnnnN',
+    'nnnNk',
+    '.NNk.',
+  ];
+  const MAP_FL_NECK = ['nN'];
+  /* 사슬 고리 다섯의 왼쪽 위 칸 (왼쪽 자루 아래에서 아래로 처졌다 오른쪽 위로 오른다) */
+  const FL_LINKS = [[4, 10], [5, 13], [7, 15], [10, 15], [12, 12]];
+  /* 하얀 가시 (절대 칸): 위, 왼쪽, 오른쪽은 두 점 길이, 윗모서리 둘은 한 점 */
+  const FL_SPIKES = [[12, 3], [12, 4], [8, 7], [9, 7], [15, 7], [16, 7], [10, 5], [14, 5]];
   function pyeongon(b, ph, live) {
     const P = live ? ph : 0.15;
     const th = P * TAU;
-    const sway = live ? Math.sin(th - 0.8) : 0.3;
-    const hang = live ? Math.round(Math.sin(th) * 0.8) : 0;
-    const ox = 2;
-    const oy = 3;
+    /* 곤봉은 0 (위) 또는 1 (한 칸 아래), 사슬 아래 고리는 한 박자 늦게 */
+    const dn = live ? (Math.sin(th - 0.5) > 0.15 ? 1 : 0) : 0;
+    const lagUp = live ? (Math.sin(th - 1.4) > 0.15 ? 1 : 0) : 0;
     const body = (bb) => {
-      /* 자루 */
-      bb.part(() => stamp(bb, MAP_FL_HANDLE, ox + 2, oy + 4), true);
-      /* 둥근 마디 둘 */
-      bb.part(() => stamp(bb, MAP_FL_RING, ox + 2, oy + 0), true);
-      bb.part(() => stamp(bb, MAP_FL_RING, ox + 9, oy + 0), true);
-      /* 둘을 꿰는 납작한 마디 */
-      bb.part(() => stamp(bb, MAP_FL_BAR, ox + 5, oy + 1 + hang), true);
-      /* 곤봉: 줄마다 조금씩 더 흔들린다 */
-      const dxs = (r) => Math.round(sway * r * 0.1);
-      bb.part(() => stamp(bb, MAP_FL_CLUB, ox + 7, oy + 4, dxs), true);
+      bb.part(() => stamp(bb, MAP_FL_HANDLE, 3, 3), true);
+      /* 사슬 고리: 고리마다 따로 외곽선을 둘러 한 칸씩 떨어져 보인다 */
+      FL_LINKS.forEach(([x, y], i) => {
+        const dy = i === 4 ? dn : i === 3 ? -lagUp : 0;
+        bb.part(() => stamp(bb, MAP_FL_BEAD, x, y + dy), true);
+      });
+      /* 곤봉: 짧고 굵은 쇠 덩이에 하얀 가시가 사방으로 */
+      bb.part(() => {
+        stamp(bb, MAP_FL_NECK, 12, 10 + dn);
+        stamp(bb, MAP_FL_HEAD, 10, 5 + dn);
+        for (const [x, y] of FL_SPIKES) bb.rect(x, y + dn, 1, 1, WHITE, { shade: false });
+      }, true);
     };
     aura(b, ph, live, 113, '#9ab8ff', '#e0e8ff');
     body(b);
     if (live) sweep(b, body, 0.707, -0.707, sw0(live, ph), 1.7, 0.55, '#f4f8ff');
-    /* 휘두른 자리의 바람 줄 */
-    for (let k = 0; k < 3; k++) {
-      dot(b, 15.6 + k * 0.5, 11 + k * 1.8, '#e8f0ff', 0.7 - k * 0.2);
-    }
-    spark(b, 13.4, 17.6, twk(live, ph, 2) > 0 ? 1 : 0, '#ffffff', 0.7);
+    spark(b, 3.4, 15.4, twk(live, ph, 4) > 0 ? 1 : 0, '#e8f0ff', 0.6);
+    spark(b, 16.6, 14.6, twk(live, ph, 2) > 0 ? 1 : 0, '#ffffff', 0.7);
   }
 
   /* ---- 114 철퇴: 가시 돋은 쇠공에 나무 자루. 가시 끝이 번쩍 ---- */
