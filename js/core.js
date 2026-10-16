@@ -62,6 +62,8 @@
     goldGrow: 1.046,
     landRuby: 20, // 땅 첫 도착 선물: 페이즈 번호 x 이만큼 루비
     landSapphire: 2, // 사파이어는 페이즈 번호 x 이만큼
+    growKnee: 330, // 이 스테이지부터 단계당 세지는 폭이 줄어든다 (곱셈 → 거듭제곱)
+    growPow: 4.3, // 무릎 뒤 몬스터 체력은 (단계 / 무릎) ^ 이 값 으로 오른다
     /* 공격력은 "합산 %" 를 한 데 더한 뒤, "최종 %" (사파이어) 를 따로 곱한다.
        공격력 = 던질 것 기본 x (1 + 골드% + 루비% + 유물% + 엔진% + 칭호%) x (1 + 최종%) */
     goldAtkPct: 0.1, // 골드 공격력 강화 1레벨
@@ -220,10 +222,16 @@
     }
     return { p, start: len + 1, len };
   };
+  /* 단계 n 의 성장 배율. 무릎까지는 단계마다 r 배, 무릎 뒤에는 거듭제곱으로 완만하게 (공격과 골드는 체력의 로그 비율만큼) */
+  const growth = (r, n) => {
+    const k = P.growKnee;
+    if (n <= k) return r ** (n - 1);
+    return r ** (k - 1) * (n / k) ** (P.growPow * (Math.log(r) / Math.log(P.mobHpGrow)));
+  };
   P.numCap = 1e300; // 이보다 큰 수는 Infinity가 되어 계산이 깨지므로 여기서 멈춤
-  P.mobHp = (n) => Math.min(P.numCap, Math.round(P.mobHp0 * P.mobHpGrow ** (n - 1) * P.phaseHpJump ** (TG.phaseOf(n).p - 1)));
-  P.mobAtk = (n) => Math.min(P.numCap, Math.max(1, Math.round(P.mobAtk0 * P.mobAtkGrow ** (n - 1) * P.phaseAtkJump ** (TG.phaseOf(n).p - 1))));
-  P.mobGold = (n) => Math.min(P.numCap, Math.ceil(P.gold0 * P.goldGrow ** (n - 1) * P.phaseGoldJump ** (TG.phaseOf(n).p - 1)));
+  P.mobHp = (n) => Math.min(P.numCap, Math.round(P.mobHp0 * growth(P.mobHpGrow, n) * P.phaseHpJump ** (TG.phaseOf(n).p - 1)));
+  P.mobAtk = (n) => Math.min(P.numCap, Math.max(1, Math.round(P.mobAtk0 * growth(P.mobAtkGrow, n) * P.phaseAtkJump ** (TG.phaseOf(n).p - 1))));
+  P.mobGold = (n) => Math.min(P.numCap, Math.ceil(P.gold0 * growth(P.goldGrow, n) * P.phaseGoldJump ** (TG.phaseOf(n).p - 1)));
 
   const roundFix = (x) => Math.round(x * 1e6) / 1e6;
 

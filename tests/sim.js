@@ -929,7 +929,13 @@ function testV13() {
   for (const n of [1000, 12000, 50000, 131072, 1e6]) {
     assert(Number.isFinite(TG.P.mobHp(n)) && Number.isFinite(TG.P.mobAtk(n)) && Number.isFinite(TG.P.mobGold(n)), `수치 유한 ${n}`);
   }
-  assert.strictEqual(TG.P.mobHp(1e6), TG.P.numCap);
+  assert(TG.P.mobHp(1e6) <= TG.P.numCap);
+  /* 무릎(330)까지는 예전 곱셈 성장 그대로, 그 뒤로는 거듭제곱으로 완만 */
+  assert.strictEqual(TG.P.mobHp(300), Math.round(TG.P.mobHp0 * TG.P.mobHpGrow ** 299 * TG.P.phaseHpJump ** 3));
+  const k = TG.P.growKnee;
+  assert(TG.P.mobHp(k) / TG.P.mobHp(k - 1) > 1.06 && TG.P.mobHp(k + 1) / TG.P.mobHp(k) < 1.02, '무릎 앞은 단계마다 1.061배, 뒤는 훨씬 완만');
+  assert(TG.P.mobHp(k * 4) / TG.P.mobHp(k * 2) < TG.P.mobHp(k * 2) / TG.P.mobHp(k) * 3, '뒤로 갈수록 오름폭이 줄어든다');
+  for (let n = 1; n < 30000; n += 97) assert(TG.P.mobHp(n + 1) >= TG.P.mobHp(n), `체력은 줄지 않는다 ${n}`);
   assert(TG.P.mobHp(100) < TG.P.numCap);
   /* 땅 12곳의 몬스터 그림이 모두 있다 */
   for (const th of TG.THEMES) {
