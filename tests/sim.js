@@ -656,7 +656,7 @@ function testV07() {
   assert.strictEqual(t.setTitle('forest'), false);
   assert.strictEqual(t.setCostume(4), false);
   const m1 = t.atkMult;
-  t.s.best = 50;
+  t.s.best = 300;
   t.s.stats.kills = 500;
   for (let n = 0; n < 25; n++) t.tick(0.05);
   assert(t.events.some((x) => x.type === 'title' && x.id === 'forest'), '새 칭호 알림');
@@ -854,21 +854,21 @@ function testV11() {
   const ph = TG.phaseOf;
   assert.deepStrictEqual([1, 64, 65, 128, 129, 256, 257, 512, 513].map((n) => ph(n).p), [1, 1, 2, 2, 3, 3, 4, 4, 5]);
   assert.deepStrictEqual([ph(65).start, ph(65).len, ph(129).start, ph(129).len, ph(300).start, ph(300).len], [65, 64, 129, 128, 257, 256]);
-  /* 한 페이즈 안에서 땅 12곳이 한 바퀴, 페이즈가 길수록 땅마다 스테이지가 늘어난다 */
+  /* 페이즈 하나가 땅 하나: 12곳을 차례로 돌고, 13페이즈부터는 처음 땅으로 돌아오며 몬스터가 한 단계 강한 색이 된다 */
   const g = new TG.Game(null, seeded(110));
   const at = (n) => {
     g.s.stage = n;
-    return g.mapIndex();
+    return g.theme().id;
   };
-  assert.deepStrictEqual([1, 6, 7, 59, 60, 64].map(at), [0, 0, 1, 10, 11, 11]);
-  assert.deepStrictEqual([65, 129, 135, 256, 257].map(at), [0, 0, 0, 11, 0]);
-  assert.strictEqual(new Set([...Array(64).keys()].map((i) => at(i + 1))).size, 12, '한 페이즈에 땅이 전부 나온다');
+  assert.deepStrictEqual([1, 64, 65, 128, 129, 256, 257, 512, 513, 1025].map(at), ['field', 'field', 'forest', 'forest', 'cave', 'cave', 'volcano', 'volcano', 'ice', 'space']);
+  assert.deepStrictEqual([2049, 4097, 8193, 16385, 32769, 65537, 131073].map(at), ['desert', 'swamp', 'ocean', 'sky', 'factory', 'abyss', 'field']);
+  g.s.stage = 100;
+  assert.strictEqual(g.variant(), 0);
+  g.s.stage = 131073;
+  assert.strictEqual(g.variant(), 1);
   /* 페이즈를 넘으면 몬스터 배율이 한 번 뛴다 */
   assert(TG.P.mobHp(65) > TG.P.mobHp(64) * TG.P.phaseHpJump * 0.9);
   assert(TG.P.mobHp(64) < TG.P.mobHp(63) * 1.1);
-  g.s.stage = 65;
-  assert.strictEqual(g.variant(), 1);
-  assert.strictEqual(g.theme().id, 'field');
 
   /* 공격력: 합산 % 는 더하고, 최종 % 는 그 위에 곱한다 */
   const a = new TG.Game(null, seeded(111));
@@ -932,7 +932,7 @@ function testStory() {
   g.finishIntro();
   assert.deepStrictEqual(ids(), ['ch1']);
   g.events.length = 0;
-  g.s.stage = 7;
+  g.s.stage = 65;
   g.startStage();
   assert.deepStrictEqual(ids(), ['ch2']);
   g.events.length = 0;
@@ -965,7 +965,7 @@ function testStory() {
   assert(ids().includes('mine1'));
 
   /* 이야기 전의 저장: 이미 지난 장면은 조용히 본 것으로 */
-  const old = new TG.Game(JSON.parse(JSON.stringify({ ...new TG.Game(null, seeded(1)).snapshot(), stage: 25, best: 25, boss: 4, lv: { ...g.s.lv, monkey: 3 }, story: undefined })), seeded(2));
+  const old = new TG.Game(JSON.parse(JSON.stringify({ ...new TG.Game(null, seeded(1)).snapshot(), stage: 600, best: 600, boss: 4, lv: { ...g.s.lv, monkey: 3 }, story: undefined })), seeded(2));
   assert(old.s.story.seen.intro && old.s.story.seen.ch5 && old.s.story.seen.boss_3 && old.s.story.seen.pet_monkey);
   assert(!old.s.story.seen.ch6 && !old.s.story.seen.boss_4);
   /* 저장했다 불러와도 본 장면이 남는다 */

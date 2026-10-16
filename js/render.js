@@ -113,11 +113,11 @@
   const MINE = { id: 'mine', name: '광산' };
   const ROAD = { id: 'road', name: '추격 도로' };
   const CAR_H = 9; /* 주인공이 서는 차 바닥 높이 */
-  /* 페이즈가 오르면 배경이 다른 빛깔로 바뀐다 (1페이즈는 그대로) */
+  /* 땅 12곳을 한 바퀴 돌고 다시 오면 (13페이즈부터) 배경이 다른 빛깔로 바뀐다 */
   const PHASE_TINT = ['rgba(150,90,255,0.2)', 'rgba(255,100,60,0.2)', 'rgba(60,200,255,0.2)', 'rgba(70,255,150,0.18)', 'rgba(255,220,80,0.18)'];
   function phaseTint(game) {
     if (game.mode === 'mine' || game.mode === 'chase') return;
-    const k = game.phaseNo - 1;
+    const k = game.variant();
     if (k <= 0) return;
     ctx.fillStyle = PHASE_TINT[(k - 1) % PHASE_TINT.length];
     ctx.fillRect(0, 0, W, H);
@@ -589,6 +589,7 @@
   /* 미리 그려 두기: 테마가 바뀌면 그 테마의 배경과 몬스터 동작을 한 프레임에 하나씩 만들어 둔다 (처음 나올 때 멈칫하지 않게) */
   const warmQ = [];
   let warmedFor = '';
+  let warmedNext = '';
   function warmTheme(game) {
     if (game.mode === 'chase') {
       if (warmedFor === 'chase') return;
@@ -617,7 +618,25 @@
     const th = game.theme();
     const v = game.variant();
     const key = `${th.id}|${v}`;
-    if (key === warmedFor) return;
+    if (key === warmedFor) {
+      /* 페이즈가 끝나 가면 다음 땅의 그림을 미리 만들어 둔다 (넘어갈 때 끊기지 않게) */
+      const ph = TG.phaseOf(game.s.stage);
+      if (warmQ.length === 0 && game.s.stage >= ph.start + ph.len - 6 && warmedNext !== key) {
+        warmedNext = key;
+        const nx = TG.THEMES[ph.p % TG.THEMES.length];
+        const nbg = TG.SPR.bg[nx.id];
+        if (nbg) for (const c of Object.keys(nbg.clips)) warmQ.push(() => TG.clip(nbg, c, (nbg.palettes || [{}])[0], 1, 'p0'));
+        const nv = Math.floor(ph.p / TG.THEMES.length);
+        for (const kind of nx.mobs) {
+          const def = mobDef(kind);
+          for (const [palIdx, S] of [[nv, 1], [nv + 1, 2]]) {
+            const { pal, key: pk } = palOf(def, palIdx);
+            for (const c of Object.keys(def.clips)) warmQ.push(() => TG.clip(def, c, pal, S, pk));
+          }
+        }
+      }
+      return;
+    }
     warmedFor = key;
     warmQ.length = 0;
     const bg = TG.SPR.bg[th.id];

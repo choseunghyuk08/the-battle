@@ -42,8 +42,8 @@
     runTime: 1.1,
     deadTime: 1.6,
     /* 페이즈: 스테이지를 2의 제곱으로 끊은 큰 덩어리 (1~64, 65~128, 129~256, 257~512, ...).
-       한 페이즈 안에서 땅 12곳이 한 바퀴 돌고 (페이즈가 길수록 땅마다 스테이지가 늘어난다),
-       페이즈가 바뀌면 몬스터가 한 단계 강한 개체로, 배경이 다른 빛깔로 바뀌고 몬스터 배율이 한 번 뛴다 */
+       페이즈 하나가 땅 하나 (몬스터 계열과 배경) 이고, 페이즈가 바뀌면 새 땅과 새 몬스터가 나오고 몬스터 배율이 한 번 뛴다.
+       땅은 12곳이라 13페이즈부터는 처음 땅으로 돌아가고, 몬스터가 한 단계 강한 색으로 나온다 */
     phaseBase: 64,
     phaseHpJump: 3, // 페이즈가 오를 때마다 몬스터 체력 배율
     phaseAtkJump: 2, // 공격력 배율
@@ -430,30 +430,30 @@
   /* 코스튬: 주인공 색 묶음 번호 (js/spr_hero.js 의 palettes 와 순서가 같다) */
   TG.COSTUMES = ['꼬마', '풀밭 조끼', '사냥꾼', '광부', '불꽃', '빙하', '수집가', '고요 망토', '여행자', '그림자', '황금', '무지개', '사막 나그네', '늪지기', '해적', '구름 날개', '기술자', '심연 뿔', '마법사', '닌자', '왕', '토끼', '고양이', '음악가'];
   /* 메달로 사는 코스튬: 번호 -> 값 (칭호로 열리지 않는다) */
-  TG.COSTUME_SHOP = { 8: 20, 9: 40, 10: 70, 11: 100, 18: 60, 19: 80, 20: 110, 21: 140, 22: 170, 23: 220 };
+  TG.COSTUME_SHOP = { 8: 20, 9: 40, 10: 70, 11: 100, 12: 30, 13: 50, 14: 70, 15: 90, 16: 120, 17: 150, 18: 60, 19: 80, 20: 110, 21: 140, 22: 170, 23: 220 };
 
   /* 칭호: 조건을 채우면 열리고, 열린 칭호마다 모든 피해 +1%. costume 은 함께 열리는 코스튬 */
   TG.TITLES = [
     { id: 'base', name: '들판의 꼬마', cond: '처음부터', ok: () => true, costume: 0 },
     { id: 'kills', name: '풀밭 청소부', cond: '몬스터 200마리', ok: (g) => g.s.stats.kills >= 200, costume: 1 },
-    { id: 'forest', name: '숲 나그네', cond: '스테이지 15', ok: (g) => g.s.best >= 15 },
+    { id: 'forest', name: '숲 나그네', cond: '스테이지 65 (숲)', ok: (g) => g.s.best >= 65 },
     { id: 'boss3', name: '문지기 사냥꾼', cond: '보스 3번 승리', ok: (g) => g.s.boss > 3, costume: 2 },
     { id: 'ore', name: '곡괭이 친구', cond: '철광석 300개', ok: (g) => g.s.stats.ore >= 300, costume: 3 },
-    { id: 'fire', name: '불꽃 던지기', cond: '스테이지 50', ok: (g) => g.s.best >= 50, costume: 4 },
+    { id: 'fire', name: '불꽃 던지기', cond: '스테이지 257 (화산)', ok: (g) => g.s.best >= 257, costume: 4 },
     { id: 'pets', name: '든든한 일행', cond: '동료 6명 모두', ok: (g) => ['monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole'].every((k) => g.s.lv[k] > 0) },
     { id: 'relics', name: '손때 수집가', cond: '유물 10종', ok: (g) => Object.keys(g.s.relics).length >= 10, costume: 6 },
     { id: 'defend', name: '방패막이', cond: '방어전 3번 승리', ok: (g) => g.s.stats.defends >= 3 },
-    { id: 'desert', name: '모래 걷는 이', cond: '스테이지 33', ok: (g) => g.s.best >= 33, costume: 12 },
-    { id: 'swamp', name: '늪 건너는 이', cond: '스테이지 39', ok: (g) => g.s.best >= 39, costume: 13 },
-    { id: 'ocean', name: '물 밑 손님', cond: '스테이지 44', ok: (g) => g.s.best >= 44, costume: 14 },
-    { id: 'sky', name: '구름 위 던지기', cond: '스테이지 49', ok: (g) => g.s.best >= 49, costume: 15 },
-    { id: 'factory', name: '녹슨 손', cond: '스테이지 55', ok: (g) => g.s.best >= 55, costume: 16 },
-    { id: 'abyss', name: '어둠 응시', cond: '스테이지 60', ok: (g) => g.s.best >= 60, costume: 17 },
+    { id: 'desert', name: '모래 걷는 이', cond: '스테이지 2049 (사막)', ok: (g) => g.s.best >= 2049, costume: 12 },
+    { id: 'swamp', name: '늪 건너는 이', cond: '스테이지 4097 (늪)', ok: (g) => g.s.best >= 4097, costume: 13 },
+    { id: 'ocean', name: '물 밑 손님', cond: '스테이지 8193 (바다 속)', ok: (g) => g.s.best >= 8193, costume: 14 },
+    { id: 'sky', name: '구름 위 던지기', cond: '스테이지 16385 (하늘섬)', ok: (g) => g.s.best >= 16385, costume: 15 },
+    { id: 'factory', name: '녹슨 손', cond: '스테이지 32769 (고철 공장)', ok: (g) => g.s.best >= 32769, costume: 16 },
+    { id: 'abyss', name: '어둠 응시', cond: '스테이지 65537 (심연)', ok: (g) => g.s.best >= 65537, costume: 17 },
     { id: 'wall', name: '철벽', cond: '방어전 6단계', ok: (g) => g.s.defendTier >= 6 },
     { id: 'star', name: '번개의 손', cond: '스킬 각성 별 3개', ok: (g) => Object.values(g.s.skStar).reduce((a, b) => a + b, 0) >= 3 },
     { id: 'engrave', name: '새기는 사람', cond: '각인 3칸 모두', ok: (g) => g.s.eng.filter(Boolean).length >= 3 },
-    { id: 'ice', name: '빙하 건너기', cond: '스테이지 120', ok: (g) => g.s.best >= 120, costume: 5 },
-    { id: 'lord', name: '고요 깬 이', cond: '스테이지 513', ok: (g) => g.s.best >= 513, costume: 7 },
+    { id: 'ice', name: '빙하 건너기', cond: '스테이지 513 (빙하)', ok: (g) => g.s.best >= 513, costume: 5 },
+    { id: 'lord', name: '고요 깬 이', cond: '스테이지 1537 (군주)', ok: (g) => g.s.best >= 1537, costume: 7 },
   ];
 
   /* 강화 목록. cost(L) 은 L 레벨에서 L+1 레벨로 올리는 값이고, 끝이면 null */
@@ -884,18 +884,17 @@
     theme() {
       return TG.THEMES[this.mapIndex()];
     }
-    /* 이번 페이즈 안에서 몇 번째 땅인가 (페이즈마다 12곳이 한 바퀴) */
+    /* 땅 번호: 페이즈마다 땅이 하나씩 (12곳을 차례로, 다 돌면 처음부터) */
     mapIndex(stage = this.s.stage) {
-      const ph = TG.phaseOf(stage);
-      return Math.min(TG.THEMES.length - 1, Math.floor(((stage - ph.start) * TG.THEMES.length) / ph.len));
+      return (TG.phaseOf(stage).p - 1) % TG.THEMES.length;
     }
     get phaseNo() {
       return TG.phaseOf(this.s.stage).p;
     }
 
-    /* 몬스터 모습: 페이즈가 오르면 색 변종이 바뀐다 */
+    /* 몬스터 모습: 땅이 한 바퀴 돌 때마다 색 변종이 한 단계 올라간다 */
     variant() {
-      return this.phaseNo - 1;
+      return Math.floor((this.phaseNo - 1) / TG.THEMES.length);
     }
 
     act(kind, dur) {
@@ -1569,7 +1568,7 @@
       const n = this.s.stage;
       const th = this.theme();
       const kinds = th.mobs;
-      const kind = giant ? kinds[(n + this.variant()) % kinds.length] : kinds[Math.floor(this.rng() * kinds.length)];
+      const kind = giant ? kinds[(n + this.phaseNo) % kinds.length] : kinds[Math.floor(this.rng() * kinds.length)];
       const dm = this.mode === 'defend' ? P.defendTierHp ** (this.defendLvl - 1) : 1;
       const hp = P.mobHp(n) * (giant ? P.giantHp : 1) * dm;
       this.mobs.push({
