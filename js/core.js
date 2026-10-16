@@ -218,9 +218,10 @@
     }
     return { p, start: len + 1, len };
   };
-  P.mobHp = (n) => Math.round(P.mobHp0 * P.mobHpGrow ** (n - 1) * P.phaseHpJump ** (TG.phaseOf(n).p - 1));
-  P.mobAtk = (n) => Math.max(1, Math.round(P.mobAtk0 * P.mobAtkGrow ** (n - 1) * P.phaseAtkJump ** (TG.phaseOf(n).p - 1)));
-  P.mobGold = (n) => Math.ceil(P.gold0 * P.goldGrow ** (n - 1) * P.phaseGoldJump ** (TG.phaseOf(n).p - 1));
+  P.numCap = 1e300; // 이보다 큰 수는 Infinity가 되어 계산이 깨지므로 여기서 멈춤
+  P.mobHp = (n) => Math.min(P.numCap, Math.round(P.mobHp0 * P.mobHpGrow ** (n - 1) * P.phaseHpJump ** (TG.phaseOf(n).p - 1)));
+  P.mobAtk = (n) => Math.min(P.numCap, Math.max(1, Math.round(P.mobAtk0 * P.mobAtkGrow ** (n - 1) * P.phaseAtkJump ** (TG.phaseOf(n).p - 1))));
+  P.mobGold = (n) => Math.min(P.numCap, Math.ceil(P.gold0 * P.goldGrow ** (n - 1) * P.phaseGoldJump ** (TG.phaseOf(n).p - 1)));
 
   const roundFix = (x) => Math.round(x * 1e6) / 1e6;
 

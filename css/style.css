@@ -530,3 +530,15 @@ button.back { appearance: none; width: 100%; border: 2px solid var(--line); back
 .gold.sapphire { color: #6ab0ff; }
 .up button.sapphire { background: #4f8ff0; box-shadow: 0 3px 0 #1d4aa8; color: #06142c; }
 .up button.sapphire:disabled { background: #3a3d63; color: var(--ink-3); box-shadow: none; }
+
+/* v1.3 땅 구경 */
+.sto.land { grid-template-columns: 1fr auto; }
+.sto.land.now { border-color: var(--gold); }
+.landpic { grid-column: 1 / span 2; }
+.landpic canvas { display: block; width: 100%; height: auto; image-rendering: pixelated; border-radius: 6px; aspect-ratio: 2 / 1; object-fit: cover; }
+.sto.land .ln { grid-column: 1 / span 2; }
+.landmobs { grid-column: 1 / span 2; display: flex; gap: 8px; }
+.landmobs .lm { flex: 1; display: flex; flex-direction: column; align-items: center; font-size: 12px; color: var(--ink-2); }
+.landmobs .lm canvas { width: 100%; max-width: 64px; height: 44px; object-fit: contain; image-rendering: pixelated; }
+.sto.land .bossst { grid-row: 1; }
+.seg button { font-size: 13px; }

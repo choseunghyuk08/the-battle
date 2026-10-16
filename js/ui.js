@@ -633,6 +633,7 @@
       el('button', { type: 'button', class: seg === 'quest' ? 'on' : '', text: '임무', onclick: () => { ui.questSeg = 'quest'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'dex' ? 'on' : '', text: '물건', onclick: () => { ui.questSeg = 'dex'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'boss' ? 'on' : '', text: '보스', onclick: () => { ui.questSeg = 'boss'; buildQuest(); } }),
+      el('button', { type: 'button', class: seg === 'land' ? 'on' : '', text: '땅', onclick: () => { ui.questSeg = 'land'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'title' ? 'on' : '', text: '칭호', onclick: () => { ui.questSeg = 'title'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'story' ? 'on' : '', text: '이야기', onclick: () => { ui.questSeg = 'story'; buildQuest(); } }),
     ]);
@@ -653,6 +654,10 @@
     }
     if (ui.questSeg === 'boss') {
       buildBossDex();
+      return;
+    }
+    if (ui.questSeg === 'land') {
+      buildLands();
       return;
     }
     const list = el('div', {});
@@ -792,6 +797,62 @@
     });
     const found = game.s.seen.slice(0, TG.NAMED + 1).filter(Boolean).length;
     body.replaceChildren(questSeg(), el('p', { class: 'note', text: `찾은 물건 ${found}/${TG.ITEMS.length}. 같은 물건 둘을 합치면 다음 단계가 나와요.` }), grid);
+  }
+
+  /* ---- 땅 구경: 12곳의 배경, 스테이지 범위, 나오는 몬스터 ---- */
+  function landPreview(theme) {
+    const cv = document.createElement('canvas');
+    cv.width = 200;
+    cv.height = 100;
+    cv.className = 'landbg';
+    const def = TG.SPR.bg[theme.id];
+    if (!def) return cv;
+    const ctx = cv.getContext('2d');
+    const pals = def.palettes || [def.palette || {}];
+    for (const name of ['sky', 'far', 'near']) {
+      if (!def.clips[name]) continue;
+      ctx.drawImage(TG.clip(def, name, pals[0], 1, 'p0').frames[0].canvas, 0, 0);
+    }
+    return cv;
+  }
+  function buildLands() {
+    const game = ui.game;
+    const here = TG.phaseOf(game.s.stage).p;
+    const top = TG.phaseOf(game.s.best).p;
+    const list = el('div', {});
+    const jobs = [];
+    TG.THEMES.forEach((th, i) => {
+      const p = i + 1;
+      const from = p === 1 ? 1 : 64 * 2 ** (p - 2) + 1;
+      const to = 64 * 2 ** (p - 1);
+      const cur = (here - 1) % TG.THEMES.length === i;
+      const state = cur ? '지금 여기' : p <= top ? '다녀온 곳' : top >= 1 && p === top + 1 ? '다음 땅' : '아직 먼 곳';
+      const slot = el('div', { class: 'landpic' });
+      jobs.push(() => slot.append(landPreview(th)));
+      const mobs = el('div', { class: 'landmobs' });
+      for (const kind of th.mobs) {
+        const def = TG.SPR.mob[kind];
+        if (!def) continue;
+        mobs.append(el('div', { class: 'lm' }, [spriteCanvas(def, 'idle', 0, 0), el('span', { text: def.name || kind })]));
+      }
+      list.append(
+        el('div', { class: `sto land${cur ? ' now' : ''}` }, [
+          el('div', { class: 'nm', text: `${p}페이즈 · ${th.name}` }),
+          el('span', { class: 'bossst', text: state }),
+          slot,
+          el('div', { class: 'ln', text: `${TG.fmt(from)}~${TG.fmt(to)} 스테이지` }),
+          mobs,
+        ]),
+      );
+    });
+    $('#sheetBody').replaceChildren(questSeg(), el('p', { class: 'note', text: '페이즈가 바뀔 때마다 땅이 하나씩 바뀌어요. 열두 곳을 다 돌면 처음 땅으로 돌아오고, 몬스터 색이 더 짙어져요.' }), list);
+    const run = () => {
+      const j = jobs.shift();
+      if (!j) return;
+      j();
+      requestAnimationFrame(run);
+    };
+    requestAnimationFrame(run);
   }
 
   /* ---- 보스 도감: 이긴 보스와 다음 보스 ---- */

@@ -924,6 +924,28 @@ function testV11() {
   console.log('v1.1 ok');
 }
 
+function testV13() {
+  /* 몬스터 수치는 아무리 멀리 가도 유한하다 (Infinity 로 계산이 깨지지 않게) */
+  for (const n of [1000, 12000, 50000, 131072, 1e6]) {
+    assert(Number.isFinite(TG.P.mobHp(n)) && Number.isFinite(TG.P.mobAtk(n)) && Number.isFinite(TG.P.mobGold(n)), `수치 유한 ${n}`);
+  }
+  assert.strictEqual(TG.P.mobHp(1e6), TG.P.numCap);
+  assert(TG.P.mobHp(100) < TG.P.numCap);
+  /* 땅 12곳의 몬스터 그림이 모두 있다 */
+  for (const th of TG.THEMES) {
+    assert(TG.SPR.bg[th.id], `배경 ${th.id}`);
+    for (const k of th.mobs) assert(TG.SPR.mob[k] && TG.SPR.mob[k].name, `몬스터 ${k}`);
+  }
+  /* 땅 구경에서 보여 주는 스테이지 범위가 phaseOf 와 맞다 */
+  TG.THEMES.forEach((th, i) => {
+    const p = i + 1;
+    const from = p === 1 ? 1 : 64 * 2 ** (p - 2) + 1;
+    const to = 64 * 2 ** (p - 1);
+    assert.strictEqual(TG.phaseOf(from).p, p);
+    assert.strictEqual(TG.phaseOf(to).p, p);
+    assert.strictEqual(TG.phaseOf(to + 1).p, p + 1);
+  });
+}
 function testV12() {
   /* 150단계까지 이름이 있고, 150 을 둘 합치면 별이 붙는다 (151 = ★1) */
   assert.strictEqual(TG.ITEMS.length, 150);
@@ -1138,6 +1160,7 @@ if (process.argv.includes('--pace')) {
   testV09();
   testV11();
   testV12();
+  testV13();
   testStory();
   console.log('\nall tests passed');
 }
