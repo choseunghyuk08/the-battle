@@ -1148,57 +1148,86 @@ function testV21() {
   assert.strictEqual(g3.unlocked('sDouble'), true);
 }
 function testV22() {
-  /* 땅 사건: 용암은 경고 뒤에 주인공을, 유성은 앞 몬스터를, 눈보라는 몬스터와 손을 늦춘다 */
-  assert.strictEqual(Object.keys(TG.LAND_EVENTS).length, 4);
-  const mk = (stage) => {
-    const g = new TG.Game(null, seeded(220));
-    g.s.stage = stage;
-    g.s.best = stage;
+  /* 땅 사건 12곳: 땅마다 하나씩, 경고가 있으면 경고 뒤에 일어난다 */
+  assert.strictEqual(Object.keys(TG.LAND_EVENTS).length, 12);
+  const LAND_START = [1, 65, 129, 257, 513, 1025, 2049, 4097, 8193, 16385, 32769, 65537];
+  const mk = (i) => {
+    const g = new TG.Game(null, seeded(220 + i));
+    g.s.stage = LAND_START[i];
+    g.s.best = LAND_START[i];
     g.startStage();
     g.events.length = 0;
+    assert.strictEqual(g.mapIndex(), i);
+    g.mobs.push({ id: 90 + i, kind: 'slime', hp: 1000, max: 1000, atk: 1, x: 150, state: 'idle', cd: 99, t: 0, atkT: 0, hurt: 0 });
     return g;
   };
-  /* 화산 */
-  let g = mk(257);
-  g.mobs.push({ id: 91, kind: 'slime', hp: 1e12, max: 1e12, atk: 1, x: 150, state: 'idle', cd: 5, t: 0, atkT: 0, hurt: 0 });
+  /* 사건을 곧장 일으키고, 경고가 있으면 그 시간만큼 흘려보낸다 */
+  const fire = (g) => {
+    const ev = TG.LAND_EVENTS[g.mapIndex()];
+    g.landEvT = 0.01;
+    g.tickLandEvent(0.05);
+    if (ev.warn) {
+      assert(g.events.some((e) => e.type === 'land-ev' && e.id === `${ev.id}-warn`), '경고');
+      g.tickLandEvent(ev.warn + 0.1);
+    }
+    assert(g.events.some((e) => e.type === 'land-ev' && e.id === ev.id), `일어남 ${ev.id}`);
+    return ev;
+  };
+  for (let i = 0; i < 12; i++) assert(TG.LAND_EVENTS[i].text.length > 10, `설명 ${i}`);
+  let g = mk(0); /* 들판: 햇살 */
+  g.hero.hp = g.maxHp * 0.5;
+  let ev = fire(g);
+  assert(Math.abs(g.hero.hp - g.maxHp * (0.5 + ev.heal)) < 1e-6, '체력 회복');
+  g = mk(1); /* 숲: 덤불 */
+  fire(g);
+  assert.strictEqual(g.mobs.length, 2, '몬스터 한 마리 더');
+  g = mk(2); /* 동굴: 낙석 */
+  ev = fire(g);
+  assert(Math.abs(g.mobs[0].hp - 1000 * (1 - ev.hit)) < 1e-6 && g.mobs[0].st.stun >= ev.stun - 0.2, '낙석: 피해와 기절');
+  g = mk(3); /* 화산: 용암 */
   const hp0 = g.hero.hp;
-  g.landEvT = 0.05;
-  g.tickLandEvent(0.1);
-  assert(g.events.some((e) => e.type === 'land-ev' && e.id === 'lava-warn'));
-  assert(g.lavaT > 1);
-  g.tickLandEvent(1.4);
-  assert(g.events.some((e) => e.type === 'land-ev' && e.id === 'lava-hit'));
-  assert(g.hero.hp < hp0, '주인공이 다친다');
-  assert(Math.abs((hp0 - g.hero.hp) - g.maxHp * 0.06 * g.landMod('taken')) < 1e-6, '최대 체력의 6% (땅 특성 반영)');
-  /* 빙하 */
-  g = mk(513);
+  ev = fire(g);
+  assert(Math.abs(hp0 - g.hero.hp - g.maxHp * ev.hp * g.landMod('taken')) < 1e-6, '용암: 주인공 6%');
+  g = mk(4); /* 빙하: 눈보라 */
   const slow0 = g.landMod('mobSpd');
-  g.mobs.push({ id: 92, kind: 'slime', hp: 10, max: 10, atk: 1, x: 150, state: 'idle', cd: 5, t: 0, atkT: 0, hurt: 0 });
-  g.landEvT = 0.05;
-  g.tickLandEvent(0.1);
-  assert(g.stormT > 4);
+  fire(g);
   assert(Math.abs(g.landMod('mobSpd') - slow0 * 0.5) < 1e-9);
   g.tickLandEvent(6);
-  assert.strictEqual(g.stormT <= 0, true);
   assert(Math.abs(g.landMod('mobSpd') - slow0) < 1e-9, '끝나면 돌아온다');
-  /* 우주 */
-  g = mk(1025);
-  g.mobs.push({ id: 93, kind: 'slime', hp: 1000, max: 1000, atk: 1, x: 150, state: 'idle', cd: 5, t: 0, atkT: 0, hurt: 0 });
-  g.landEvT = 0.05;
-  g.tickLandEvent(0.1);
-  assert(g.mobs[0].hp <= 800 + 1e-6, '체력의 20%를 잃는다');
-  /* 늪 */
-  g = mk(4097);
-  assert.strictEqual(g.mapIndex(), 7);
-  g.mobs.push({ id: 94, kind: 'slime', hp: 500, max: 1000, atk: 1, x: 150, state: 'idle', cd: 5, t: 0, atkT: 0, hurt: 0 });
-  g.landEvT = 0.05;
-  g.tickLandEvent(0.1);
-  assert(g.fogT > 4);
+  g = mk(5); /* 우주: 유성 */
+  ev = fire(g);
+  assert(g.mobs[0].hp <= 1000 * (1 - ev.hit) + 1e-6, '유성');
+  g = mk(6); /* 사막: 모래폭풍 */
+  const t0 = g.landMod('thr');
+  fire(g);
+  assert(Math.abs(g.landMod('thr') - t0 * 0.75) < 1e-9);
+  assert(g.landMod('mobSpd') > 1.2);
+  g = mk(7); /* 늪: 안개 */
+  g.mobs[0].hp = 500;
+  fire(g);
   g.tickLandEvent(1);
-  assert(g.mobs[0].hp > 500, '안개 속에서 되찾는다');
-  /* 탑에서는 사건이 없다 */
-  g = mk(257);
-  g.s.best = 150;
+  assert(g.mobs[0].hp > 500, '안개 속 회복');
+  g = mk(8); /* 바다 속: 밀물 */
+  g.mobs[0].x = 100;
+  fire(g);
+  assert(g.mobs[0].x > 120, '뒤로 밀림');
+  g = mk(9); /* 하늘섬: 벼락 */
+  const hpS = g.hero.hp;
+  ev = fire(g);
+  assert(g.mobs[0].hp <= 1000 * (1 - ev.hit) + 1e-6, '몬스터도 맞고');
+  assert(g.hero.hp < hpS, '주인공도 맞는다');
+  g = mk(10); /* 고철 공장: 증기 */
+  g.queue = [5, 5, 5];
+  fire(g);
+  assert(g.heroStunT > 1, '던지지 못한다');
+  g = mk(11); /* 심연: 속삭임 */
+  const a0 = g.landMod('atk');
+  const s0 = g.landMod('sap');
+  fire(g);
+  assert(Math.abs(g.landMod('atk') - a0 * 0.75) < 1e-9);
+  assert(Math.abs(g.landMod('sap') - s0 * 3) < 1e-9);
+  /* 탑과 방어전 같은 다른 방식에서는 시계가 안 간다 */
+  g = mk(3);
   g.mode = 'tower';
   assert.strictEqual(g.mode === 'stage' || g.mode === 'boss', false);
 }

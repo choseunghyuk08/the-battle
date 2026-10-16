@@ -620,12 +620,20 @@
     { name: '쇠 갑옷', up: { k: 'atk', x: 1.2 }, down: { k: 'mobHp', x: 1.2 } },
     { name: '눈알의 시선', up: { k: 'sap', x: 2 }, down: { k: 'taken', x: 1.3 } },
   ];
-  /* 땅 사건: 몇 초마다 일어나는 일. 땅 특성(숫자)과 별개 */
+  /* 땅 사건: 몇 초마다 일어나는 일. 땅 특성(숫자)과 별개. warn 이 있으면 그만큼 미리 알린 뒤 일어난다 */
   TG.LAND_EVENTS = {
+    0: { id: 'sun', name: '따뜻한 햇살', every: 20, heal: 0.08, text: '20초마다 주인공이 최대 체력의 8%를 되찾아요' },
+    1: { id: 'bush', name: '덤불 습격', every: 15, text: '15초마다 덤불에서 몬스터가 한 마리 튀어나와요' },
+    2: { id: 'rock', name: '낙석', every: 14, warn: 1, hit: 0.1, stun: 2, text: '14초마다 돌이 떨어져 앞의 몬스터가 체력의 10%를 잃고 2초 멈춰요' },
     3: { id: 'lava', name: '용암 분출', every: 11, warn: 1.3, hp: 0.06, text: '11초마다 땅이 터져 주인공이 최대 체력의 6%를 잃어요' },
     4: { id: 'storm', name: '눈보라', every: 16, last: 5, text: '16초마다 5초 동안 눈보라가 불어 몬스터도, 던지는 손도 느려져요' },
-    5: { id: 'meteor', name: '유성우', every: 14, hit: 0.2, text: '14초마다 유성이 떨어져 앞의 몬스터가 체력의 20%를 잃어요' },
+    5: { id: 'meteor', name: '유성우', every: 14, warn: 0.9, hit: 0.2, text: '14초마다 유성이 떨어져 앞의 몬스터가 체력의 20%를 잃어요' },
+    6: { id: 'sand', name: '모래폭풍', every: 15, last: 5, text: '15초마다 5초 동안 모래가 날려 던지는 손이 느려지고 몬스터는 빨라져요' },
     7: { id: 'fog', name: '독 안개', every: 13, last: 5, regen: 0.02, text: '13초마다 5초 동안 안개가 껴서 몬스터가 초당 체력 2%를 되찾아요' },
+    8: { id: 'tide', name: '밀물', every: 14, push: 28, text: '14초마다 물살이 몬스터를 뒤로 밀어내요' },
+    9: { id: 'bolt', name: '벼락', every: 13, warn: 1, hit: 0.15, hp: 0.04, text: '13초마다 벼락이 앞의 몬스터에게 체력의 15%, 주인공에게 최대 체력의 4%를 줘요' },
+    10: { id: 'steam', name: '증기 분출', every: 12, warn: 1.2, stun: 1.5, text: '12초마다 증기가 뿜어져 주인공이 1.5초 동안 던지지 못해요' },
+    11: { id: 'whisper', name: '속삭임', every: 15, last: 4, text: '15초마다 4초 동안 속삭임이 들려 공격력이 25% 줄지만 사파이어가 세 배로 나와요' },
   };
   TG.landEffectText = (e) => `${TG.LAND_KEYS[e.k]} ${e.x > 1 ? '+' : '-'}${Math.round(Math.abs(e.x - 1) * 100)}%`;
 
@@ -1032,39 +1040,84 @@
     /* 땅 사건 시계 (스테이지와 보스전에서만) */
     tickLandEvent(dt) {
       const ev = TG.LAND_EVENTS[this.mapIndex()];
-      if (this.stormT > 0) this.stormT -= dt;
+      for (const k of ['stormT', 'sandT', 'whisperT', 'heroStunT']) if (this[k] > 0) this[k] -= dt;
       if (this.fogT > 0) {
         this.fogT -= dt;
         for (const m of this.mobs) if (!m.boss && m.hp < m.max) m.hp = Math.min(m.max, m.hp + m.max * ev.regen * dt);
       }
-      if (this.lavaT > 0) {
-        this.lavaT -= dt;
-        if (this.lavaT <= 0) {
-          this.hero.hp -= this.bearHit(this.maxHp * ev.hp);
-          this.events.push({ type: 'land-ev', id: 'lava-hit' });
-          this.events.push({ type: 'hurt', dmg: 0 });
+      if (this.evWarn) {
+        this.evWarn.t -= dt;
+        if (this.evWarn.t <= 0) {
+          this.evWarn = null;
+          this.landEvApply(ev);
         }
       }
-      if (!ev || this.phase !== 'fight' || !this.mobs.length) return;
+      if (!ev || this.phase !== 'fight' || !this.mobs.length || this.evWarn) return;
       this.landEvT -= dt;
       if (this.landEvT > 0) return;
       this.landEvT = ev.every;
-      if (ev.id === 'lava') {
-        this.lavaT = ev.warn;
-        this.events.push({ type: 'land-ev', id: 'lava-warn' });
-      } else if (ev.id === 'storm') {
-        this.stormT = ev.last;
-        this.events.push({ type: 'land-ev', id: 'storm' });
-      } else if (ev.id === 'fog') {
-        this.fogT = ev.last;
-        this.events.push({ type: 'land-ev', id: 'fog' });
-      } else if (ev.id === 'meteor') {
-        const f = this.front();
-        if (f) {
-          this.events.push({ type: 'land-ev', id: 'meteor', x: f.x });
-          this.hitMob(f, f.max * ev.hit);
-        }
+      if (ev.warn) {
+        this.evWarn = { id: ev.id, t: ev.warn };
+        this.events.push({ type: 'land-ev', id: `${ev.id}-warn`, t: ev.warn });
+      } else this.landEvApply(ev);
+    }
+    landEvApply(ev) {
+      const f = this.front();
+      const hurtHero = (frac) => {
+        this.hero.hp -= this.bearHit(this.maxHp * frac);
+        this.events.push({ type: 'hurt', dmg: 0 });
+      };
+      this.events.push({ type: 'land-ev', id: ev.id, x: f ? f.x : 120 });
+      switch (ev.id) {
+        case 'sun':
+          this.hero.hp = Math.min(this.maxHp, this.hero.hp + this.maxHp * ev.heal);
+          break;
+        case 'bush':
+          this.spawnBush();
+          break;
+        case 'rock':
+          if (f) {
+            this.hitMob(f, f.max * ev.hit);
+            if (this.mobs.includes(f) && !f.boss) f.st = Object.assign(f.st || {}, { stun: Math.max((f.st || {}).stun || 0, ev.stun) });
+          }
+          break;
+        case 'lava':
+          hurtHero(ev.hp);
+          break;
+        case 'storm':
+          this.stormT = ev.last;
+          break;
+        case 'meteor':
+          if (f) this.hitMob(f, f.max * ev.hit);
+          break;
+        case 'sand':
+          this.sandT = ev.last;
+          break;
+        case 'fog':
+          this.fogT = ev.last;
+          break;
+        case 'tide':
+          for (const m of this.mobs) m.x = Math.min(P.spawnX, m.x + (m.boss ? ev.push * 0.3 : ev.push));
+          break;
+        case 'bolt':
+          if (f) this.hitMob(f, f.max * ev.hit);
+          hurtHero(ev.hp);
+          break;
+        case 'steam':
+          this.heroStunT = ev.stun;
+          break;
+        case 'whisper':
+          this.whisperT = ev.last;
+          break;
+        default:
       }
+    }
+    /* 덤불에서 튀어나온 몬스터: 이 스테이지 몬스터보다 약하다 */
+    spawnBush() {
+      const n = this.s.stage;
+      const kinds = this.theme().mobs;
+      const hp = P.mobHp(n) * 0.4 * this.landMod('mobHp');
+      this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind: kinds[Math.floor(this.rng() * kinds.length)], pal: this.variant(), x: P.spawnX - 40, hp, max: hp, atk: P.mobAtk(n), giant: false, state: 'walk', t: this.rng(), atkT: 0, cd: 0, hurt: 0 });
     }
     /* 지금 땅 특성의 곱 (스테이지와 보스전에서만 켜진다) */
     landMod(key) {
@@ -1074,6 +1127,14 @@
       if (this.stormT > 0) {
         if (key === 'mobSpd') x *= 0.5;
         if (key === 'thr') x *= 0.7;
+      }
+      if (this.sandT > 0) {
+        if (key === 'mobSpd') x *= 1.25;
+        if (key === 'thr') x *= 0.75;
+      }
+      if (this.whisperT > 0) {
+        if (key === 'atk') x *= 0.75;
+        if (key === 'sap') x *= 3;
       }
       if (r.up && r.up.k === key) x *= r.up.x;
       if (r.down && r.down.k === key) x *= r.down.x;
@@ -1102,8 +1163,11 @@
       if (this.lastLand !== undefined && this.lastLand !== land && this.mode === 'stage') this.events.push({ type: 'land-enter', i: land });
       this.lastLand = land;
       this.landEvT = (TG.LAND_EVENTS[land] ? TG.LAND_EVENTS[land].every : 0) * 0.6;
-      this.lavaT = 0;
+      this.evWarn = null;
       this.stormT = 0;
+      this.sandT = 0;
+      this.whisperT = 0;
+      this.heroStunT = 0;
       this.fogT = 0;
       this.hero = { hp: this.maxHp, act: { kind: 'idle', t: 0, dur: 1 } };
       this.wave = 0;
@@ -2461,7 +2525,7 @@
             this.throwT = 0;
           }
         }
-        if (this.queue.length) {
+        if (this.queue.length && !(this.heroStunT > 0)) {
           this.throwT -= dt;
           while (this.queue.length && this.throwT <= 0) {
             const tier = this.queue.shift();

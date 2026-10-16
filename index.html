@@ -33,6 +33,12 @@
     </div>
 
     <section class="battle" aria-label="전투 화면"><canvas id="battle"></canvas>
+      <div class="landtag" id="landTag" aria-label="땅 정보">
+        <div class="lt1"><b id="landName">들판</b><span class="pips" id="wavePips"><i></i><i></i><i></i><i></i><i></i></span></div>
+        <div class="lt2"><span class="lt-up" id="landUp"></span><span class="lt-down" id="landDown"></span></div>
+        <div class="lt3" id="landEv"><span id="landEvName"></span><span class="lt-bar"><i id="landEvBar"></i></span></div>
+        <div class="lt4" id="landStatus"></div>
+      </div>
       <div class="dialog" id="dialog" hidden>
         <canvas id="dlgFace" width="16" height="16"></canvas>
         <div class="dtxt"><div class="dname"><b id="dlgName"></b><small id="dlgTitle"></small></div><p id="dlgText"></p></div>

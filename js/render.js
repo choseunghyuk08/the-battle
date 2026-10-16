@@ -208,6 +208,131 @@
     texts.push({ img, str, x, y, color, t: 0, dur: big ? 1.1 : 0.8, vy: big ? -14 : -20 });
   }
 
+  /* 화면 가운데 위에 지나가는 큰 글씨 (땅에 들어섰을 때, 보스가 나올 때) */
+  const banners = [];
+  function addBanner(text, sub, color) {
+    if (!TG.pixelText) return;
+    const big = TG.pixelText(text, color, '#17121e');
+    const small = sub ? TG.pixelText(sub, '#ffffff', '#17121e') : null;
+    banners.push({ big: big.canvas || TG.toCanvas(big), small: small && (small.canvas || TG.toCanvas(small)), t: 0, dur: 2.4 });
+  }
+  function drawBanners(dt) {
+    for (let i = banners.length - 1; i >= 0; i--) {
+      const b = banners[i];
+      b.t += dt;
+      if (b.t >= b.dur) {
+        banners.splice(i, 1);
+        continue;
+      }
+      const k = b.t / b.dur;
+      const slide = k < 0.15 ? 1 - k / 0.15 : k > 0.85 ? (k - 0.85) / 0.15 : 0;
+      const a = 1 - slide;
+      const y = 22;
+      ctx.save();
+      ctx.globalAlpha = a * 0.55;
+      ctx.fillStyle = '#0b0a18';
+      ctx.fillRect(0, y - 4, W, b.small ? 30 : 22);
+      ctx.globalAlpha = a;
+      const bx = Math.round((W - b.big.width * 2) / 2 + slide * (k < 0.5 ? -60 : 60));
+      ctx.drawImage(b.big, bx, y, b.big.width * 2, b.big.height * 2);
+      if (b.small) ctx.drawImage(b.small, Math.round((W - b.small.width) / 2 - slide * (k < 0.5 ? 40 : -40)), y + 17);
+      ctx.restore();
+    }
+  }
+
+  /* 땅 사건: 곧 일어날 일 알리기(경고)와 지금 걸린 상태의 화면 덮개 */
+  function eventOverlay(game) {
+    if (game.mode !== 'stage' && game.mode !== 'boss') return;
+    const ev = TG.LAND_EVENTS[game.mapIndex()];
+    if (!ev) return;
+    const pulse = 0.5 + 0.5 * Math.sin(clock * 14);
+    const f = game.front();
+    const w = game.evWarn;
+    ctx.save();
+    if (w && f) {
+      const k = 1 - w.t / ev.warn;
+      if (w.id === 'lava') {
+        ctx.fillStyle = `rgba(255,70,20,${0.12 + 0.22 * pulse})`;
+        ctx.fillRect(0, GROUND - 6, W, H - GROUND + 6);
+        ctx.fillStyle = `rgba(255,170,60,${0.3 + 0.3 * pulse})`;
+        ctx.beginPath();
+        ctx.ellipse(P.heroX + 4, GROUND, 16 + 6 * k, 5, 0, 0, Math.PI * 2);
+        ctx.fill();
+      } else if (w.id === 'meteor') {
+        ctx.strokeStyle = `rgba(255,120,40,${0.5 + 0.4 * pulse})`;
+        ctx.lineWidth = 1;
+        ctx.strokeRect(Math.round(f.x - 9), GROUND - 14, 18, 14);
+        ctx.fillStyle = '#ffb13a';
+        const sx = f.x + 34 * (1 - k);
+        const sy = (GROUND - 8) * k;
+        ctx.fillRect(Math.round(sx), Math.round(sy), 3, 3);
+        ctx.fillStyle = 'rgba(255,170,60,0.5)';
+        ctx.fillRect(Math.round(sx + 3), Math.round(sy - 3), 3, 3);
+        ctx.fillRect(Math.round(sx + 6), Math.round(sy - 6), 2, 2);
+      } else if (w.id === 'rock') {
+        ctx.fillStyle = `rgba(0,0,0,${0.15 + 0.3 * k})`;
+        ctx.beginPath();
+        ctx.ellipse(f.x, GROUND, 6 + 8 * k, 2 + 2 * k, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = '#8a7a66';
+        ctx.fillRect(Math.round(f.x - 2), Math.round((GROUND - 12) * k), 5, 4);
+      } else if (w.id === 'bolt') {
+        ctx.fillStyle = `rgba(255,240,120,${0.25 + 0.5 * pulse})`;
+        ctx.fillRect(Math.round(f.x), 0, 1, GROUND);
+        ctx.fillRect(Math.round(P.heroX + 4), 0, 1, GROUND);
+        ctx.fillStyle = `rgba(255,240,160,${0.08 * pulse})`;
+        ctx.fillRect(0, 0, W, H);
+      } else if (w.id === 'steam') {
+        ctx.fillStyle = `rgba(240,240,250,${0.2 + 0.25 * k})`;
+        for (let i = 0; i < 6; i++) {
+          const px = P.heroX + 4 + Math.sin(clock * 5 + i) * 8 + (i - 3) * 3;
+          ctx.fillRect(Math.round(px), Math.round(GROUND - 4 - 22 * k * (0.4 + (i % 3) * 0.3)), 4, 3);
+        }
+      }
+    }
+    if (game.stormT > 0) {
+      ctx.fillStyle = 'rgba(210,230,255,0.14)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(255,255,255,0.8)';
+      for (let i = 0; i < 26; i++) {
+        const x = (((i * 37 + clock * 90) % (W + 30)) + W + 30) % (W + 30);
+        const y = (((i * 53 + clock * 70) % H) + H) % H;
+        ctx.fillRect(Math.round(x - 12), Math.round(y), 2, 1);
+      }
+    }
+    if (game.sandT > 0) {
+      ctx.fillStyle = 'rgba(214,170,100,0.2)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(240,210,150,0.8)';
+      for (let i = 0; i < 24; i++) {
+        const x = (((i * 41 - clock * 150) % (W + 30)) + W + 30) % (W + 30);
+        const y = GROUND - 50 + ((i * 29) % 60);
+        ctx.fillRect(Math.round(x), y, 6, 1);
+      }
+    }
+    if (game.fogT > 0) {
+      ctx.fillStyle = 'rgba(120,170,60,0.16)';
+      ctx.fillRect(0, 0, W, H);
+      ctx.fillStyle = 'rgba(190,240,110,0.22)';
+      for (let i = 0; i < 5; i++) {
+        const x = (((i * 61 + clock * 8) % (W + 60)) + W + 60) % (W + 60) - 30;
+        ctx.fillRect(Math.round(x), GROUND - 22 - i * 4, 56, 7);
+      }
+    }
+    if (game.whisperT > 0) {
+      const g = ctx.createRadialGradient(W / 2, H / 2, 20, W / 2, H / 2, 120);
+      g.addColorStop(0, 'rgba(60,10,90,0)');
+      g.addColorStop(1, `rgba(60,10,90,${0.45 + 0.15 * pulse})`);
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
+    ctx.restore();
+    if (game.heroStunT > 0 && Math.floor(clock * 6) % 2 === 0 && !game._stunFx) {
+      game._stunFx = true;
+      addFx('stunStars', P.heroX + 4, GROUND - 34, 0.5);
+    } else if (game.heroStunT > 0 && Math.floor(clock * 6) % 2 === 1) game._stunFx = false;
+  }
+
   function heightOf(m) {
     const def = mobDef(m.kind);
     return def.h * (m.giant ? 2 : 1) * 0.55;
@@ -296,19 +421,42 @@
       case 'ore':
         addText(`+${e.n}`, e.x, GROUND - 30, '#9fd8ff', true);
         break;
-      case 'land-ev':
-        if (e.id === 'lava-warn') {
-          addFx('bossWarn', P.heroX + 4, GROUND - 22, 1.2);
-          addText('땅이 끓어요', P.heroX + 4, GROUND - 40, '#ff8a3a', true);
-        } else if (e.id === 'lava-hit') {
+      case 'land-ev': {
+        const id = e.id.replace('-warn', '');
+        if (e.id.endsWith('-warn')) {
+          const label = { lava: '땅이 끓어요', meteor: '유성이 와요', rock: '낙석 주의', bolt: '벼락 주의', steam: '증기가 차올라요' }[id];
+          if (label) addText(label, e.id === 'lava-warn' || id === 'steam' ? P.heroX + 4 : 100, GROUND - 52, '#ffb13a', true);
+          break;
+        }
+        const label = { sun: '햇살', bush: '덤불 습격', rock: '쾅', lava: '용암 분출', storm: '눈보라', meteor: '유성우', sand: '모래폭풍', fog: '독 안개', tide: '밀물', bolt: '벼락', steam: '증기 분출', whisper: '속삭임' }[id];
+        const color = { sun: '#ffe45a', bush: '#9be07a', rock: '#c8b89a', lava: '#ff7a3a', storm: '#cfeaff', meteor: '#ffb13a', sand: '#e8c88a', fog: '#b8f06a', tide: '#9fd8ff', bolt: '#ffe45a', steam: '#ffffff', whisper: '#c26bff' }[id];
+        addText(label, 100, GROUND - 62, color, true);
+        if (id === 'lava') {
           addFx('fireBurst', P.heroX + 4, GROUND - 6, 0.5);
           shake = Math.max(shake, 0.3);
-        } else if (e.id === 'meteor') {
+        } else if (id === 'meteor') {
           addFx('fireBurst', e.x, GROUND - 10, 0.5, 2);
-          addFx('boltStrike', e.x, GROUND, 0.25);
           shake = Math.max(shake, 0.2);
-        } else if (e.id === 'storm') addText('눈보라', 100, GROUND - 60, '#cfeaff', true);
-        else if (e.id === 'fog') addText('독 안개', 100, GROUND - 60, '#b8f06a', true);
+        } else if (id === 'rock') {
+          addFx('dirtPop', e.x, GROUND - 4, 0.5);
+          shake = Math.max(shake, 0.18);
+        } else if (id === 'bolt') {
+          addFx('boltStrike', e.x, GROUND, 0.3);
+          addFx('boltStrike', P.heroX + 4, GROUND, 0.3);
+          shake = Math.max(shake, 0.2);
+        } else if (id === 'sun') addFx('heal', P.heroX + 4, GROUND - 16, 0.7);
+        else if (id === 'steam') addFx('stunStars', P.heroX + 4, GROUND - 34, 1);
+        else if (id === 'bush') addFx('summonPuff', P.spawnX - 40, GROUND - 4, 0.5);
+        break;
+      }
+      case 'land-enter': {
+        const th = TG.THEMES[e.i];
+        const rule = TG.LAND_RULES[e.i];
+        addBanner(th.name, rule.name, '#ffe9a0');
+        break;
+      }
+      case 'tower-floor':
+        if (e.f % P.towerBossEvery === 0) addBanner(`탑 ${e.f}층`, '보스', '#ff9ac8');
         break;
       case 'bolt':
         addFx('boltStrike', e.x, GROUND, 0.3);
@@ -363,6 +511,7 @@
       case 'boss-start':
         addFx('bossWarn', W / 2, H / 2 - 10, 1.0);
         shake = 0.25;
+        addBanner('보스전', '', '#ff9ac8');
         break;
       default:
     }
@@ -614,6 +763,8 @@
       }
     }
 
+    eventOverlay(game);
+
     /* 떠오르는 글자 */
     for (let i = texts.length - 1; i >= 0; i--) {
       const t = texts[i];
@@ -633,6 +784,7 @@
       }
       ctx.globalAlpha = 1;
     }
+    drawBanners(dt);
     ctx.restore();
 
     /* 체력은 위쪽 정보 줄에 나온다 */

@@ -233,12 +233,51 @@
     save();
   }
 
+  /* ---- 전투 화면 위의 땅 태그: 땅 이름, 웨이브 점, 이점과 불리, 다음 사건까지, 걸린 상태 ---- */
+  const tagCache = {};
+  function setText(id, text) {
+    if (tagCache[id] === text) return;
+    tagCache[id] = text;
+    $(id).textContent = text;
+  }
+  function updateLandTag(game, th) {
+    const normal = game.mode === 'stage' || game.mode === 'boss';
+    const rule = TG.LAND_RULES[game.mapIndex()];
+    const ev = TG.LAND_EVENTS[game.mapIndex()];
+    const special = !normal;
+    setText('#landName', special ? ({ mine: '광산', chase: '추격전', defend: '방어전', tower: '끝없는 탑' }[game.mode] || th.name) : `${th.name} · ${rule.name}`);
+    const pips = $('#wavePips').children;
+    const shown = game.mode === 'stage' ? Math.max(0, game.wave - (game.mobs.length || game.spawnList.length ? 1 : 0)) : -1;
+    for (let i = 0; i < pips.length; i++) {
+      pips[i].className = i < shown ? 'done' : i === shown && game.mode === 'stage' ? 'now' : '';
+      pips[i].hidden = game.mode !== 'stage';
+    }
+    setText('#landUp', normal && rule.up ? `▲ ${TG.landEffectText(rule.up)}` : '');
+    setText('#landDown', normal && rule.down ? `▼ ${TG.landEffectText(rule.down)}` : '');
+    const showEv = normal && ev;
+    $('#landEv').hidden = !showEv;
+    if (showEv) {
+      setText('#landEvName', game.evWarn ? `${ev.name} 임박!` : ev.name);
+      $('#landEvBar').style.width = `${Math.round(Math.max(0, Math.min(1, game.evWarn ? 1 : 1 - game.landEvT / ev.every)) * 100)}%`;
+      $('#landEv').classList.toggle('warn', !!game.evWarn);
+    }
+    const st = [];
+    if (game.stormT > 0) st.push(`눈보라 ${Math.ceil(game.stormT)}`);
+    if (game.sandT > 0) st.push(`모래폭풍 ${Math.ceil(game.sandT)}`);
+    if (game.fogT > 0) st.push(`독 안개 ${Math.ceil(game.fogT)}`);
+    if (game.whisperT > 0) st.push(`속삭임 ${Math.ceil(game.whisperT)}`);
+    if (game.heroStunT > 0) st.push(`멈춤 ${Math.ceil(game.heroStunT)}`);
+    setText('#landStatus', st.join(' · '));
+    $('#landStatus').hidden = !st.length;
+  }
+
   /* ---- 위쪽 줄과 제작 버튼 ---- */
   function updateHud() {
     const game = ui.game;
     const th = game.theme();
     $('#stageNum').textContent = `스테이지 ${game.s.stage}`;
     $('#stageSub').textContent = game.mode === 'chase' ? `추격전 · 남은 시간 ${Math.ceil(game.chaseT)}초 · 볼트 +${game.chaseGot}` : game.mode === 'mine' ? `광산 · 남은 시간 ${Math.ceil(game.mineT)}초 · 철광석 +${game.mineGot}` : game.mode === 'tower' ? `탑 ${game.towerF}층 · 남은 시간 ${Math.ceil(game.towerT)}초` : game.mode === 'boss' ? `보스전 ${game.s.boss} · 남은 시간 ${Math.ceil(game.bossT)}초` : game.mode === 'defend' ? `방어전 ${game.defendLvl}단계 · 남은 시간 ${Math.ceil(game.defendT)}초 · 처치 ${game.defendKills}` : game.phase === 'run' ? `${game.phaseNo}페이즈 · ${th.name} · 다음 스테이지로` : `${game.phaseNo}페이즈 · ${th.name} · 웨이브 ${Math.max(1, game.wave)}/${P.waves}`;
+    updateLandTag(game, th);
     $('#goldNum').textContent = TG.fmt(game.s.gold);
     $('#rubyNum').textContent = TG.fmt(game.s.ruby);
     $('#sapBox').hidden = !game.s.stats.sapphire && !game.s.sapphire;
