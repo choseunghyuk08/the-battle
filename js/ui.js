@@ -330,7 +330,7 @@
   ];
 
   /* ---- 강화 판 ---- */
-  const UP_ICON = { atk: 'atk', hp: 'hp', craft: 'craftLv', climb: 'climb', slots: 'slots', autoCraft: 'autoCraft', autoMerge: 'autoMerge', rAtk: 'atk', rGold: 'coin', skRain: 'skillRain', skRage: 'skillRage', autoSkill: 'autoSkill', monkey: 'monkey', hippo: 'hippo', awaken: 'awaken', bear: 'bear', dragon: 'dragon', skShadow: 'skillShadow', skBarrage: 'skillBarrage', autoShop: 'autoShop', pig: 'pig', mole: 'mole', skBolt: 'skillBolt', skDark: 'skillDark', carFuel: 'car', carGun: 'chase', carEngine: 'volt', fAtk: 'atk', fHp: 'hp' };
+  const UP_ICON = { atk: 'atk', hp: 'hp', craft: 'craftLv', climb: 'climb', slots: 'slots', autoCraft: 'autoCraft', autoMerge: 'autoMerge', rAtk: 'atk', rGold: 'coin', skRain: 'skillRain', skRage: 'skillRage', autoSkill: 'autoSkill', monkey: 'monkey', hippo: 'hippo', awaken: 'awaken', bear: 'bear', dragon: 'dragon', skShadow: 'skillShadow', skBarrage: 'skillBarrage', autoShop: 'autoShop', pig: 'pig', mole: 'mole', skBolt: 'skillBolt', skDark: 'skillDark', carFuel: 'car', carGun: 'chase', carEngine: 'volt', fAtk: 'atk', fHp: 'hp', sDouble: 'awaken', sGiant: 'boss', sGuard: 'hp', sRegen: 'hp', sGold: 'coin', sRuby: 'ruby', sSap: 'sapphire', sSpeed: 'skillRage', sCraft: 'craftLv', sSkill: 'skillBolt' };
   const CUR = {
     gold: { icon: 'coin', cls: '', title: '골드 강화' },
     ruby: { icon: 'ruby', cls: 'ruby', title: '루비 강화 · 보스와 거대 몬스터에게서 얻어요' },
@@ -338,10 +338,12 @@
     volt: { icon: 'volt', cls: 'shard', title: '추격차 · 추격전에서 얻는 볼트로 올려요' },
     sapphire: { icon: 'sapphire', cls: 'sapphire', title: '최종 강화' },
   };
+  const UPBY_NAME = Object.fromEntries(TG.UPGRADES.map((x) => [x.id, x.name]));
   function buildUpgrades() {
     const body = $('#sheetBody');
     body.replaceChildren();
     let section = null;
+    let branch = null;
     for (const u of TG.UPGRADES) {
       if (u.tab === 'pet') continue;
       const cur = u.cur || 'gold';
@@ -349,7 +351,11 @@
         section = cur;
         body.append(el('p', { class: 'sec' }, cur === 'volt' ? [uiIcon('volt'), '추격차 · 볼트 ', el('b', { id: 'voltNum' }), '개'] : cur === 'sapphire' ? [uiIcon('sapphire'), '최종 강화 · 사파이어 ', el('b', { id: 'sapSheetNum' }), '개'] : [uiIcon(CUR[cur].icon), CUR[cur].title]));
       }
-      if (cur === 'sapphire' && u.id === 'fAtk') body.append(el('p', { class: 'note', text: '몬스터를 잡을 때 아주 가끔 사파이어가 나와요. 거대 몬스터는 더 자주 떨어뜨려요. 최종 %는 다른 보너스를 다 더한 값에 곱해져요.' }));
+      if (cur === 'sapphire' && u.id === 'fAtk') body.append(el('p', { class: 'note', text: '몬스터를 잡을 때 아주 가끔 사파이어가 나와요. 거대 몬스터는 더 자주 떨어뜨려요. 최종 %는 다른 보너스를 다 더한 값에 곱해져요. 가지마다 앞 칸이 5레벨이 되면 다음 칸이 열려요.' }));
+      if (cur === 'sapphire' && u.branch !== branch) {
+        branch = u.branch;
+        body.append(el('p', { class: 'branch', text: `${branch} 가지` }));
+      }
       const btn = el('button', { type: 'button', 'data-id': u.id, class: CUR[cur].cls, onclick: () => buy(u.id) });
       body.append(
         el('div', { class: 'up', 'data-row': u.id }, [
@@ -370,7 +376,9 @@
       if (!row) continue;
       const L = game.s.lv[u.id];
       row.querySelector('.lv').textContent = u.max < 100 ? `${L}/${u.max}` : `Lv ${L}`;
-      row.querySelector('.desc').textContent = u.desc(L);
+      const open = game.unlocked(u.id);
+      row.classList.toggle('locked', !open);
+      row.querySelector('.desc').textContent = open ? u.desc(L) : `${UPBY_NAME[u.req[0]]} ${P.treeNeed}레벨부터 열려요`;
       const btn = row.querySelector('button');
       const cost = game.cost(u.id);
       btn.disabled = !game.canBuy(u.id);

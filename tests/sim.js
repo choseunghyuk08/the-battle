@@ -1097,6 +1097,55 @@ function testV20() {
   assert.strictEqual(g2.landMod('atk'), 1);
   TG.today = realToday;
 }
+function testV21() {
+  /* 사파이어 트리: 가지마다 앞 칸이 5레벨이어야 다음 칸이 열리고, 효과가 붙는다 */
+  const g = new TG.Game(null, seeded(210));
+  g.s.sapphire = 1e7;
+  for (const root of ['fAtk', 'fHp', 'sGold', 'sSpeed']) assert.strictEqual(g.canBuy(root), true, `뿌리 ${root}`);
+  for (const id of ['sDouble', 'sGiant', 'sGuard', 'sRegen', 'sRuby', 'sSap', 'sCraft', 'sSkill']) assert.strictEqual(g.canBuy(id), false, `잠김 ${id}`);
+  assert.strictEqual(g.canBuy('sGiant'), false, '둘째 칸 전에는 셋째 칸이 안 열린다');
+  for (let i = 0; i < TG.P.treeNeed - 1; i++) g.buy('fAtk');
+  assert.strictEqual(g.canBuy('sDouble'), false, '4레벨은 모자라다');
+  g.buy('fAtk');
+  assert.strictEqual(g.canBuy('sDouble'), true);
+  assert.strictEqual(g.canBuy('sGiant'), false);
+  for (let i = 0; i < 5; i++) assert(g.buy('sDouble'));
+  assert.strictEqual(g.canBuy('sGiant'), true);
+  /* 효과 */
+  const gold0 = g.goldMult;
+  for (let i = 0; i < 10; i++) g.buy('sGold');
+  assert(Math.abs(g.goldMult - gold0 - TG.P.sGoldStep * 10) < 1e-9, '골드 +40%');
+  for (let i = 0; i < 5; i++) g.buy('sGold');
+  for (let i = 0; i < 10; i++) g.buy('sRuby');
+  assert(Math.abs(g.rubyMult() - 1 - TG.P.sRubyStep * 10) < 1e-9, '루비 +30%');
+  for (let i = 0; i < 5; i++) g.buy('fHp');
+  for (let i = 0; i < 10; i++) g.buy('sGuard');
+  g.mode = 'stage';
+  assert(Math.abs(g.bearHit(100) - 90) < 1e-9, '받는 피해 -10%');
+  const cd0 = g.skillCdOf('rain');
+  for (let i = 0; i < 5; i++) g.buy('sSpeed');
+  for (let i = 0; i < 5; i++) g.buy('sCraft');
+  assert.strictEqual(g.canBuy('sSkill'), true);
+  for (let i = 0; i < 10; i++) g.buy('sSkill');
+  assert(Math.abs(g.skillCdOf('rain') - cd0 * (1 - TG.P.sSkillStep * 10)) < 1e-9, '스킬 대기 -10%');
+  for (let i = 0; i < 5; i++) g.buy('sGiant');
+  const m = { id: 1, kind: 'slime', hp: 1000, max: 1000, giant: true, x: 50 };
+  g.mobs.push(m);
+  g.hitMob(m, 10);
+  assert(Math.abs(1000 - m.hp - 10 * (1 + TG.P.sGiantStep * 5)) < 1e-9, '거대 몬스터 피해 +20%');
+  /* 저장해도 남는다 */
+  const g2 = new TG.Game(JSON.parse(JSON.stringify(g.snapshot())), seeded(211));
+  assert.strictEqual(g2.s.lv.sGuard, 10);
+  assert.strictEqual(g2.canBuy('sRegen'), true);
+  /* 옛 저장(트리 없음)도 열린다: 최종 공격력 레벨이 그대로 뿌리 */
+  const old = JSON.parse(JSON.stringify(g.snapshot()));
+  for (const k of ['sDouble', 'sGiant', 'sGuard', 'sRegen', 'sGold', 'sRuby', 'sSap', 'sSpeed', 'sCraft', 'sSkill']) delete old.lv[k];
+  old.lv.fAtk = 12;
+  const g3 = new TG.Game(old, seeded(212));
+  assert.strictEqual(g3.s.lv.fAtk, 12);
+  assert.strictEqual(g3.s.lv.sGold, 0);
+  assert.strictEqual(g3.unlocked('sDouble'), true);
+}
 function testV12() {
   /* 150단계까지 이름이 있고, 150 을 둘 합치면 별이 붙는다 (151 = ★1) */
   assert.strictEqual(TG.ITEMS.length, 150);
@@ -1316,6 +1365,7 @@ if (process.argv.includes('--pace')) {
   testV18();
   testV19();
   testV20();
+  testV21();
   testStory();
   console.log('\nall tests passed');
 }
