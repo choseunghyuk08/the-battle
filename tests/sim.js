@@ -488,6 +488,60 @@ function testV06() {
   console.log('v0.6 ok');
 }
 
+function testStory() {
+  /* 새 게임: 1장이 바로 나오고, 같은 장면은 한 번뿐이다 */
+  const g = new TG.Game(null, seeded(61));
+  const ids = () => g.events.filter((e) => e.type === 'story').map((e) => e.id);
+  assert.deepStrictEqual(ids(), ['ch1']);
+  g.events.length = 0;
+  g.s.stage = 11;
+  g.startStage();
+  assert.deepStrictEqual(ids(), ['ch2']);
+  g.events.length = 0;
+  g.startStage();
+  assert.deepStrictEqual(ids(), [], '두 번째는 안 나온다');
+
+  /* 동료 합류, 보스, 광산 */
+  g.s.ruby = 1e6;
+  g.buy('monkey');
+  assert.deepStrictEqual(ids(), ['pet_monkey']);
+  g.buy('monkey');
+  g.events.length = 0;
+  g.s.best = g.s.stage = 40;
+  g.startStage();
+  g.events.length = 0;
+  g.s.bossCd = 0;
+  assert(g.startBoss());
+  g.events.length = 0;
+  g.mobs[0].hp = 1;
+  g.s.board[0] = 6;
+  for (let t = 0; t < 10 && g.mode === 'boss'; t += 0.05) g.tick(0.05);
+  assert(ids().includes('boss_1'), '첫 보스를 이기면 후일담');
+  g.events.length = 0;
+  g.s.mineCd = 0;
+  g.s.best = 40;
+  g.mode = 'stage';
+  g.startStage();
+  g.events.length = 0;
+  assert(g.startMine());
+  assert(ids().includes('mine1'));
+
+  /* 이야기 전의 저장: 이미 지난 장면은 조용히 본 것으로 */
+  const old = new TG.Game(JSON.parse(JSON.stringify({ ...new TG.Game(null, seeded(1)).snapshot(), stage: 45, best: 45, boss: 4, lv: { ...g.s.lv, monkey: 3 }, story: undefined })), seeded(2));
+  assert(old.s.story.seen.intro && old.s.story.seen.ch5 && old.s.story.seen.boss_3 && old.s.story.seen.pet_monkey);
+  assert(!old.s.story.seen.ch6 && !old.s.story.seen.boss_4);
+  /* 저장했다 불러와도 본 장면이 남는다 */
+  const re = new TG.Game(JSON.parse(JSON.stringify(g.snapshot())), seeded(3));
+  assert(re.s.story.seen.ch2 && re.s.story.seen.pet_monkey);
+  /* 모든 장면에는 대사가 있고 말하는 사람이 등록돼 있다 */
+  for (const b of TG.STORY) {
+    assert(b.lines.length > 0, b.id);
+    for (const [who, text] of b.lines) assert(TG.STORY_WHO[who] && text.length > 0, `${b.id} ${who}`);
+  }
+  for (const p of TG.COMIC) for (const [who] of p.caps) assert(TG.STORY_WHO[who], who);
+  console.log('story ok');
+}
+
 /* ---- 속도 ---- */
 function bot(kind, minutes, seed = 7) {
   const g = new TG.Game(null, seeded(seed));
@@ -581,6 +635,7 @@ if (process.argv.includes('--pace')) {
   testV04();
   testV05();
   testV06();
+  testStory();
   console.log('\nall tests passed');
 }
 

@@ -417,6 +417,7 @@
     board: new Array(P.maxSlots).fill(0),
     pos: [], // 물건마다 필드 안 위치 [x, y] (0..1). 화면만 쓴다
     lv: { atk: 0, hp: 0, craft: 0, climb: 0, slots: 0, autoCraft: 0, autoMerge: 0, rAtk: 0, rGold: 0, skRain: 0, skRage: 0, autoSkill: 0, monkey: 0, hippo: 0, awaken: 0, bear: 0, dragon: 0, skShadow: 0, skBarrage: 0, autoShop: 0, pig: 0, mole: 0, skBolt: 0, skDark: 0, carFuel: 0, carGun: 0, carEngine: 0 },
+    story: { seen: {} }, // 본 이야기 장면
     volt: 0, // 볼트 (추격전에서 얻고 차를 키운다)
     chaseCd: 0,
     ab: {}, // 특수능력 id -> 레벨
@@ -456,6 +457,9 @@
         });
         this.s.stage = Math.max(1, Math.floor(this.s.stage) || 1);
         this.s.best = Math.max(this.s.stage, Math.floor(this.s.best) || 1);
+        const hadStory = !!(save.story && save.story.seen);
+        this.s.story = { seen: hadStory ? Object.fromEntries(Object.entries(save.story.seen).filter(([k, v]) => v && TG.STORY_BY[k] || k === 'intro').map(([k]) => [k, true])) : {} };
+        if (!hadStory) this.seedStory(save);
         this.s.gold = Math.max(0, Number(this.s.gold) || 0);
         this.s.charges = Math.max(0, Math.min(P.craftMax, Number(this.s.charges) || 0));
         for (const k of ['ruby', 'shards', 'bossCd', 'ore', 'mineCd', 'volt', 'chaseCd']) this.s[k] = Math.max(0, Number(this.s[k]) || 0);
@@ -485,6 +489,29 @@
       const idle = () => ({ kind: 'idle', t: 0, dur: 1 });
       this.pets = { monkey: { cd: 0, act: idle() }, hippo: { t: 0, act: idle() }, bear: { act: idle() }, dragon: { n: 0, act: idle() }, pig: { k: 0, act: idle() }, mole: { t: 0, act: idle() } };
       this.startStage();
+    }
+
+    /* ---- 이야기: 장면은 한 번만 나온다 ---- */
+    story(id) {
+      if (!TG.STORY_BY[id] || this.s.story.seen[id]) return false;
+      this.s.story.seen[id] = true;
+      this.events.push({ type: 'story', id });
+      return true;
+    }
+    /* 이야기가 생기기 전부터 하던 저장은 이미 지난 장면을 조용히 본 것으로 친다 */
+    seedStory() {
+      const seen = this.s.story.seen;
+      seen.intro = true;
+      for (const b of TG.STORY) if (b.at && b.at <= this.s.best) seen[b.id] = true;
+      for (const k of ['monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole']) if (this.s.lv[k]) seen[`pet_${k}`] = true;
+      for (let k = 1; k < this.s.boss; k++) seen[`boss_${k}`] = true;
+      if (this.s.stats.ore > 0) seen.mine1 = true;
+      if (this.s.stats.volt > 0) seen.chase1 = true;
+      if (this.s.stats.pulls > 0) seen.relic1 = true;
+      if (this.s.seen[60]) seen.true_end = true;
+    }
+    storyStage() {
+      for (const b of TG.STORY) if (b.at && this.s.stage >= b.at) this.story(b.id);
     }
 
     /* ---- 보드 ---- */
@@ -519,6 +546,7 @@
       if (t > 0 && !this.s.seen[t]) {
         this.s.seen[t] = true;
         this.events.push({ type: 'new', tier: t });
+        if (t === 60) this.story('true_end');
       }
     }
 
@@ -646,6 +674,7 @@
       this.s[UPBY[id].cur || 'gold'] -= this.cost(id);
       this.s.lv[id]++;
       if (id === 'hp') this.hero.hp = Math.min(this.maxHp, this.hero.hp * P.hpUp);
+      if (UPBY[id].tab === 'pet' && this.s.lv[id] === 1) this.story(`pet_${id}`);
       return true;
     }
 
@@ -695,6 +724,7 @@
         this.mineGot = 0;
         for (let k = 0; k < P.oreSlots; k++) this.spawnOre(P.oreX0 + k * P.oreGap);
         this.events.push({ type: 'mine-start' });
+        this.story('mine1');
         return;
       }
       if (this.mode === 'chase') {
@@ -704,6 +734,7 @@
         this.chaseGot = 0;
         this.spawnTank(0, P.chaseX);
         this.events.push({ type: 'chase-start' });
+        this.story('chase1');
         return;
       }
       if (this.mode === 'boss') {
@@ -713,6 +744,7 @@
         return;
       }
       this.events.push({ type: 'stage', stage: n });
+      this.storyStage();
     }
 
     /* ---- 보스전 ---- */
@@ -752,6 +784,7 @@
         this.s.boss++;
         this.s.bossCd = P.bossCd;
         this.events.push({ type: 'boss-win', boss: k, ruby: r });
+        this.story(`boss_${k}`);
         this.mobs = [];
         this.nextStage = this.s.stage;
         this.phase = 'win';
@@ -917,6 +950,7 @@
         got.push({ id: r.id, lv: this.s.relics[r.id] });
       }
       this.events.push({ type: 'relic', got });
+      this.story('relic1');
       return { ok: true, got };
     }
 
