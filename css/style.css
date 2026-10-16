@@ -51,15 +51,15 @@ button { font-family: inherit; color: inherit; }
   background: var(--panel);
   border: 2px solid var(--line);
   border-radius: 8px;
-  padding: 6px 10px;
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
+  padding: 4px 10px;
+  display: grid;
+  align-content: center;
+  line-height: 1.15;
   white-space: nowrap;
   overflow: hidden;
 }
 .stage b { font-size: 20px; font-weight: 400; color: var(--ink); }
-.stage span { font-size: 13px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; }
+.stage span { font-size: 12px; color: var(--ink-2); overflow: hidden; text-overflow: ellipsis; }
 .gold {
   display: flex;
   align-items: center;
@@ -525,3 +525,8 @@ button.back { appearance: none; width: 100%; border: 2px solid var(--line); back
 .sto .bossst { grid-row: 1 / span 2; grid-column: 2; font-size: 12px; color: var(--gold); text-align: right; }
 .sto.next { border-color: #c26bff; }
 .seg button { font-size: 14px; padding: 6px 2px; }
+
+/* v1.1 */
+.gold.sapphire { color: #6ab0ff; }
+.up button.sapphire { background: #4f8ff0; box-shadow: 0 3px 0 #1d4aa8; color: #06142c; }
+.up button.sapphire:disabled { background: #3a3d63; color: var(--ink-3); box-shadow: none; }

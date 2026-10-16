@@ -41,19 +41,33 @@
     winTime: 0.9,
     runTime: 1.1,
     deadTime: 1.6,
-    themeLen: 10, // 테마 하나가 이어지는 스테이지 수
+    /* 페이즈: 스테이지를 2의 제곱으로 끊은 큰 덩어리 (1~64, 65~128, 129~256, 257~512, ...).
+       한 페이즈 안에서 땅 12곳이 한 바퀴 돌고 (페이즈가 길수록 땅마다 스테이지가 늘어난다),
+       페이즈가 바뀌면 몬스터가 한 단계 강한 개체로, 배경이 다른 빛깔로 바뀌고 몬스터 배율이 한 번 뛴다 */
+    phaseBase: 64,
+    phaseHpJump: 3, // 페이즈가 오를 때마다 몬스터 체력 배율
+    phaseAtkJump: 2, // 공격력 배율
+    phaseGoldJump: 3, // 골드 배율
 
     hpBase: 100,
     /* 몬스터와 보상은 스테이지마다 일정 배율로 커진다. 강화도 레벨마다 배율로 커져서 서로 쫓아간다 */
     mobHp0: 30,
-    mobHpGrow: 1.096,
+    mobHpGrow: 1.061,
     mobAtk0: 3,
-    mobAtkGrow: 1.07,
+    mobAtkGrow: 1.03,
     gold0: 2,
     mergeGold: 0.5, // 합칠 때마다 이 스테이지 몬스터 한 마리 골드의 이만큼
-    goldGrow: 1.072,
-    atkUp: 1.03, // 공격력 강화 1레벨 배율
-    hpUp: 1.06,
+    goldGrow: 1.046,
+    /* 공격력은 "합산 %" 를 한 데 더한 뒤, "최종 %" (사파이어) 를 따로 곱한다.
+       공격력 = 던질 것 기본 x (1 + 골드% + 루비% + 유물% + 엔진% + 칭호%) x (1 + 최종%) */
+    goldAtkPct: 0.1, // 골드 공격력 강화 1레벨
+    rubyAtkPct: 0.5, // 루비 공격력 강화 1레벨 (골드보다 크다)
+    enginePct: 0.1, // 엔진 1레벨 (볼트)
+    goldHpPct: 0.1, // 골드 체력 강화 1레벨
+    sapAtkPct: 0.05, // 최종 공격력 1레벨 (사파이어)
+    sapHpPct: 0.05, // 최종 체력 1레벨
+    sapDrop: 0.012, // 몬스터 한 마리를 잡을 때 사파이어가 나올 확률
+    sapGiantK: 8, // 거대 몬스터는 이만큼 배
     upCostGrow: 1.09, // 공격력/체력 강화 값이 오르는 배율
     craftCostGrow: 1.17,
     climbCostGrow: 1.15,
@@ -190,9 +204,21 @@
     medalPerKills: 25, // 처치 이만큼마다 메달 1
   });
 
-  P.mobHp = (n) => Math.round(P.mobHp0 * P.mobHpGrow ** (n - 1));
-  P.mobAtk = (n) => Math.max(1, Math.round(P.mobAtk0 * P.mobAtkGrow ** (n - 1)));
-  P.mobGold = (n) => Math.ceil(P.gold0 * P.goldGrow ** (n - 1));
+  /* 스테이지가 속한 페이즈: p (1부터), start (첫 스테이지), len (길이) */
+  TG.phaseOf = (stage) => {
+    const n = Math.max(1, Math.floor(stage));
+    if (n <= P.phaseBase) return { p: 1, start: 1, len: P.phaseBase };
+    let len = P.phaseBase;
+    let p = 2;
+    while (n > len * 2) {
+      len *= 2;
+      p++;
+    }
+    return { p, start: len + 1, len };
+  };
+  P.mobHp = (n) => Math.round(P.mobHp0 * P.mobHpGrow ** (n - 1) * P.phaseHpJump ** (TG.phaseOf(n).p - 1));
+  P.mobAtk = (n) => Math.max(1, Math.round(P.mobAtk0 * P.mobAtkGrow ** (n - 1) * P.phaseAtkJump ** (TG.phaseOf(n).p - 1)));
+  P.mobGold = (n) => Math.ceil(P.gold0 * P.goldGrow ** (n - 1) * P.phaseGoldJump ** (TG.phaseOf(n).p - 1));
 
   const roundFix = (x) => Math.round(x * 1e6) / 1e6;
 
@@ -417,17 +443,17 @@
     { id: 'pets', name: '든든한 일행', cond: '동료 6명 모두', ok: (g) => ['monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole'].every((k) => g.s.lv[k] > 0) },
     { id: 'relics', name: '손때 수집가', cond: '유물 10종', ok: (g) => Object.keys(g.s.relics).length >= 10, costume: 6 },
     { id: 'defend', name: '방패막이', cond: '방어전 3번 승리', ok: (g) => g.s.stats.defends >= 3 },
-    { id: 'desert', name: '모래 걷는 이', cond: '스테이지 65', ok: (g) => g.s.best >= 65, costume: 12 },
-    { id: 'swamp', name: '늪 건너는 이', cond: '스테이지 75', ok: (g) => g.s.best >= 75, costume: 13 },
-    { id: 'ocean', name: '물 밑 손님', cond: '스테이지 85', ok: (g) => g.s.best >= 85, costume: 14 },
-    { id: 'sky', name: '구름 위 던지기', cond: '스테이지 95', ok: (g) => g.s.best >= 95, costume: 15 },
-    { id: 'factory', name: '녹슨 손', cond: '스테이지 105', ok: (g) => g.s.best >= 105, costume: 16 },
-    { id: 'abyss', name: '어둠 응시', cond: '스테이지 115', ok: (g) => g.s.best >= 115, costume: 17 },
+    { id: 'desert', name: '모래 걷는 이', cond: '스테이지 33', ok: (g) => g.s.best >= 33, costume: 12 },
+    { id: 'swamp', name: '늪 건너는 이', cond: '스테이지 39', ok: (g) => g.s.best >= 39, costume: 13 },
+    { id: 'ocean', name: '물 밑 손님', cond: '스테이지 44', ok: (g) => g.s.best >= 44, costume: 14 },
+    { id: 'sky', name: '구름 위 던지기', cond: '스테이지 49', ok: (g) => g.s.best >= 49, costume: 15 },
+    { id: 'factory', name: '녹슨 손', cond: '스테이지 55', ok: (g) => g.s.best >= 55, costume: 16 },
+    { id: 'abyss', name: '어둠 응시', cond: '스테이지 60', ok: (g) => g.s.best >= 60, costume: 17 },
     { id: 'wall', name: '철벽', cond: '방어전 6단계', ok: (g) => g.s.defendTier >= 6 },
     { id: 'star', name: '번개의 손', cond: '스킬 각성 별 3개', ok: (g) => Object.values(g.s.skStar).reduce((a, b) => a + b, 0) >= 3 },
     { id: 'engrave', name: '새기는 사람', cond: '각인 3칸 모두', ok: (g) => g.s.eng.filter(Boolean).length >= 3 },
     { id: 'ice', name: '빙하 건너기', cond: '스테이지 120', ok: (g) => g.s.best >= 120, costume: 5 },
-    { id: 'lord', name: '고요 깬 이', cond: '스테이지 240', ok: (g) => g.s.best >= 240, costume: 7 },
+    { id: 'lord', name: '고요 깬 이', cond: '스테이지 513', ok: (g) => g.s.best >= 513, costume: 7 },
   ];
 
   /* 강화 목록. cost(L) 은 L 레벨에서 L+1 레벨로 올리는 값이고, 끝이면 null */
@@ -435,8 +461,8 @@
   const AUTO_COST2 = [200, 600, 1800, 5400, 16200];
   const AUTO_GAP = [0, 3, 2.2, 1.6, 1.2, 1];
   TG.UPGRADES = [
-    { id: 'atk', name: '공격력', max: 9999, cost: (L) => Math.ceil(10 * P.upCostGrow ** L), desc: (L) => `물건 공격력 x${TG.fmtMult(P.atkUp ** L)}` },
-    { id: 'hp', name: '체력', max: 9999, cost: (L) => Math.ceil(10 * P.upCostGrow ** L), desc: (L) => `체력 ${TG.fmt(Math.round(P.hpBase * P.hpUp ** L))}` },
+    { id: 'atk', name: '공격력', max: 9999, cost: (L) => Math.ceil(10 * P.upCostGrow ** L), desc: (L) => `던진 물건 공격력 +${pct(P.goldAtkPct * L)}` },
+    { id: 'hp', name: '체력', max: 9999, cost: (L) => Math.ceil(10 * P.upCostGrow ** L), desc: (L) => `체력 +${pct(P.goldHpPct * L)}` },
     {
       id: 'craft',
       name: '제작술',
@@ -458,7 +484,7 @@
     { id: 'autoCraft', name: '자동 제작', max: AUTO_COST.length, cost: (L) => (L < AUTO_COST.length ? AUTO_COST[L] : null), desc: (L) => (L ? `${AUTO_GAP[L]}초마다 제작` : '꺼짐') },
     { id: 'autoMerge', name: '자동 합치기', max: AUTO_COST2.length, cost: (L) => (L < AUTO_COST2.length ? AUTO_COST2[L] : null), desc: (L) => (L ? `${AUTO_GAP[L]}초마다 합치기` : '꺼짐') },
     /* 루비로 사는 강화 */
-    { id: 'rAtk', cur: 'ruby', name: '루비 공격력', max: 999, cost: (L) => Math.ceil(10 * 1.5 ** L), desc: (L) => `모든 공격 x${TG.fmtMult(1.15 ** L)}` },
+    { id: 'rAtk', cur: 'ruby', name: '루비 공격력', max: 999, cost: (L) => Math.ceil(10 * 1.5 ** L), desc: (L) => `모든 공격 +${pct(P.rubyAtkPct * L)}` },
     { id: 'rGold', cur: 'ruby', name: '루비 골드', max: 999, cost: (L) => Math.ceil(10 * 1.5 ** L), desc: (L) => `얻는 골드 +${L * 15}%` },
     { id: 'skRain', cur: 'ruby', name: '쏟아지기', max: 50, cost: (L) => Math.ceil(15 * 1.45 ** L), desc: (L) => `최고 물건 ${6 + 2 * L}개가 쏟아져요 (x${TG.fmtMult(1 + 0.25 * L)})` },
     { id: 'skRage', cur: 'ruby', name: '분노', max: 50, cost: (L) => Math.ceil(15 * 1.45 ** L), desc: (L) => `${P.rageTime + L}초 동안 2배 빠르게 던지고 피해 x${TG.fmtMult(1.5 + 0.1 * L)}` },
@@ -470,7 +496,7 @@
     { id: 'mole', cur: 'ruby', tab: 'pet', name: '두더지 광부', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 120 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `${Math.round(PET.moleGap(L))}초마다 철광석을 캐요. 광산 철광석 +${pct(PET.moleOre(L))}, 광산 시간 +${Math.round(PET.moleTime(L) * 10) / 10}초` : '루비로 데려와요. 가만히 있어도 철광석을 캐 와요') },
     { id: 'carFuel', cur: 'volt', name: '연료통', max: 20, cost: (L) => (L >= 20 ? null : Math.ceil(6 * 1.3 ** L)), desc: (L) => `추격전 시간 +${L}초 (지금 ${P.chaseTime + L}초)` },
     { id: 'carGun', cur: 'volt', name: '터렛', max: 50, cost: (L) => (L >= 50 ? null : Math.ceil(5 * 1.28 ** L)), desc: (L) => `추격전 피해 +${L * 10}%` },
-    { id: 'carEngine', cur: 'volt', name: '엔진', max: 40, cost: (L) => (L >= 40 ? null : Math.ceil(8 * 1.3 ** L)), desc: (L) => `모든 공격력 x${TG.fmtMult(1.02 ** L)}` },
+    { id: 'carEngine', cur: 'volt', name: '엔진', max: 40, cost: (L) => (L >= 40 ? null : Math.ceil(8 * 1.3 ** L)), desc: (L) => `모든 공격력 +${pct(P.enginePct * L)}` },
     { id: 'autoShop', cur: 'ruby', name: '자동 구매', max: 1, cost: (L) => (L < 1 ? 80 : null), desc: (L) => (L ? '살 수 있는 물건을 상점에서 알아서 사요' : '꺼짐') },
     { id: 'autoSkill', cur: 'ruby', name: '자동 스킬', max: 1, cost: (L) => (L < 1 ? 50 : null), desc: (L) => (L ? '스킬을 알아서 써요' : '꺼짐') },
     { id: 'monkey', cur: 'ruby', tab: 'pet', name: '바나나 원숭이', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 30 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `던질 때 ${pct(PET.monkeyChance(L))} 확률로 바나나를 같이 던져요. 관통, 최고 물건 공격력 x${TG.fmtMult(PET.monkeyMult(L))}` : '루비로 데려와요. 던질 때 가끔 바나나를 같이 던져요 (관통)') },
@@ -478,6 +504,8 @@
     { id: 'bear', cur: 'ruby', tab: 'pet', name: '곰 방패병', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 80 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `받는 피해 -${pct(PET.bearCut(L))}, 맞을 때 ${pct(PET.bearKnock(L))} 확률로 방패로 밀쳐내요` : '루비로 데려와요. 앞에서 막아 피해를 줄이고 몬스터를 밀쳐내요') },
     { id: 'dragon', cur: 'ruby', tab: 'pet', name: '아기 용', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 150 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `${PET.dragonEvery(L)}번 던질 때마다 불덩이 (최고 물건 공격력 x${TG.fmtMult(PET.dragonMult(L))}, 옆 몬스터도 맞음)` : '루비로 데려와요. 몇 번 던질 때마다 불덩이를 뿜어요') },
     { id: 'awaken', cur: 'shards', name: '각성', max: 200, cost: (L) => (L >= 200 ? null : Math.ceil(40 * 1.09 ** L)), desc: (L) => `던질 때 ${pct(PET.powerChance(L))} 확률로 파워샷(2배), ${pct(PET.doubleChance(L))} 확률로 더블샷(한 번 더)` },
+    { id: 'fAtk', cur: 'sapphire', name: '최종 공격력', max: 9999, cost: (L) => Math.ceil(1.5 * 1.12 ** L), desc: (L) => `다른 보너스를 다 더한 값에 곱해서 +${pct(P.sapAtkPct * L)}` },
+    { id: 'fHp', cur: 'sapphire', name: '최종 체력', max: 9999, cost: (L) => Math.ceil(1.5 * 1.12 ** L), desc: (L) => `다른 보너스를 다 더한 값에 곱해서 +${pct(P.sapHpPct * L)}` },
   ];
   const UPBY = Object.fromEntries(TG.UPGRADES.map((u) => [u.id, u]));
   TG.upgradeCost = (id, L) => {
@@ -510,7 +538,7 @@
     best: 1,
     board: new Array(P.maxSlots).fill(0),
     pos: [], // 물건마다 필드 안 위치 [x, y] (0..1). 화면만 쓴다
-    lv: { atk: 0, hp: 0, craft: 0, climb: 0, slots: 0, autoCraft: 0, autoMerge: 0, rAtk: 0, rGold: 0, skRain: 0, skRage: 0, autoSkill: 0, monkey: 0, hippo: 0, awaken: 0, bear: 0, dragon: 0, skShadow: 0, skBarrage: 0, autoShop: 0, pig: 0, mole: 0, skBolt: 0, skDark: 0, carFuel: 0, carGun: 0, carEngine: 0 },
+    lv: { atk: 0, hp: 0, craft: 0, climb: 0, slots: 0, autoCraft: 0, autoMerge: 0, rAtk: 0, rGold: 0, fAtk: 0, fHp: 0, skRain: 0, skRage: 0, autoSkill: 0, monkey: 0, hippo: 0, awaken: 0, bear: 0, dragon: 0, skShadow: 0, skBarrage: 0, autoShop: 0, pig: 0, mole: 0, skBolt: 0, skDark: 0, carFuel: 0, carGun: 0, carEngine: 0 },
     story: { seen: {} }, // 본 이야기 장면
     volt: 0, // 볼트 (추격전에서 얻고 차를 키운다)
     chaseCd: 0,
@@ -533,6 +561,7 @@
     mineCd: 0,
     stars: { monkey: 0, hippo: 0, bear: 0, dragon: 0, pig: 0, mole: 0 }, // 동료 진화 단계 (0..5)
     ruby: 0,
+    sapphire: 0, // 사파이어 (몬스터가 아주 가끔 떨어뜨리고 최종 공격력·체력을 올린다)
     shards: 0,
     boss: 1, // 다음에 싸울 보스 번호
     bossCd: 0,
@@ -541,7 +570,7 @@
     shop: { offers: [], t: 0 },
     charges: P.craftMax,
     seen: new Array(P.tiers + 1).fill(false),
-    stats: { kills: 0, deaths: 0, merges: 0, crafts: 0, play: 0, ore: 0, pulls: 0, volt: 0, defends: 0, engraves: 0, fuses: 0 },
+    stats: { kills: 0, deaths: 0, merges: 0, crafts: 0, play: 0, ore: 0, pulls: 0, volt: 0, defends: 0, engraves: 0, fuses: 0, sapphire: 0 },
   });
 
   class Game {
@@ -566,7 +595,7 @@
         if (!hadStory) this.seedStory(save);
         this.s.gold = Math.max(0, Number(this.s.gold) || 0);
         this.s.charges = Math.max(0, Math.min(P.craftMax, Number(this.s.charges) || 0));
-        for (const k of ['ruby', 'shards', 'bossCd', 'ore', 'mineCd', 'volt', 'chaseCd', 'defendCd', 'defendTier', 'medals']) this.s[k] = Math.max(0, Number(this.s[k]) || 0);
+        for (const k of ['ruby', 'shards', 'bossCd', 'ore', 'mineCd', 'volt', 'chaseCd', 'defendCd', 'defendTier', 'medals', 'sapphire']) this.s[k] = Math.max(0, Number(this.s[k]) || 0);
         this.s.stars = Object.fromEntries(Object.keys(s.stars).map((k) => [k, Math.max(0, Math.min(P.evoCost.length, Math.floor(Number((save.stars || {})[k]) || 0)))]));
         this.s.boss = Math.max(1, Math.floor(this.s.boss) || 1);
         this.s.skillCd = Object.fromEntries(Object.keys(s.skillCd).map((k) => [k, Math.max(0, Number((save.skillCd || {})[k]) || 0)]));
@@ -643,7 +672,12 @@
       return P.slotsStart + this.s.lv.slots;
     }
     get atkMult() {
-      return P.atkUp ** this.s.lv.atk * 1.15 ** this.s.lv.rAtk * (1 + this.rv('glove')) * (1 + this.rv('crown')) * 1.02 ** this.s.lv.carEngine * (1 + P.titleBonus * this.titlesOwned);
+      return this.atkPool * (1 + P.sapAtkPct * this.s.lv.fAtk);
+    }
+    /* 합산 %: 골드, 루비, 유물, 엔진, 칭호를 한 데 더한다 */
+    get atkPool() {
+      const L = this.s.lv;
+      return 1 + P.goldAtkPct * L.atk + P.rubyAtkPct * L.rAtk + this.rv('glove') + this.rv('crown') + P.enginePct * L.carEngine + P.titleBonus * this.titlesOwned;
     }
     get titlesOwned() {
       return this.titleCount;
@@ -694,7 +728,7 @@
       return P.abSlotsAt.filter((x) => this.s.best >= x).length;
     }
     get maxHp() {
-      return Math.round(P.hpBase * P.hpUp ** this.s.lv.hp * (1 + this.rv('bandage')));
+      return Math.round(P.hpBase * (1 + P.goldHpPct * this.s.lv.hp + this.rv('bandage')) * (1 + P.sapHpPct * this.s.lv.fHp));
     }
     /* 유물 효과 값 (없으면 0) */
     rv(id) {
@@ -839,7 +873,7 @@
       if (!this.canBuy(id)) return false;
       this.s[UPBY[id].cur || 'gold'] -= this.cost(id);
       this.s.lv[id]++;
-      if (id === 'hp') this.hero.hp = Math.min(this.maxHp, this.hero.hp * P.hpUp);
+      if (id === 'hp' || id === 'fHp') this.hero.hp = Math.min(this.maxHp, this.hero.hp + P.hpBase * P.goldHpPct);
       if (UPBY[id].tab === 'pet' && this.s.lv[id] === 1) this.story(`pet_${id}`);
       return true;
     }
@@ -848,12 +882,20 @@
        화면 연출과 맞물리는 시간도 여기서 센다 (던지는 손이 떠나는 순간, 몬스터가 때리는 순간, 쓰러짐, 승리, 달려가기).
        hero.act: { kind: 'idle'|'throw'|'reload'|'hurt'|'die'|'win'|'run', t, dur } -> 화면이 동작 프레임을 고른다 */
     theme() {
-      const th = TG.THEMES[Math.floor((this.s.stage - 1) / P.themeLen) % TG.THEMES.length];
-      return th;
+      return TG.THEMES[this.mapIndex()];
+    }
+    /* 이번 페이즈 안에서 몇 번째 땅인가 (페이즈마다 12곳이 한 바퀴) */
+    mapIndex(stage = this.s.stage) {
+      const ph = TG.phaseOf(stage);
+      return Math.min(TG.THEMES.length - 1, Math.floor(((stage - ph.start) * TG.THEMES.length) / ph.len));
+    }
+    get phaseNo() {
+      return TG.phaseOf(this.s.stage).p;
     }
 
+    /* 몬스터 모습: 페이즈가 오르면 색 변종이 바뀐다 */
     variant() {
-      return Math.floor((this.s.stage - 1) / (P.themeLen * TG.THEMES.length));
+      return this.phaseNo - 1;
     }
 
     act(kind, dur) {
@@ -1527,7 +1569,7 @@
       const n = this.s.stage;
       const th = this.theme();
       const kinds = th.mobs;
-      const kind = giant ? kinds[(Math.floor(n / P.themeLen) + this.variant()) % kinds.length] : kinds[Math.floor(this.rng() * kinds.length)];
+      const kind = giant ? kinds[(n + this.variant()) % kinds.length] : kinds[Math.floor(this.rng() * kinds.length)];
       const dm = this.mode === 'defend' ? P.defendTierHp ** (this.defendLvl - 1) : 1;
       const hp = P.mobHp(n) * (giant ? P.giantHp : 1) * dm;
       this.mobs.push({
@@ -1774,6 +1816,11 @@
       const gold = Math.ceil(P.mobGold(n) * (m.giant ? P.giantGold : 1) * this.goldMult);
       this.s.gold += gold;
       this.s.stats.kills++;
+      if (this.rng() < P.sapDrop * (m.giant ? P.sapGiantK : 1)) {
+        this.s.sapphire++;
+        this.s.stats.sapphire++;
+        this.events.push({ type: 'sapphire', x: m.x });
+      }
       if (this.mode === 'defend') this.defendKills++;
       if (this.s.lv.pig) this.pets.pig.k++;
       this.events.push({ type: 'kill', x: m.x, giant: m.giant, gold });

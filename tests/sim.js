@@ -849,6 +849,81 @@ function testV09() {
   console.log('v0.9 ok');
 }
 
+function testV11() {
+  /* 페이즈: 2의 제곱으로 끊긴다 (1~64, 65~128, 129~256, 257~512) */
+  const ph = TG.phaseOf;
+  assert.deepStrictEqual([1, 64, 65, 128, 129, 256, 257, 512, 513].map((n) => ph(n).p), [1, 1, 2, 2, 3, 3, 4, 4, 5]);
+  assert.deepStrictEqual([ph(65).start, ph(65).len, ph(129).start, ph(129).len, ph(300).start, ph(300).len], [65, 64, 129, 128, 257, 256]);
+  /* 한 페이즈 안에서 땅 12곳이 한 바퀴, 페이즈가 길수록 땅마다 스테이지가 늘어난다 */
+  const g = new TG.Game(null, seeded(110));
+  const at = (n) => {
+    g.s.stage = n;
+    return g.mapIndex();
+  };
+  assert.deepStrictEqual([1, 6, 7, 59, 60, 64].map(at), [0, 0, 1, 10, 11, 11]);
+  assert.deepStrictEqual([65, 129, 135, 256, 257].map(at), [0, 0, 0, 11, 0]);
+  assert.strictEqual(new Set([...Array(64).keys()].map((i) => at(i + 1))).size, 12, '한 페이즈에 땅이 전부 나온다');
+  /* 페이즈를 넘으면 몬스터 배율이 한 번 뛴다 */
+  assert(TG.P.mobHp(65) > TG.P.mobHp(64) * TG.P.phaseHpJump * 0.9);
+  assert(TG.P.mobHp(64) < TG.P.mobHp(63) * 1.1);
+  g.s.stage = 65;
+  assert.strictEqual(g.variant(), 1);
+  assert.strictEqual(g.theme().id, 'field');
+
+  /* 공격력: 합산 % 는 더하고, 최종 % 는 그 위에 곱한다 */
+  const a = new TG.Game(null, seeded(111));
+  const pool0 = a.atkPool;
+  a.s.lv.atk = 10;
+  a.s.lv.rAtk = 2;
+  const pool = pool0 + TG.P.goldAtkPct * 10 + TG.P.rubyAtkPct * 2;
+  assert(Math.abs(a.atkPool - pool) < 1e-9, '골드와 루비는 더한다');
+  assert(Math.abs(a.atkMult - pool) < 1e-9);
+  a.s.lv.fAtk = 10;
+  assert(Math.abs(a.atkMult - pool * (1 + TG.P.sapAtkPct * 10)) < 1e-9, '최종은 합산 위에 곱한다');
+  assert(TG.P.rubyAtkPct > TG.P.goldAtkPct, '루비가 골드보다 크다');
+  const hp0 = a.maxHp;
+  a.s.lv.fHp = 10;
+  assert(Math.abs(a.maxHp / hp0 - (1 + TG.P.sapHpPct * 10)) < 0.01);
+
+  /* 사파이어: 몬스터를 잡을 때 아주 가끔 나오고, 거대 몬스터는 더 자주 나온다 */
+  const s = new TG.Game(null, seeded(112));
+  s.s.stage = 30;
+  s.startStage();
+  let n = 0;
+  let ng = 0;
+  for (let k = 0; k < 4000; k++) {
+    s.spawnMob(false);
+    const m = s.mobs[s.mobs.length - 1];
+    const before = s.s.sapphire;
+    s.killMob(m);
+    n += s.s.sapphire - before;
+  }
+  for (let k = 0; k < 2000; k++) {
+    s.spawnMob(true);
+    const m = s.mobs[s.mobs.length - 1];
+    const before = s.s.sapphire;
+    s.killMob(m);
+    ng += s.s.sapphire - before;
+  }
+  assert(n > 20 && n < 90, `일반 4000마리에서 사파이어 ${n}`);
+  assert(ng / 2000 > (n / 4000) * 3, '거대 몬스터가 더 자주');
+  assert.strictEqual(s.s.stats.sapphire, s.s.sapphire);
+  /* 사파이어로 최종 공격력을 산다. 저장해도 남는다 */
+  s.s.sapphire = 100;
+  const sap0 = s.s.sapphire;
+  assert(s.buy('fAtk'));
+  assert(s.s.sapphire < sap0 && s.s.lv.fAtk === 1);
+  assert.strictEqual(new TG.Game(JSON.parse(JSON.stringify(s.snapshot())), seeded(1)).s.lv.fAtk, 1);
+
+  /* 던질 것 순서: 71~79 소리, 80~89 땅의 무기, 90 처음 던진 손. 그림은 이름과 맞는다 */
+  assert.strictEqual(TG.ITEMS[70].name, '첫 새소리');
+  assert.strictEqual(TG.ITEMS[78].name, '푸른 불 한 점');
+  assert.strictEqual(TG.ITEMS[79].name, '전갈 침창');
+  assert.strictEqual(TG.ITEMS[89].name, '처음 던진 손');
+  for (let t = 61; t <= 90; t++) assert.strictEqual(TG.SPR.item[`t${t}`].id, `item.t${t}`);
+  console.log('v1.1 ok');
+}
+
 function testStory() {
   /* 새 게임: 1장이 바로 나오고, 같은 장면은 한 번뿐이다 */
   const g = new TG.Game(null, seeded(61));
@@ -857,7 +932,7 @@ function testStory() {
   g.finishIntro();
   assert.deepStrictEqual(ids(), ['ch1']);
   g.events.length = 0;
-  g.s.stage = 11;
+  g.s.stage = 7;
   g.startStage();
   assert.deepStrictEqual(ids(), ['ch2']);
   g.events.length = 0;
@@ -890,7 +965,7 @@ function testStory() {
   assert(ids().includes('mine1'));
 
   /* 이야기 전의 저장: 이미 지난 장면은 조용히 본 것으로 */
-  const old = new TG.Game(JSON.parse(JSON.stringify({ ...new TG.Game(null, seeded(1)).snapshot(), stage: 45, best: 45, boss: 4, lv: { ...g.s.lv, monkey: 3 }, story: undefined })), seeded(2));
+  const old = new TG.Game(JSON.parse(JSON.stringify({ ...new TG.Game(null, seeded(1)).snapshot(), stage: 25, best: 25, boss: 4, lv: { ...g.s.lv, monkey: 3 }, story: undefined })), seeded(2));
   assert(old.s.story.seen.intro && old.s.story.seen.ch5 && old.s.story.seen.boss_3 && old.s.story.seen.pet_monkey);
   assert(!old.s.story.seen.ch6 && !old.s.story.seen.boss_4);
   /* 저장했다 불러와도 본 장면이 남는다 */
@@ -962,6 +1037,11 @@ function bot(kind, minutes, seed = 7) {
       if (!ids.length || !g.buy(ids[0])) break;
     }
     while (g.buy('awaken'));
+    /* 사파이어: 최종 공격력과 체력 중 싼 쪽부터 */
+    for (let k = 0; k < 10; k++) {
+      const ids = ['fAtk', 'fHp'].sort((x, y) => g.cost(x) - g.cost(y));
+      if (!g.buy(ids[0])) break;
+    }
     /* 자동 기능 첫 레벨을 먼저, 그다음은 가장 싼 골드 강화 */
     let bought = true;
     while (bought) {
@@ -975,7 +1055,7 @@ function bot(kind, minutes, seed = 7) {
       ids.sort((a, b) => g.cost(a) - g.cost(b));
       if (g.buy(ids[0])) bought = true;
     }
-    for (const m of marks) if (!out[m] && t >= m * 60 - dt * 1.5) out[m] = { stage: g.s.stage, best: g.s.best, top: g.highest, deaths: g.s.stats.deaths, lv: { ...g.s.lv }, ruby: g.s.ruby, boss: g.s.boss, shards: g.s.shards, ore: g.s.ore, volt: g.s.volt, ab: { ...g.s.ab }, stars: { ...g.s.stars } };
+    for (const m of marks) if (!out[m] && t >= m * 60 - dt * 1.5) out[m] = { stage: g.s.stage, best: g.s.best, top: g.highest, deaths: g.s.stats.deaths, lv: { ...g.s.lv }, ruby: g.s.ruby, boss: g.s.boss, shards: g.s.shards, ore: g.s.ore, volt: g.s.volt, sap: g.s.stats.sapphire, kills: g.s.stats.kills, fa: g.s.lv.fAtk, fh: g.s.lv.fHp, ab: { ...g.s.ab }, stars: { ...g.s.stars } };
   }
   return out;
 }
@@ -1001,6 +1081,7 @@ if (process.argv.includes('--pace')) {
   testV07();
   testV08();
   testV09();
+  testV11();
   testStory();
   console.log('\nall tests passed');
 }

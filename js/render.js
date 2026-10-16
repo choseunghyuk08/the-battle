@@ -113,6 +113,16 @@
   const MINE = { id: 'mine', name: '광산' };
   const ROAD = { id: 'road', name: '추격 도로' };
   const CAR_H = 9; /* 주인공이 서는 차 바닥 높이 */
+  /* 페이즈가 오르면 배경이 다른 빛깔로 바뀐다 (1페이즈는 그대로) */
+  const PHASE_TINT = ['rgba(150,90,255,0.2)', 'rgba(255,100,60,0.2)', 'rgba(60,200,255,0.2)', 'rgba(70,255,150,0.18)', 'rgba(255,220,80,0.18)'];
+  function phaseTint(game) {
+    if (game.mode === 'mine' || game.mode === 'chase') return;
+    const k = game.phaseNo - 1;
+    if (k <= 0) return;
+    ctx.fillStyle = PHASE_TINT[(k - 1) % PHASE_TINT.length];
+    ctx.fillRect(0, 0, W, H);
+  }
+
   function drawBg(theme) {
     const def = TG.SPR.bg[theme.id];
     if (!def) {
@@ -226,6 +236,10 @@
         addFx('rainHit', e.x, GROUND - 2, 0.35);
         shake = Math.max(shake, 0.06);
         break;
+      case 'sapphire':
+        addFx('rubyPop', e.x, GROUND - 4, 0.8);
+        addText('+1', e.x, GROUND - 34, '#6ab0ff', true);
+        break;
       case 'ruby':
         addFx('rubyPop', e.x, GROUND - 4, 0.8);
         addText('+1', e.x, GROUND - 30, '#ff7a8a', true);
@@ -309,6 +323,7 @@
     ctx.clearRect(0, 0, W, H);
     if (shake > 0) ctx.translate(Math.round((Math.random() - 0.5) * 3), Math.round((Math.random() - 0.5) * 2));
     drawBg(theme);
+    phaseTint(game);
 
     /* 몬스터 (오른쪽부터 그려서 앞쪽이 위에 오게) */
     const mobs = [...game.mobs].sort((a, b) => b.x - a.x);

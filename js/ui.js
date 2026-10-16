@@ -238,9 +238,11 @@
     const game = ui.game;
     const th = game.theme();
     $('#stageNum').textContent = `스테이지 ${game.s.stage}`;
-    $('#stageSub').textContent = game.mode === 'chase' ? `추격전 · 남은 시간 ${Math.ceil(game.chaseT)}초 · 볼트 +${game.chaseGot}` : game.mode === 'mine' ? `광산 · 남은 시간 ${Math.ceil(game.mineT)}초 · 철광석 +${game.mineGot}` : game.mode === 'boss' ? `보스전 ${game.s.boss} · 남은 시간 ${Math.ceil(game.bossT)}초` : game.mode === 'defend' ? `방어전 ${game.defendLvl}단계 · 남은 시간 ${Math.ceil(game.defendT)}초 · 처치 ${game.defendKills}` : game.phase === 'run' ? `${th.name} · 다음 스테이지로` : `${th.name} · 웨이브 ${Math.max(1, game.wave)}/${P.waves}`;
+    $('#stageSub').textContent = game.mode === 'chase' ? `추격전 · 남은 시간 ${Math.ceil(game.chaseT)}초 · 볼트 +${game.chaseGot}` : game.mode === 'mine' ? `광산 · 남은 시간 ${Math.ceil(game.mineT)}초 · 철광석 +${game.mineGot}` : game.mode === 'boss' ? `보스전 ${game.s.boss} · 남은 시간 ${Math.ceil(game.bossT)}초` : game.mode === 'defend' ? `방어전 ${game.defendLvl}단계 · 남은 시간 ${Math.ceil(game.defendT)}초 · 처치 ${game.defendKills}` : game.phase === 'run' ? `${game.phaseNo}페이즈 · ${th.name} · 다음 스테이지로` : `${game.phaseNo}페이즈 · ${th.name} · 웨이브 ${Math.max(1, game.wave)}/${P.waves}`;
     $('#goldNum').textContent = TG.fmt(game.s.gold);
     $('#rubyNum').textContent = TG.fmt(game.s.ruby);
+    $('#sapBox').hidden = !game.s.stats.sapphire && !game.s.sapphire;
+    $('#sapNum').textContent = TG.fmt(game.s.sapphire);
     /* 스킬과 보스 버튼: 남은 대기 시간만큼 어둡게 덮는다 */
     const cdView = (btn, left, total, ready) => {
       const cd = btn.querySelector('.cd');
@@ -330,12 +332,13 @@
   ];
 
   /* ---- 강화 판 ---- */
-  const UP_ICON = { atk: 'atk', hp: 'hp', craft: 'craftLv', climb: 'climb', slots: 'slots', autoCraft: 'autoCraft', autoMerge: 'autoMerge', rAtk: 'atk', rGold: 'coin', skRain: 'skillRain', skRage: 'skillRage', autoSkill: 'autoSkill', monkey: 'monkey', hippo: 'hippo', awaken: 'awaken', bear: 'bear', dragon: 'dragon', skShadow: 'skillShadow', skBarrage: 'skillBarrage', autoShop: 'autoShop', pig: 'pig', mole: 'mole', skBolt: 'skillBolt', skDark: 'skillDark', carFuel: 'car', carGun: 'chase', carEngine: 'volt' };
+  const UP_ICON = { atk: 'atk', hp: 'hp', craft: 'craftLv', climb: 'climb', slots: 'slots', autoCraft: 'autoCraft', autoMerge: 'autoMerge', rAtk: 'atk', rGold: 'coin', skRain: 'skillRain', skRage: 'skillRage', autoSkill: 'autoSkill', monkey: 'monkey', hippo: 'hippo', awaken: 'awaken', bear: 'bear', dragon: 'dragon', skShadow: 'skillShadow', skBarrage: 'skillBarrage', autoShop: 'autoShop', pig: 'pig', mole: 'mole', skBolt: 'skillBolt', skDark: 'skillDark', carFuel: 'car', carGun: 'chase', carEngine: 'volt', fAtk: 'atk', fHp: 'hp' };
   const CUR = {
     gold: { icon: 'coin', cls: '', title: '골드 강화' },
     ruby: { icon: 'ruby', cls: 'ruby', title: '루비 강화 · 보스와 거대 몬스터에게서 얻어요' },
     shards: { icon: 'shard', cls: 'shard', title: '각성 · 합칠 때 얻는 조각으로 올려요 (상점과 같은 조각)' },
     volt: { icon: 'volt', cls: 'shard', title: '추격차 · 추격전에서 얻는 볼트로 올려요' },
+    sapphire: { icon: 'sapphire', cls: 'sapphire', title: '최종 강화' },
   };
   function buildUpgrades() {
     const body = $('#sheetBody');
@@ -346,8 +349,9 @@
       const cur = u.cur || 'gold';
       if (cur !== section) {
         section = cur;
-        body.append(el('p', { class: 'sec' }, cur === 'volt' ? [uiIcon('volt'), '추격차 · 볼트 ', el('b', { id: 'voltNum' }), '개'] : [uiIcon(CUR[cur].icon), CUR[cur].title]));
+        body.append(el('p', { class: 'sec' }, cur === 'volt' ? [uiIcon('volt'), '추격차 · 볼트 ', el('b', { id: 'voltNum' }), '개'] : cur === 'sapphire' ? [uiIcon('sapphire'), '최종 강화 · 사파이어 ', el('b', { id: 'sapSheetNum' }), '개'] : [uiIcon(CUR[cur].icon), CUR[cur].title]));
       }
+      if (cur === 'sapphire' && u.id === 'fAtk') body.append(el('p', { class: 'note', text: '몬스터를 잡을 때 아주 가끔 사파이어가 나와요. 거대 몬스터는 더 자주 떨어뜨려요. 최종 %는 다른 보너스를 다 더한 값에 곱해져요.' }));
       const btn = el('button', { type: 'button', 'data-id': u.id, class: CUR[cur].cls, onclick: () => buy(u.id) });
       body.append(
         el('div', { class: 'up', 'data-row': u.id }, [
@@ -362,6 +366,7 @@
   function refreshUpgrades() {
     const game = ui.game;
     if ($('#voltNum')) $('#voltNum').textContent = TG.fmt(game.s.volt);
+    if ($('#sapSheetNum')) $('#sapSheetNum').textContent = TG.fmt(game.s.sapphire);
     for (const u of TG.UPGRADES) {
       const row = document.querySelector(`[data-row="${u.id}"]`);
       if (!row) continue;
@@ -1453,7 +1458,7 @@
     document.addEventListener('visibilitychange', save);
     setInterval(save, 4000);
 
-    for (const [id, name] of [['goldIcon', 'coin'], ['craftIcon', 'craft'], ['upIcon', 'atk'], ['dexIcon', 'dex'], ['setIcon', 'stage'], ['countIcon', 'slots'], ['meAtkIcon', 'atk'], ['rubyIcon', 'ruby'], ['skRainIcon', 'skillRain'], ['skRageIcon', 'skillRage'], ['bossIcon', 'boss'], ['shopIcon', 'shop'], ['offIcon', 'offline'], ['petIcon', 'pets'], ['mineIcon', 'mine'], ['skShadowIcon', 'skillShadow'], ['skBarrageIcon', 'skillBarrage'], ['questIcon', 'quest'], ['skBoltIcon', 'skillBolt'], ['skDarkIcon', 'skillDark'], ['chaseIcon', 'chase'], ['abIcon', 'ability'], ['defendIcon', 'defend']]) {
+    for (const [id, name] of [['goldIcon', 'coin'], ['craftIcon', 'craft'], ['upIcon', 'atk'], ['dexIcon', 'dex'], ['setIcon', 'stage'], ['countIcon', 'slots'], ['meAtkIcon', 'atk'], ['rubyIcon', 'ruby'], ['sapIcon', 'sapphire'], ['skRainIcon', 'skillRain'], ['skRageIcon', 'skillRage'], ['bossIcon', 'boss'], ['shopIcon', 'shop'], ['offIcon', 'offline'], ['petIcon', 'pets'], ['mineIcon', 'mine'], ['skShadowIcon', 'skillShadow'], ['skBarrageIcon', 'skillBarrage'], ['questIcon', 'quest'], ['skBoltIcon', 'skillBolt'], ['skDarkIcon', 'skillDark'], ['chaseIcon', 'chase'], ['abIcon', 'ability'], ['defendIcon', 'defend']]) {
       const slot = document.getElementById(id);
       if (slot) slot.replaceWith(Object.assign(uiIcon(name), { id }));
     }
