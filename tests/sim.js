@@ -946,6 +946,28 @@ function testV13() {
     assert.strictEqual(TG.phaseOf(to + 1).p, p + 1);
   });
 }
+function testV14() {
+  /* 땅 첫 도착 선물: 닿아야 받고, 한 번만 받고, 저장에 남는다 */
+  const g = new TG.Game(null, seeded(140));
+  assert.strictEqual(g.landsReady(), 0);
+  assert.strictEqual(g.claimLand(2), null, '아직 안 갔다');
+  g.s.best = 300;
+  assert.strictEqual(TG.phaseOf(300).p, 4);
+  assert.strictEqual(g.landsReady(), 3, '2~4페이즈');
+  const r0 = g.s.ruby;
+  const s0 = g.s.sapphire;
+  const gift = g.claimLand(3);
+  assert.deepStrictEqual(gift, { ruby: TG.P.landRuby * 3, sapphire: TG.P.landSapphire * 3 });
+  assert.strictEqual(g.s.ruby, r0 + gift.ruby);
+  assert.strictEqual(g.s.sapphire, s0 + gift.sapphire);
+  assert.strictEqual(g.claimLand(3), null, '두 번은 안 된다');
+  assert.strictEqual(g.claimable >= 2, true);
+  const g2 = new TG.Game(JSON.parse(JSON.stringify(g.s)), seeded(141));
+  assert.strictEqual(g2.s.lands[3], true);
+  assert.strictEqual(g2.landReady(3), false);
+  assert.strictEqual(g2.landReady(2), true);
+  assert.strictEqual(g.landReady(13), false, '12페이즈까지만');
+}
 function testV12() {
   /* 150단계까지 이름이 있고, 150 을 둘 합치면 별이 붙는다 (151 = ★1) */
   assert.strictEqual(TG.ITEMS.length, 150);
@@ -1161,6 +1183,7 @@ if (process.argv.includes('--pace')) {
   testV11();
   testV12();
   testV13();
+  testV14();
   testStory();
   console.log('\nall tests passed');
 }

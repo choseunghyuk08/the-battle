@@ -703,6 +703,16 @@
     }
   }
 
+  function claimLand(p) {
+    if (ui.game.claimLand(p)) {
+      handleEvents();
+      refreshQuest();
+      if (ui.sheet === 'quest' && ui.questSeg === 'land') buildLands();
+      updateHud();
+      save();
+    }
+  }
+
   /* ---- 이야기: 대사창과 다시 보기 ---- */
   const story = { queue: [], cur: null, i: 0, t: 0, dur: 3 };
   ui.story = story; /* 시험용 */
@@ -815,6 +825,16 @@
     }
     return cv;
   }
+  function landGiftRow(p) {
+    const game = ui.game;
+    const g = game.landGift(p);
+    const got = !!game.s.lands[p];
+    const ready = game.landReady(p);
+    return el('div', { class: 'landgift' }, [
+      el('span', { text: `첫 도착 선물 · 루비 ${g.ruby}, 사파이어 ${g.sapphire}` }),
+      el('button', { type: 'button', text: got ? '받았어요' : '받기', ...(ready ? {} : { disabled: '' }), onclick: () => claimLand(p) }),
+    ]);
+  }
   function buildLands() {
     const game = ui.game;
     const here = TG.phaseOf(game.s.stage).p;
@@ -840,6 +860,7 @@
           el('div', { class: 'nm', text: `${p}페이즈 · ${th.name}` }),
           el('span', { class: 'bossst', text: state }),
           slot,
+          ...(p >= 2 ? [landGiftRow(p)] : []),
           el('div', { class: 'ln', text: `${TG.fmt(from)}~${TG.fmt(to)} 스테이지` }),
           mobs,
         ]),
@@ -1383,6 +1404,10 @@
           break;
         case 'claim':
           toast(null, `루비 +${e.ruby}`, '임무 보상이에요.');
+          break;
+        case 'land':
+          toast(null, `${e.p}페이즈 첫 도착 선물`, `루비 +${e.ruby}, 사파이어 +${e.sapphire}`);
+          sfx.discover();
           break;
         case 'shop':
           if (ui.sheet === 'shop') buildShop();

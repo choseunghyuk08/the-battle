@@ -542,3 +542,6 @@ button.back { appearance: none; width: 100%; border: 2px solid var(--line); back
 .landmobs .lm canvas { width: 100%; max-width: 64px; height: 44px; object-fit: contain; image-rendering: pixelated; }
 .sto.land .bossst { grid-row: 1; }
 .seg button { font-size: 13px; }
+.landgift { grid-column: 1 / span 2; display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.landgift button { appearance: none; border: 0; border-radius: 8px; padding: 6px 12px; font: inherit; font-size: 14px; background: var(--gold); box-shadow: 0 3px 0 #9a7a20; color: #2a1e06; cursor: pointer; }
+.landgift button:disabled { background: #3a3d63; color: var(--ink-3); box-shadow: none; }

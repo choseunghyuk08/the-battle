@@ -60,6 +60,8 @@
     gold0: 2,
     mergeGold: 0.5, // 합칠 때마다 이 스테이지 몬스터 한 마리 골드의 이만큼
     goldGrow: 1.046,
+    landRuby: 20, // 땅 첫 도착 선물: 페이즈 번호 x 이만큼 루비
+    landSapphire: 2, // 사파이어는 페이즈 번호 x 이만큼
     /* 공격력은 "합산 %" 를 한 데 더한 뒤, "최종 %" (사파이어) 를 따로 곱한다.
        공격력 = 던질 것 기본 x (1 + 골드% + 루비% + 유물% + 엔진% + 칭호%) x (1 + 최종%) */
     goldAtkPct: 0.1, // 골드 공격력 강화 1레벨
@@ -558,6 +560,7 @@
     defendTier: 0, // 방어전을 이긴 가장 높은 단계
     medals: 0, // 방어 메달 (방어전에서 얻고 코스튬을 산다)
     costumeBought: {}, // 메달로 산 코스튬
+    lands: {}, // 페이즈 번호 -> 첫 도착 선물을 받았는지
     abEquip: [], // 장착한 특수능력
     ore: 0, // 철광석 (광산에서 얻고 동료 진화에 쓴다)
     relics: {}, // 유물 id -> 레벨
@@ -618,6 +621,7 @@
         this.s.title = TG.TITLES.some((t) => t.id === save.title) ? save.title : 'base';
         this.s.costume = Math.max(0, Math.min(TG.COSTUMES.length - 1, Math.floor(Number(save.costume) || 0)));
         this.s.costumeBought = Object.fromEntries(Object.keys(TG.COSTUME_SHOP).filter((k) => (save.costumeBought || {})[k]).map((k) => [k, true]));
+        this.s.lands = Object.fromEntries(Object.keys(save.lands || {}).filter((k) => (save.lands || {})[k] && +k >= 2 && +k <= TG.THEMES.length).map((k) => [k, true]));
         const shop = save.shop && Array.isArray(save.shop.offers) ? save.shop : { offers: [], t: 0 };
         this.s.shop = { offers: shop.offers.filter((o) => o && o.tier >= 1 && o.tier <= P.tiers).map((o) => ({ tier: Math.floor(o.tier), sold: !!o.sold })), t: Number(shop.t) || 0 };
       } else {
@@ -1398,7 +1402,29 @@
       return st.ruby;
     }
     get claimable() {
-      return TG.ACHIEVE.filter((a) => this.achState(a.id).ready).length;
+      return TG.ACHIEVE.filter((a) => this.achState(a.id).ready).length + this.landsReady();
+    }
+
+    /* ---- 땅 첫 도착 선물: 2~12페이즈에 처음 닿으면 한 번만 ---- */
+    landGift(p) {
+      return { ruby: P.landRuby * p, sapphire: P.landSapphire * p };
+    }
+    landReady(p) {
+      return p >= 2 && p <= TG.THEMES.length && p <= TG.phaseOf(this.s.best).p && !this.s.lands[p];
+    }
+    landsReady() {
+      let n = 0;
+      for (let p = 2; p <= TG.THEMES.length; p++) if (this.landReady(p)) n++;
+      return n;
+    }
+    claimLand(p) {
+      if (!this.landReady(p)) return null;
+      const g = this.landGift(p);
+      this.s.lands[p] = true;
+      this.s.ruby += g.ruby;
+      this.s.sapphire += g.sapphire;
+      this.events.push({ type: 'land', p, ruby: g.ruby, sapphire: g.sapphire });
+      return g;
     }
 
     /* ---- 스킬 ---- */
