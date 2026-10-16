@@ -786,6 +786,67 @@ function testV08() {
   console.log('v0.8 ok');
 }
 
+function testV09() {
+  /* 아홉째 보스부터 맞은편 특성이 하나 더 붙는다 */
+  assert.strictEqual(TG.bossTrait2(8), null);
+  for (let k = 9; k <= 20; k++) {
+    const a = TG.bossTrait(k);
+    const b = TG.bossTrait2(k);
+    assert(a && b && a.id !== b.id, `보스 ${k}`);
+  }
+  const g = new TG.Game(null, seeded(100));
+  g.s.boss = 9;
+  g.s.board[0] = 5;
+  g.s.lv.hp = 500;
+  g.mode = 'boss';
+  g.startStage();
+  const boss = g.mobs[0];
+  assert(boss.trait && boss.trait2 && boss.trait !== boss.trait2);
+  const ev = g.events.find((e) => e.type === 'boss-start');
+  assert.strictEqual(ev.traits.length, 2);
+  boss.hp = boss.max = 1e12;
+  g.s.board.fill(0);
+  const seen = new Set();
+  for (let t = 0; t < 30; t += 0.05) {
+    g.tick(0.05);
+    for (const e of g.events) seen.add(e.type);
+    g.events.length = 0;
+  }
+  assert(boss.tT !== undefined && boss.tT2 !== undefined);
+  assert(seen.size > 0);
+
+  /* 방어 메달: 이기면 단계 x 2 + 처치 25마리마다 1, 코스튬을 산다 */
+  const d = new TG.Game(null, seeded(101));
+  d.s.stage = d.s.best = 50;
+  d.startStage();
+  d.s.board.fill(20, 0, 8);
+  d.s.lv.hp = 80;
+  d.s.lv.atk = 80;
+  assert(d.startDefend());
+  let end = null;
+  for (let t = 0; t < 60 && !end; t += 0.05) {
+    d.tick(0.05);
+    end = d.events.find((e) => e.type === 'defend-end') || null;
+    d.events.length = 0;
+  }
+  assert(end.win && end.medals >= 2 && d.s.medals === end.medals, `메달 ${end.medals}`);
+  assert.strictEqual(d.buyCostume(8), 'poor');
+  assert.strictEqual(d.costumeOpen(8), false);
+  d.s.medals = 100;
+  assert.strictEqual(d.buyCostume(3), 'none', '칭호 코스튬은 못 산다');
+  assert.strictEqual(d.buyCostume(8), 'ok');
+  assert.strictEqual(d.s.medals, 100 - TG.COSTUME_SHOP[8]);
+  assert(d.costumeOpen(8) && d.setCostume(8));
+  assert.strictEqual(d.buyCostume(8), 'none', '두 번은 못 산다');
+  const re = new TG.Game(JSON.parse(JSON.stringify(d.snapshot())), seeded(1));
+  assert.strictEqual(re.s.costume, 8);
+  assert(re.s.costumeBought[8] && re.s.medals === d.s.medals);
+  const bad = JSON.parse(JSON.stringify(d.snapshot()));
+  bad.costumeBought = {};
+  assert.strictEqual(new TG.Game(bad, seeded(1)).s.costume, 0, '안 산 코스튬은 되돌린다');
+  console.log('v0.9 ok');
+}
+
 function testStory() {
   /* 새 게임: 1장이 바로 나오고, 같은 장면은 한 번뿐이다 */
   const g = new TG.Game(null, seeded(61));
@@ -937,6 +998,7 @@ if (process.argv.includes('--pace')) {
   testV06();
   testV07();
   testV08();
+  testV09();
   testStory();
   console.log('\nall tests passed');
 }

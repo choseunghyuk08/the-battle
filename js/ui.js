@@ -7,9 +7,9 @@
   const ui = { game: null, drag: null, sheet: null, muted: false, storyOn: true, comicOpen: false };
 
   /* ---- 그림을 DOM 에 넣기 ---- */
-  function spriteCanvas(def, clip = null, frameIdx = 0) {
+  function spriteCanvas(def, clip = null, frameIdx = 0, palIdx = 0) {
     const pals = def.palettes || [def.palette || {}];
-    const c = TG.clip(def, clip || Object.keys(def.clips)[0], pals[0], 1, 'p0');
+    const c = TG.clip(def, clip || Object.keys(def.clips)[0], pals[palIdx % pals.length], 1, `p${palIdx % pals.length}`);
     const out = document.createElement('canvas');
     out.width = c.w;
     out.height = c.h;
@@ -293,7 +293,7 @@
     const f = game.front() || game.mobs[0];
     if (f) {
       const def = TG.SPR.mob[f.kind] || TG.SPR.mob.slime;
-      $('#foeName').textContent = f.tank ? `${def.name || '폭주 거북'} ${f.k + 1}번째 장갑` : f.ore ? `${def.name || '광석 바위'} ${f.k + 1}번째` : f.boss ? `보스 ${game.s.boss}: ${def.name || f.kind}${f.trait ? ` · ${TG.BOSS_TRAITS.find((x) => x.id === f.trait).name}` : ''}` : `${f.giant ? '거대 ' : ''}${def.name || f.kind} Lv.${game.s.stage}`;
+      $('#foeName').textContent = f.tank ? `${def.name || '폭주 거북'} ${f.k + 1}번째 장갑` : f.ore ? `${def.name || '광석 바위'} ${f.k + 1}번째` : f.boss ? `보스 ${game.s.boss}: ${def.name || f.kind}${f.trait ? ` · ${[f.trait, f.trait2].filter(Boolean).map((id) => TG.BOSS_TRAITS.find((x) => x.id === id).name).join('·')}` : ''}` : `${f.giant ? '거대 ' : ''}${def.name || f.kind} Lv.${game.s.stage}`;
       $('#foeHp').textContent = `${TG.fmt(Math.max(0, f.hp))}/${TG.fmt(f.max)}`;
       $('#foeHpBar').style.width = `${Math.max(0, Math.min(100, (f.hp / f.max) * 100))}%`;
       $('#foeAtk').textContent = f.ore || f.tank ? '-' : TG.fmt(f.atk);
@@ -626,7 +626,8 @@
     const seg = ui.questSeg || 'quest';
     return el('div', { class: 'seg' }, [
       el('button', { type: 'button', class: seg === 'quest' ? 'on' : '', text: '임무', onclick: () => { ui.questSeg = 'quest'; buildQuest(); } }),
-      el('button', { type: 'button', class: seg === 'dex' ? 'on' : '', text: '도감', onclick: () => { ui.questSeg = 'dex'; buildQuest(); } }),
+      el('button', { type: 'button', class: seg === 'dex' ? 'on' : '', text: '물건', onclick: () => { ui.questSeg = 'dex'; buildQuest(); } }),
+      el('button', { type: 'button', class: seg === 'boss' ? 'on' : '', text: '보스', onclick: () => { ui.questSeg = 'boss'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'title' ? 'on' : '', text: '칭호', onclick: () => { ui.questSeg = 'title'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'story' ? 'on' : '', text: '이야기', onclick: () => { ui.questSeg = 'story'; buildQuest(); } }),
     ]);
@@ -643,6 +644,10 @@
     }
     if (ui.questSeg === 'title') {
       buildTitles();
+      return;
+    }
+    if (ui.questSeg === 'boss') {
+      buildBossDex();
       return;
     }
     const list = el('div', {});
@@ -782,6 +787,26 @@
     });
     const found = game.s.seen.filter(Boolean).length;
     body.replaceChildren(questSeg(), el('p', { class: 'note', text: `찾은 물건 ${found}/${TG.ITEMS.length}. 같은 물건 둘을 합치면 다음 단계가 나와요.` }), grid);
+  }
+
+  /* ---- 보스 도감: 이긴 보스와 다음 보스 ---- */
+  function buildBossDex() {
+    const game = ui.game;
+    const list = el('div', {});
+    for (let k = game.s.boss; k >= 1; k--) {
+      const b = game.bossInfo(k);
+      const def = TG.SPR.mob[b.kind] || TG.SPR.mob.slime;
+      const beaten = k < game.s.boss;
+      const traits = [b.trait, b.trait2].filter(Boolean);
+      const cv = spriteCanvas(def, 'idle', 0, 2 + Math.floor(k / TG.THEMES.length));
+      list.append(
+        el('div', { class: `sto${beaten ? '' : ' next'}` }, [
+          el('div', { class: 'bossrow' }, [cv, el('div', {}, [el('div', { class: 'nm', text: `보스 ${k} · ${def.name || b.kind}` }), el('div', { class: 'ln', text: traits.length ? traits.map((t) => `${t.name}: ${t.desc}`).join(' / ') : '특성 없음' })])]),
+          el('span', { class: 'bossst', text: beaten ? `루비 ${b.ruby}` : '도전할 보스' }),
+        ]),
+      );
+    }
+    $('#sheetBody').replaceChildren(questSeg(), el('p', { class: 'note', text: `이긴 보스 ${game.s.boss - 1}명. 둘째 보스부터 특성이 붙고, 아홉째부터는 둘씩 붙어요.` }), list);
   }
 
   /* ---- 특수능력 ---- */
@@ -1039,11 +1064,22 @@
     TG.COSTUMES.forEach((name, i) => {
       const def = TG.SPR.hero.main;
       const cv = document.createElement('canvas');
-      const c = TG.clip(def, 'idle', def.palettes[i], 1, `p${i}`);
+      const pi = i < def.palettes.length ? i : 0;
+      const c = TG.clip(def, 'idle', def.palettes[pi], 1, `p${pi}`);
       cv.width = c.w;
       cv.height = c.h;
       cv.getContext('2d').drawImage(c.frames[0].canvas, 0, 0);
-      chips.append(el('button', { type: 'button', class: 'cs', 'data-cs': i, onclick: () => { if (game.setCostume(i)) { sfx.craft(); save(); refreshTitles(); } } }, [cv, el('small', { text: name })]));
+      chips.append(el('button', { type: 'button', class: 'cs', 'data-cs': i, onclick: () => {
+        if (game.costumeOpen(i)) {
+          if (game.setCostume(i)) { sfx.craft(); save(); refreshTitles(); }
+        } else if (TG.COSTUME_SHOP[i]) {
+          const r = game.buyCostume(i);
+          if (r === 'poor') toast(null, '메달이 모자라요', '방어전을 이기면 메달을 얻어요.');
+          handleEvents();
+          save();
+          refreshTitles();
+        }
+      } }, [cv, el('small', { text: name })]));
     });
     body.replaceChildren(questSeg(), el('p', { class: 'note', id: 'titleInfo' }), list, el('p', { class: 'sec' }, [uiIcon('costume'), ' 코스튬']), chips);
     refreshTitles();
@@ -1051,7 +1087,7 @@
   function refreshTitles() {
     const game = ui.game;
     if (!$('#titleInfo')) return;
-    $('#titleInfo').textContent = `칭호 ${game.titlesOwned}/${TG.TITLES.length}. 열린 칭호마다 모든 피해 +${Math.round(P.titleBonus * 100)}%예요. 고른 칭호는 내 이름 자리에 떠요.`;
+    $('#titleInfo').textContent = `칭호 ${game.titlesOwned}/${TG.TITLES.length}. 열린 칭호마다 모든 피해 +${Math.round(P.titleBonus * 100)}%예요. 고른 칭호는 내 이름 자리에 떠요. 방어 메달 ${game.s.medals}개로 코스튬을 살 수 있어요.`;
     for (const t of TG.TITLES) {
       const row = document.querySelector(`[data-title="${t.id}"]`);
       if (!row) continue;
@@ -1066,9 +1102,11 @@
     }
     document.querySelectorAll('[data-cs]').forEach((b) => {
       const i = Number(b.dataset.cs);
-      b.classList.toggle('none', !game.costumeOpen(i));
+      const open = game.costumeOpen(i);
+      b.classList.toggle('none', !open);
       b.classList.toggle('pick', game.s.costume === i);
-      b.disabled = !game.costumeOpen(i);
+      b.disabled = !open && !TG.COSTUME_SHOP[i];
+      b.querySelector('small').textContent = !open && TG.COSTUME_SHOP[i] ? `메달 ${TG.COSTUME_SHOP[i]}` : TG.COSTUMES[i];
     });
   }
 
@@ -1108,7 +1146,7 @@
   }
 
   /* ---- 판 열고 닫기 ---- */
-  const TITLES = { up: '강화', pet: '동료', ab: '능력', shop: '상점', quest: '임무·도감·칭호·이야기', set: '설정' };
+  const TITLES = { up: '강화', pet: '동료', ab: '능력', shop: '상점', quest: '임무와 도감', set: '설정' };
   function openSheet(kind) {
     if (ui.sheet === kind) {
       closeSheet();
@@ -1233,8 +1271,8 @@
           break;
         case 'boss-start': {
           const def = TG.SPR.mob[e.kind] || TG.SPR.mob.slime;
-          const tr = TG.BOSS_TRAITS.find((x) => x.id === e.trait);
-          toast(null, `보스전 ${e.boss}: ${def.name}`, tr ? `${tr.name}: ${tr.desc}. ${P.bossTime}초 안에 쓰러뜨려요.` : `${P.bossTime}초 안에 쓰러뜨려요.`);
+          const trs = e.traits.map((id) => TG.BOSS_TRAITS.find((x) => x.id === id));
+          toast(null, `보스전 ${e.boss}: ${def.name}`, trs.length ? `${trs.map((t) => `${t.name}: ${t.desc}`).join(' / ')}. ${P.bossTime}초 안에 쓰러뜨려요.` : `${P.bossTime}초 안에 쓰러뜨려요.`);
           sfx.discover();
           break;
         }
@@ -1243,8 +1281,8 @@
           sfx.discover();
           break;
         case 'defend-end':
-          if (e.win) toast(null, `방어전 ${e.lvl}단계 끝 · 루비 +${e.ruby}`, `${e.kills}마리를 막아냈어요. 골드 +${TG.fmt(e.gold)}`);
-          else toast(null, `방어전 ${e.lvl}단계 실패`, `${e.kills}마리까지 버텼어요. 루비 +${e.ruby}`);
+          if (e.win) toast(null, `방어전 ${e.lvl}단계 끝 · 루비 +${e.ruby}`, `${e.kills}마리를 막아냈어요. 골드 +${TG.fmt(e.gold)}, 메달 +${e.medals}`);
+          else toast(null, `방어전 ${e.lvl}단계 실패`, `${e.kills}마리까지 버텼어요. 루비 +${e.ruby}${e.medals ? `, 메달 +${e.medals}` : ''}`);
           break;
         case 'title': {
           const t = TG.TITLES.find((x) => x.id === e.id);
@@ -1252,6 +1290,10 @@
           sfx.discover();
           break;
         }
+        case 'costume':
+          toast(null, `코스튬 · ${TG.COSTUMES[e.i]}`, '칭호 탭에서 골라 입어요.');
+          sfx.discover();
+          break;
         case 'sk-star':
           toast(null, `${SKILL_NAME[e.id]} 각성 ${'★'.repeat(e.star)}`, '피해가 늘고 대기 시간이 줄었어요.');
           break;

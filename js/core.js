@@ -184,6 +184,10 @@
     defendTierHp: 1.18, // 방어전 단계마다 몬스터 체력과 공격력
     defendTierGap: 0.95, // 나오는 간격
     defendTierReward: 0.25, // 보상
+
+    /* v0.9 */
+    medalPerTier: 2, // 방어전을 이기면 단계 x 이만큼 메달
+    medalPerKills: 25, // 처치 이만큼마다 메달 1
   });
 
   P.mobHp = (n) => Math.round(P.mobHp0 * P.mobHpGrow ** (n - 1));
@@ -395,9 +399,12 @@
     { id: 'wall', name: '얼음 벽', desc: '앞에 벽을 세워 던진 것을 막아요' },
   ];
   TG.bossTrait = (k) => (k <= 1 ? null : TG.BOSS_TRAITS[(k - 2) % TG.BOSS_TRAITS.length]);
+  TG.bossTrait2 = (k) => (k < 9 ? null : TG.BOSS_TRAITS[(k - 2 + 3) % TG.BOSS_TRAITS.length]); /* 아홉째 보스부터 맞은편 특성이 하나 더 붙는다 */
 
   /* 코스튬: 주인공 색 묶음 번호 (js/spr_hero.js 의 palettes 와 순서가 같다) */
-  TG.COSTUMES = ['꼬마', '풀밭 조끼', '사냥꾼', '광부', '불꽃', '빙하', '수집가', '고요 망토'];
+  TG.COSTUMES = ['꼬마', '풀밭 조끼', '사냥꾼', '광부', '불꽃', '빙하', '수집가', '고요 망토', '여행자', '그림자', '황금', '무지개'];
+  /* 메달로 사는 코스튬: 번호 -> 값 (칭호로 열리지 않는다) */
+  TG.COSTUME_SHOP = { 8: 20, 9: 40, 10: 70, 11: 100 };
 
   /* 칭호: 조건을 채우면 열리고, 열린 칭호마다 모든 피해 +1%. costume 은 함께 열리는 코스튬 */
   TG.TITLES = [
@@ -504,6 +511,8 @@
     titleSeen: {}, // 알린 칭호
     defendCd: 0,
     defendTier: 0, // 방어전을 이긴 가장 높은 단계
+    medals: 0, // 방어 메달 (방어전에서 얻고 코스튬을 산다)
+    costumeBought: {}, // 메달로 산 코스튬
     abEquip: [], // 장착한 특수능력
     ore: 0, // 철광석 (광산에서 얻고 동료 진화에 쓴다)
     relics: {}, // 유물 id -> 레벨
@@ -545,7 +554,7 @@
         if (!hadStory) this.seedStory(save);
         this.s.gold = Math.max(0, Number(this.s.gold) || 0);
         this.s.charges = Math.max(0, Math.min(P.craftMax, Number(this.s.charges) || 0));
-        for (const k of ['ruby', 'shards', 'bossCd', 'ore', 'mineCd', 'volt', 'chaseCd', 'defendCd', 'defendTier']) this.s[k] = Math.max(0, Number(this.s[k]) || 0);
+        for (const k of ['ruby', 'shards', 'bossCd', 'ore', 'mineCd', 'volt', 'chaseCd', 'defendCd', 'defendTier', 'medals']) this.s[k] = Math.max(0, Number(this.s[k]) || 0);
         this.s.stars = Object.fromEntries(Object.keys(s.stars).map((k) => [k, Math.max(0, Math.min(P.evoCost.length, Math.floor(Number((save.stars || {})[k]) || 0)))]));
         this.s.boss = Math.max(1, Math.floor(this.s.boss) || 1);
         this.s.skillCd = Object.fromEntries(Object.keys(s.skillCd).map((k) => [k, Math.max(0, Number((save.skillCd || {})[k]) || 0)]));
@@ -562,6 +571,7 @@
         this.s.titleSeen = Object.fromEntries(Object.entries(save.titleSeen || {}).filter(([k, v]) => v && TG.TITLES.some((t) => t.id === k)));
         this.s.title = TG.TITLES.some((t) => t.id === save.title) ? save.title : 'base';
         this.s.costume = Math.max(0, Math.min(TG.COSTUMES.length - 1, Math.floor(Number(save.costume) || 0)));
+        this.s.costumeBought = Object.fromEntries(Object.keys(TG.COSTUME_SHOP).filter((k) => (save.costumeBought || {})[k]).map((k) => [k, true]));
         const shop = save.shop && Array.isArray(save.shop.offers) ? save.shop : { offers: [], t: 0 };
         this.s.shop = { offers: shop.offers.filter((o) => o && o.tier >= 1 && o.tier <= P.tiers).map((o) => ({ tier: Math.floor(o.tier), sold: !!o.sold })), t: Number(shop.t) || 0 };
       } else {
@@ -641,7 +651,16 @@
       return !!t && t.ok(this);
     }
     costumeOpen(i) {
-      return i === 0 || TG.TITLES.some((t) => t.costume === i && t.ok(this));
+      return i === 0 || !!this.s.costumeBought[i] || TG.TITLES.some((t) => t.costume === i && t.ok(this));
+    }
+    buyCostume(i) {
+      const cost = TG.COSTUME_SHOP[i];
+      if (!cost || this.costumeOpen(i)) return 'none';
+      if (this.s.medals < cost) return 'poor';
+      this.s.medals -= cost;
+      this.s.costumeBought[i] = true;
+      this.events.push({ type: 'costume', i });
+      return 'ok';
     }
     setTitle(id) {
       if (!this.titleOpen(id)) return false;
@@ -899,12 +918,13 @@
     bossInfo(k = this.s.boss) {
       const th = TG.THEMES[(k - 1) % TG.THEMES.length];
       const n = this.bossLevel(k);
-      return { kind: th.mobs[Math.floor((k - 1) / TG.THEMES.length) % th.mobs.length], n, hp: P.mobHp(n) * P.bossHpK, atk: P.mobAtk(n) * 3, ruby: 5 + 3 * k, theme: th, trait: TG.bossTrait(k) };
+      return { kind: th.mobs[Math.floor((k - 1) / TG.THEMES.length) % th.mobs.length], n, hp: P.mobHp(n) * P.bossHpK, atk: P.mobAtk(n) * 3, ruby: 5 + 3 * k, theme: th, trait: TG.bossTrait(k), trait2: TG.bossTrait2(k) };
     }
     spawnBoss() {
       const b = this.bossInfo();
-      this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind: b.kind, pal: 2 + Math.floor(this.s.boss / TG.THEMES.length), x: P.spawnX + 6, hp: b.hp, max: b.hp, atk: b.atk, giant: true, boss: true, trait: b.trait ? b.trait.id : null, tT: b.trait && b.trait.id === 'shield' ? P.bossShieldGap * 0.6 : b.trait && b.trait.id === 'charge' ? P.bossChargeGap * 0.5 : b.trait && b.trait.id === 'wall' ? P.bossWallGap * 0.5 : P.bossSummonGap * 0.5, state: 'walk', t: 0, atkT: 0, cd: 0, hurt: 0 });
-      this.events.push({ type: 'boss-start', boss: this.s.boss, kind: b.kind, trait: b.trait ? b.trait.id : null });
+      const tInit = (t) => (t ? (t.id === 'shield' ? P.bossShieldGap * 0.6 : t.id === 'charge' ? P.bossChargeGap * 0.5 : t.id === 'wall' ? P.bossWallGap * 0.5 : P.bossSummonGap * 0.5) : 0);
+      this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind: b.kind, pal: 2 + Math.floor(this.s.boss / TG.THEMES.length), x: P.spawnX + 6, hp: b.hp, max: b.hp, atk: b.atk, giant: true, boss: true, trait: b.trait ? b.trait.id : null, trait2: b.trait2 ? b.trait2.id : null, tT: tInit(b.trait), tT2: tInit(b.trait2), state: 'walk', t: 0, atkT: 0, cd: 0, hurt: 0 });
+      this.events.push({ type: 'boss-start', boss: this.s.boss, kind: b.kind, traits: [b.trait, b.trait2].filter(Boolean).map((t) => t.id) });
     }
     canBoss() {
       return this.mode === 'stage' && this.phase === 'fight' && this.s.bossCd <= 0;
@@ -949,10 +969,14 @@
     /* ---- 보스 특성: 소환, 방벽, 격노, 재생 ---- */
     bossTrait(m, dt) {
       if (m.shield > 0) m.shield -= dt;
-      if (m.trait === 'summon') {
-        m.tT -= dt;
-        if (m.tT <= 0) {
-          m.tT = P.bossSummonGap;
+      this.traitTick(m, m.trait, dt, 'tT');
+      if (m.trait2) this.traitTick(m, m.trait2, dt, 'tT2');
+    }
+    traitTick(m, id, dt, tk) {
+      if (id === 'summon') {
+        m[tk] -= dt;
+        if (m[tk] <= 0) {
+          m[tk] = P.bossSummonGap;
           /* 졸개는 보스 앞에 서고, 보스는 한 발 물러난다 */
           const base = this.s.lv.bear ? P.bearX + P.bearStop : P.heroX + P.mobRange;
           let alive = this.mobs.filter((x) => x.minion).length;
@@ -960,42 +984,42 @@
           m.x = Math.max(m.x, base + alive * P.mobSpace + 8);
           this.events.push({ type: 'summon', x: base });
         }
-      } else if (m.trait === 'shield') {
-        m.tT -= dt;
-        if (m.tT <= 0) {
-          m.tT = P.bossShieldGap;
+      } else if (id === 'shield') {
+        m[tk] -= dt;
+        if (m[tk] <= 0) {
+          m[tk] = P.bossShieldGap;
           m.shield = P.bossShieldTime;
           this.events.push({ type: 'shield', x: m.x });
         }
-      } else if (m.trait === 'enrage') {
+      } else if (id === 'enrage') {
         if (!m.enraged && m.hp < m.max * P.bossEnrageAt) {
           m.enraged = true;
           m.atk *= P.bossEnrageAtk;
           this.events.push({ type: 'enrage', x: m.x });
         }
-      } else if (m.trait === 'regen') {
+      } else if (id === 'regen') {
         m.hp = Math.min(m.max, m.hp + m.max * P.bossRegen * dt);
-      } else if (m.trait === 'wall') {
-        m.tT -= dt;
-        if (m.tT <= 0 && !this.mobs.some((x) => x.wall)) {
-          m.tT = P.bossWallGap;
+      } else if (id === 'wall') {
+        m[tk] -= dt;
+        if (m[tk] <= 0 && !this.mobs.some((x) => x.wall)) {
+          m[tk] = P.bossWallGap;
           const base = this.s.lv.bear ? P.bearX + P.bearStop : P.heroX + P.mobRange;
           const hp = m.max * P.bossWallHp;
           this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind: 'wall', pal: 0, x: base, hp, max: hp, atk: 0, giant: false, wall: true, state: 'idle', t: this.rng(), atkT: 0, cd: 99, hurt: 0 });
           m.x = Math.max(m.x, base + P.mobSpace + 10);
           this.events.push({ type: 'wall', x: base });
-        } else if (m.tT <= 0) m.tT = 1;
-      } else if (m.trait === 'charge') {
+        } else if (m[tk] <= 0) m[tk] = 1;
+      } else if (id === 'charge') {
         if (m.charge > 0) {
           if (m.st && m.st.stun > 0) {
             m.charge = 0;
-            m.tT = P.bossChargeGap * 0.6;
+            m[tk] = P.bossChargeGap * 0.6;
             this.events.push({ type: 'charge-cancel', x: m.x });
           } else {
             m.charge -= dt;
             if (m.charge <= 0) {
               m.charge = 0;
-              m.tT = P.bossChargeGap;
+              m[tk] = P.bossChargeGap;
               const dmg = this.bearHit(m.atk * P.bossChargeMult);
               this.hero.hp -= dmg;
               this.events.push({ type: 'hurt', dmg });
@@ -1004,8 +1028,8 @@
             }
           }
         } else if (m.x <= P.heroX + P.mobRange + 36) {
-          m.tT -= dt;
-          if (m.tT <= 0) {
+          m[tk] -= dt;
+          if (m[tk] <= 0) {
             m.charge = P.bossChargeTime;
             this.events.push({ type: 'charge-start', x: m.x });
           }
@@ -1050,11 +1074,13 @@
       this.s.ruby += ruby;
       this.s.gold += gold;
       this.s.defendCd = win ? P.defendCd : P.defendFailCd;
+      const medals = (win ? P.medalPerTier * this.defendLvl : 0) + Math.floor(kills / P.medalPerKills);
+      this.s.medals += medals;
       if (win) {
         this.s.stats.defends++;
         this.s.defendTier = Math.max(this.s.defendTier, this.defendLvl);
       }
-      this.events.push({ type: 'defend-end', win, kills, ruby, gold, lvl: this.defendLvl });
+      this.events.push({ type: 'defend-end', win, kills, ruby, gold, medals, lvl: this.defendLvl });
       this.proj = [];
       this.queue = [];
       this.pending = [];

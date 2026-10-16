@@ -518,3 +518,10 @@ button.back { appearance: none; width: 100%; border: 2px solid var(--line); back
 .cs.pick { border-color: var(--gold); color: var(--ink); }
 .cs.none canvas { filter: brightness(0) opacity(0.45); }
 .cs:disabled { cursor: default; }
+
+/* v0.9 */
+.bossrow { display: grid; grid-template-columns: 56px 1fr; gap: 8px; align-items: center; grid-column: 1; }
+.bossrow canvas { width: 56px; height: 44px; object-fit: contain; image-rendering: pixelated; }
+.sto .bossst { grid-row: 1 / span 2; grid-column: 2; font-size: 12px; color: var(--gold); text-align: right; }
+.sto.next { border-color: #c26bff; }
+.seg button { font-size: 14px; padding: 6px 2px; }

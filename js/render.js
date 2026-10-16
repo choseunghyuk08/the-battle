@@ -349,7 +349,7 @@
           ctx.fillStyle = `rgba(255,50,40,${0.15 + 0.15 * Math.sin(clock * 24)})`;
           ctx.fillRect(Math.round(m.x - def.w * 0.6), Math.round(GROUND - def.h * 1.8), Math.round(def.w * 1.2), Math.round(def.h * 1.8));
         }
-        if (m.trait === 'regen' && m.hp < m.max && !loopFx('bossHeal', m.x, GROUND, clock)) {
+        if ((m.trait === 'regen' || m.trait2 === 'regen') && m.hp < m.max && !loopFx('bossHeal', m.x, GROUND, clock)) {
           ctx.fillStyle = '#7dff8a';
           ctx.fillRect(Math.round(m.x + Math.sin(clock * 5) * 6), Math.round(GROUND - ((clock * 24) % 40)), 2, 2);
         }
