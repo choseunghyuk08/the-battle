@@ -63,14 +63,15 @@
     /* 사파이어 트리: 한 단계(레벨)마다 오르는 양 */
     sDoubleStep: 0.005, // 더블샷 확률
     sGiantStep: 0.04, // 거대·보스 피해
-    sGuardStep: 0.01, // 받는 피해 감소 (최대 50%)
+    sGuardStep: 0.015, // 받는 피해 감소 (최대 50%)
+    sGuardHp: 0.03, // 단단한 껍질: 최대 체력 (최종 % 쪽에 더한다)
     sRegenStep: 0.001, // 처치할 때 체력 회복 (최대 체력 비율)
-    sGoldStep: 0.04, // 골드
+    sGoldStep: 0.03, // 골드
     sRubyStep: 0.03, // 루비 획득
     sSapStep: 0.03, // 사파이어 드롭
-    sSpeedStep: 0.005, // 던지는 속도
-    sCraftStep: 0.02, // 제작 충전 속도
-    sSkillStep: 0.01, // 스킬 대기 시간 감소
+    sSpeedStep: 0.01, // 던지는 속도
+    sCraftStep: 0.03, // 제작 충전 속도
+    sSkillStep: 0.015, // 스킬 대기 시간 감소
     treeNeed: 5, // 다음 칸이 열리려면 앞 칸이 이 레벨
     towerOpen: 100, // 끝없는 탑이 열리는 최고 스테이지
     towerFree: 1, // 하루에 공짜로 오르는 횟수
@@ -552,7 +553,7 @@
     { id: 'sDouble', cur: 'sapphire', branch: '일격', name: '겹치기', req: ['fAtk', 5], max: 30, cost: (L) => (L >= 30 ? null : Math.ceil(3 * 1.13 ** L)), desc: (L) => `더블샷 확률 +${pct(P.sDoubleStep * L)}` },
     { id: 'sGiant', cur: 'sapphire', branch: '일격', name: '거인 잡이', req: ['sDouble', 5], max: 25, cost: (L) => (L >= 25 ? null : Math.ceil(6 * 1.14 ** L)), desc: (L) => `거대 몬스터와 보스에게 피해 +${pct(P.sGiantStep * L)}` },
     { id: 'fHp', cur: 'sapphire', branch: '철벽', name: '최종 체력', max: 9999, cost: (L) => Math.ceil(1.5 * 1.12 ** L), desc: (L) => `다른 보너스를 다 더한 값에 곱해서 +${pct(P.sapHpPct * L)}` },
-    { id: 'sGuard', cur: 'sapphire', branch: '철벽', name: '단단한 껍질', req: ['fHp', 5], max: 30, cost: (L) => (L >= 30 ? null : Math.ceil(3 * 1.13 ** L)), desc: (L) => `받는 피해 -${pct(Math.min(0.5, P.sGuardStep * L))}` },
+    { id: 'sGuard', cur: 'sapphire', branch: '철벽', name: '단단한 껍질', req: ['fHp', 5], max: 30, cost: (L) => (L >= 30 ? null : Math.ceil(3 * 1.13 ** L)), desc: (L) => `받는 피해 -${pct(Math.min(0.5, P.sGuardStep * L))}, 최종 체력 +${pct(P.sGuardHp * L)}` },
     { id: 'sRegen', cur: 'sapphire', branch: '철벽', name: '숨 고르기', req: ['sGuard', 5], max: 30, cost: (L) => (L >= 30 ? null : Math.ceil(6 * 1.14 ** L)), desc: (L) => `몬스터를 쓰러뜨릴 때마다 체력 +${pct(P.sRegenStep * L)}` },
     { id: 'sGold', cur: 'sapphire', branch: '재물', name: '두둑한 주머니', max: 100, cost: (L) => (L >= 100 ? null : Math.ceil(1.5 * 1.12 ** L)), desc: (L) => `골드 +${pct(P.sGoldStep * L)}` },
     { id: 'sRuby', cur: 'sapphire', branch: '재물', name: '붉은 눈', req: ['sGold', 5], max: 50, cost: (L) => (L >= 50 ? null : Math.ceil(3 * 1.13 ** L)), desc: (L) => `루비 획득 +${pct(P.sRubyStep * L)}` },
@@ -854,7 +855,7 @@
       return P.abSlotsAt.filter((x) => this.s.best >= x).length;
     }
     get maxHp() {
-      return Math.round(P.hpBase * (1 + P.goldHpPct * this.s.lv.hp + this.rv('bandage') + this.setPct('hp')) * (1 + P.sapHpPct * this.s.lv.fHp));
+      return Math.round(P.hpBase * (1 + P.goldHpPct * this.s.lv.hp + this.rv('bandage') + this.setPct('hp')) * (1 + P.sapHpPct * this.s.lv.fHp + P.sGuardHp * this.s.lv.sGuard));
     }
     /* 유물 효과 값 (없으면 0) */
     rv(id) {

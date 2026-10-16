@@ -1121,7 +1121,8 @@ function testV21() {
   for (let i = 0; i < 5; i++) g.buy('fHp');
   for (let i = 0; i < 10; i++) g.buy('sGuard');
   g.mode = 'stage';
-  assert(Math.abs(g.bearHit(100) - 90) < 1e-9, '받는 피해 -10%');
+  assert(Math.abs(g.bearHit(100) - 100 * (1 - 10 * TG.P.sGuardStep)) < 1e-9, '받는 피해 -15%');
+  assert(g.maxHp > new TG.Game(null, seeded(1)).maxHp * (1 + TG.P.sGuardHp * 9), '체력도 오른다');
   const cd0 = g.skillCdOf('rain');
   for (let i = 0; i < 5; i++) g.buy('sSpeed');
   for (let i = 0; i < 5; i++) g.buy('sCraft');
