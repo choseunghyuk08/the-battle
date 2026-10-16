@@ -359,7 +359,7 @@
     if (live && ext > 0.6) spark(b, 17.2, 2.6, 1, '#fff2c0');
   }
 
-  /* ---- 24 전설의 검: 은빛 날, 금 십자 손잡이와 푸른 보석. 뒤에서 성스러운 빛줄기가 돌고 날의 룬이 빛난다 ---- */
+  /* ---- 24 뽑힌 검: 은빛 날, 금 십자 손잡이와 푸른 보석. 뒤에서 성스러운 빛줄기가 돌고 날의 룬이 빛난다 ---- */
   function legendSword(b, ph, live) {
     const pulse = live ? 0.5 + 0.5 * Math.cos(ph * TAU) : 0.8;
     const rot = (live ? ph : 0) * 45;
