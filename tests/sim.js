@@ -974,6 +974,23 @@ function testV14() {
   assert.strictEqual(g2.landReady(2), true);
   assert.strictEqual(g.landReady(13), false, '12페이즈까지만');
 }
+function testV18() {
+  /* 저장 코드: 되돌리면 같은 진행이고, 깨진 코드는 거른다 */
+  const g = new TG.Game(null, seeded(180));
+  g.s.gold = 12345;
+  g.s.stage = 77;
+  g.s.best = 90;
+  g.s.board[0] = 5;
+  const code = TG.saveCode.encode(g.snapshot());
+  assert(/^MD1\.[0-9a-z]+\.[A-Za-z0-9_-]+$/.test(code));
+  const back = TG.saveCode.decode(`  ${code.slice(0, 20)}\n${code.slice(20)} `);
+  assert.deepStrictEqual(back, g.snapshot());
+  assert.strictEqual(new TG.Game(back, seeded(181)).s.stage, 77);
+  assert.strictEqual(TG.saveCode.decode(code.slice(0, -3) + 'AAA'), null, '검사값이 다르면 거부');
+  assert.strictEqual(TG.saveCode.decode('abc'), null);
+  assert.strictEqual(TG.saveCode.decode(''), null);
+  assert.strictEqual(TG.saveCode.decode('MD1.0.'), null);
+}
 function testV12() {
   /* 150단계까지 이름이 있고, 150 을 둘 합치면 별이 붙는다 (151 = ★1) */
   assert.strictEqual(TG.ITEMS.length, 150);
@@ -1190,6 +1207,7 @@ if (process.argv.includes('--pace')) {
   testV12();
   testV13();
   testV14();
+  testV18();
   testStory();
   console.log('\nall tests passed');
 }

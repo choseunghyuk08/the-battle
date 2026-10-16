@@ -1208,8 +1208,48 @@
       game.s.lv.autoSkill ? el('div', { class: 'row' }, ['자동 스킬', el('button', { type: 'button', text: game.s.autoSkillOn ? '끄기' : '켜기', onclick: () => { game.s.autoSkillOn = !game.s.autoSkillOn; save(); buildSettings(); } })]) : null,
       el('div', { class: 'row' }, [`최고 스테이지 ${game.s.best} · 쓰러짐 ${game.s.stats.deaths}회 · 합치기 ${TG.fmt(game.s.stats.merges)}회`]),
       el('div', { class: 'row' }, ['처음부터 다시', el('button', { type: 'button', class: 'danger', text: ui.resetArm ? '정말 지우기' : '세이브 지우기', onclick: resetSave })]),
+      saveCodeBlock(),
       el('p', { class: 'note', text: '진행은 이 브라우저에 자동으로 저장돼요. 필드에서 같은 물건을 끌어다 겹치면 합쳐져요. 필드가 가득 차면 새 물건은 가장 낮은 단계로 들어가요.' }),
     );
+  }
+  /* 저장 코드: 복사해 두면 다른 기기에서 불러올 수 있다 */
+  function saveCodeBlock() {
+    const area = el('textarea', { class: 'codebox', rows: '3', placeholder: '여기에 코드를 붙여 넣어요', spellcheck: 'false' });
+    return el('div', { class: 'codeblock' }, [
+      el('p', { class: 'sec', text: '저장 코드' }),
+      el('p', { class: 'note', text: '코드를 복사해 두면 다른 기기나 브라우저에서 이어서 할 수 있어요. 불러오면 지금 진행은 사라져요.' }),
+      area,
+      el('div', { class: 'row' }, [
+        el('button', { type: 'button', text: '코드 복사', onclick: () => copyCode(area) }),
+        el('button', { type: 'button', class: 'danger', text: '불러오기', onclick: () => importCode(area.value) }),
+      ]),
+    ]);
+  }
+  function copyCode(area) {
+    const code = TG.saveCode.encode(ui.game.snapshot());
+    area.value = code;
+    area.select();
+    let ok = false;
+    try {
+      if (g.navigator && g.navigator.clipboard) {
+        g.navigator.clipboard.writeText(code);
+        ok = true;
+      } else ok = document.execCommand('copy');
+    } catch {
+      ok = false;
+    }
+    toast(null, ok ? '복사했어요' : '코드가 칸에 나왔어요', ok ? '다른 기기에서 불러오기에 붙여 넣어요.' : '칸을 길게 눌러 직접 복사해요.');
+  }
+  function importCode(text) {
+    const st = TG.saveCode.decode(text);
+    if (!st) {
+      toast(null, '코드가 올바르지 않아요', '복사한 코드를 끝까지 붙여 넣었는지 봐요.');
+      return;
+    }
+    ui.game = new TG.Game(st);
+    save();
+    closeSheet();
+    toast(null, '불러왔어요', `스테이지 ${ui.game.s.stage}에서 이어서 해요.`);
   }
   function resetSave() {
     if (!ui.resetArm) {

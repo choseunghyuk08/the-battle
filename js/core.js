@@ -2182,6 +2182,36 @@
     }
   }
 
+  /* 저장 코드: 진행 상황을 글자 한 줄로 바꾸고 되돌린다. 앞머리 + 검사값 + 본문 */
+  const CODE_HEAD = 'MD1';
+  const codeSum = (str) => {
+    let h = 0x811c9dc5;
+    for (let i = 0; i < str.length; i++) h = Math.imul(h ^ str.charCodeAt(i), 0x01000193) >>> 0;
+    return h.toString(36);
+  };
+  TG.saveCode = {
+    encode(state) {
+      const bytes = new TextEncoder().encode(JSON.stringify(state));
+      let bin = '';
+      for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+      const body = btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+      return `${CODE_HEAD}.${codeSum(body)}.${body}`;
+    },
+    /* 성공하면 상태 객체, 아니면 null */
+    decode(code) {
+      try {
+        const [head, sum, body] = String(code).trim().replace(/\s+/g, '').split('.');
+        if (head !== CODE_HEAD || !body || sum !== codeSum(body)) return null;
+        const bin = atob(body.replace(/-/g, '+').replace(/_/g, '/'));
+        const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+        const st = JSON.parse(new TextDecoder().decode(bytes));
+        return st && st.v === 1 && typeof st === 'object' ? st : null;
+      } catch {
+        return null;
+      }
+    },
+  };
+
   TG.Game = Game;
   TG.SKILLS = ['rain', 'rage', 'shadow', 'barrage', 'bolt', 'dark'];
   TG.roundFix = roundFix;
