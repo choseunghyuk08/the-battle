@@ -258,6 +258,7 @@
     b.restore();
   }
 
+  const BASE_PAL = { skin: '#f4c9a3', hair: '#3b2a2a', band: '#e8473c', shirt: '#3f8fd6', shorts: '#2b3655', shoe: '#efe6d6', sole: '#8a6b4f', bag: '#c79a5b', pencil: '#f2c94c', lead: '#3a3030', metal: '#c7d0d8', ink: '#1d1620', blush: '#f08a8a', mouth: '#9a2f3a' };
   TG.SPR.hero = {
     main: {
       id: 'hero.main',
@@ -268,8 +269,16 @@
       clips: { idle: 8, throw: 8, reload: 6, hurt: 4, die: 8, win: 8, run: 8 },
       /* 던지는 순간 (throw 동작에서 물건이 손을 떠나는 위치, 0..1) */
       release: 0.4,
+      /* 0 은 기본, 나머지는 코스튬 (TG.COSTUMES 와 순서가 같다) */
       palettes: [
-        { skin: '#f4c9a3', hair: '#3b2a2a', band: '#e8473c', shirt: '#3f8fd6', shorts: '#2b3655', shoe: '#efe6d6', sole: '#8a6b4f', bag: '#c79a5b', pencil: '#f2c94c', lead: '#3a3030', metal: '#c7d0d8', ink: '#1d1620', blush: '#f08a8a', mouth: '#9a2f3a' },
+        BASE_PAL,
+        { ...BASE_PAL, shirt: '#58b45a', band: '#f2c94c', shorts: '#4a3b2a' },
+        { ...BASE_PAL, shirt: '#e0762f', band: '#2b2f4a', shorts: '#3a2b2b', bag: '#8a5a3a' },
+        { ...BASE_PAL, shirt: '#8c96a3', band: '#f2c94c', shorts: '#4a4f5a', shoe: '#c9b27a' },
+        { ...BASE_PAL, shirt: '#c8392e', band: '#ffcf4a', shorts: '#2b1f2b', hair: '#2a1a1a', shoe: '#e0a35a' },
+        { ...BASE_PAL, shirt: '#9fd8ff', band: '#ffffff', shorts: '#3b5a8a', shoe: '#ffffff', bag: '#8aa7c9' },
+        { ...BASE_PAL, shirt: '#7a5cff', band: '#ffd45a', shorts: '#2b2450', bag: '#d9a441', shoe: '#ffe9a0' },
+        { ...BASE_PAL, shirt: '#6b6480', band: '#c9c4d9', shorts: '#2b2a38', hair: '#d6d2e6', shoe: '#9a94b0', bag: '#4a4560' },
       ],
       draw,
       pose,

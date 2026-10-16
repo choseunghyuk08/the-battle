@@ -488,6 +488,192 @@ function testV06() {
   console.log('v0.6 ok');
 }
 
+function testV07() {
+  /* 방어전: 최고 스테이지 40부터, 시간을 버티면 루비, 쓰러지면 절반 */
+  const d = new TG.Game(null, seeded(70));
+  assert.strictEqual(d.startDefend(), false, '처음엔 잠김');
+  d.s.stage = d.s.best = 50;
+  d.startStage();
+  d.s.board.fill(20, 0, 8);
+  d.s.lv.hp = 60;
+  d.s.lv.atk = 60;
+  assert(d.startDefend());
+  assert.strictEqual(d.mode, 'defend');
+  let maxMobs = 0;
+  let end = null;
+  for (let t = 0; t < 60 && !end; t += 0.05) {
+    d.tick(0.05);
+    maxMobs = Math.max(maxMobs, d.mobs.length);
+    end = d.events.find((e) => e.type === 'defend-end') || null;
+    d.events.length = 0;
+  }
+  assert(end && end.win, '버티면 이긴다');
+  assert(end.kills > 20 && end.ruby > 0, `처치 ${end.kills} 루비 ${end.ruby}`);
+  assert(maxMobs <= TG.P.defendCap + 1);
+  assert.strictEqual(d.mode, 'stage');
+  assert(d.s.defendCd > 0 && d.s.stats.defends === 1);
+  assert.strictEqual(d.canDefend(), false, '다시 하기까지 기다린다');
+  /* 약하면 쓰러지고 스테이지는 그대로 */
+  const w = new TG.Game(null, seeded(71));
+  w.s.stage = w.s.best = 120;
+  w.startStage();
+  w.s.board[0] = 1;
+  assert(w.startDefend());
+  let lose = null;
+  for (let t = 0; t < 60 && !lose; t += 0.05) {
+    w.tick(0.05);
+    lose = w.events.find((e) => e.type === 'defend-end') || null;
+    w.events.length = 0;
+  }
+  assert(lose && !lose.win, '약하면 진다');
+  for (let t = 0; t < 8; t += 0.05) w.tick(0.05);
+  assert.strictEqual(w.s.stage, 120, '방어전에서 져도 스테이지는 안 내려간다');
+
+  /* 보스 특성: 첫 보스는 없고 이후 네 가지가 돌아간다 */
+  assert.strictEqual(TG.bossTrait(1), null);
+  assert.deepStrictEqual([2, 3, 4, 5, 6].map((k) => TG.bossTrait(k).id), ['summon', 'shield', 'enrage', 'regen', 'summon']);
+  const mkBoss = (k) => {
+    const b = new TG.Game(null, seeded(72 + k));
+    b.s.boss = k;
+    b.s.board[0] = 5;
+    b.s.lv.hp = 400;
+    b.mode = 'boss';
+    b.startStage();
+    return b;
+  };
+  /* 소환: 졸개가 나오고 보스는 뒤로 물러난다 */
+  const sm = mkBoss(2);
+  const boss = sm.mobs[0];
+  boss.hp = boss.max = 1e12;
+  sm.s.board.fill(0);
+  let summoned = 0;
+  for (let t = 0; t < 12; t += 0.05) {
+    sm.tick(0.05);
+    summoned += sm.events.filter((e) => e.type === 'summon').length;
+    sm.events.length = 0;
+  }
+  assert(summoned >= 1 && sm.mobs.some((m) => m.minion), '졸개를 부른다');
+  assert(sm.mobs.filter((m) => m.minion).length <= TG.P.bossSummonCap);
+  const front = sm.front();
+  assert(front.minion, '졸개가 보스 앞에 선다');
+  /* 방벽: 켜져 있으면 피해가 거의 안 들어간다 */
+  const sh = mkBoss(3);
+  const sb = sh.mobs[0];
+  sb.shield = 2;
+  sb.hp = sb.max = 1000;
+  sh.hitMob(sb, 100);
+  assert(Math.abs(sb.hp - (1000 - 100 * TG.P.bossShieldCut)) < 1e-6, '방벽 피해');
+  sb.shield = 0;
+  sh.hitMob(sb, 100);
+  assert(sb.hp < 1000 - 100 * TG.P.bossShieldCut - 99);
+  /* 격노: 체력이 절반 아래면 공격이 세진다 */
+  const en = mkBoss(4);
+  const eb = en.mobs[0];
+  const atk0 = eb.atk;
+  eb.hp = eb.max * 0.4;
+  en.s.board.fill(0);
+  en.tick(0.05);
+  assert(eb.enraged && eb.atk > atk0 * 1.5);
+  /* 재생: 체력이 차오른다 */
+  const rg = mkBoss(5);
+  const rb = rg.mobs[0];
+  rb.hp = rb.max * 0.5;
+  rg.s.board.fill(0);
+  for (let t = 0; t < 5; t += 0.05) rg.tick(0.05);
+  assert(rb.hp > rb.max * 0.5, '재생');
+
+  /* 각인: 칸은 최고 스테이지가 열고, 조각을 내고, 그 물건이 맞을 때만 터진다 */
+  const e = new TG.Game(null, seeded(80));
+  e.s.seen[5] = e.s.seen[9] = true;
+  e.s.ab.stun = 3;
+  e.s.shards = 1e6;
+  assert.strictEqual(e.engrave(0, 5, 'stun'), 'slot', '칸이 안 열렸다');
+  e.s.best = 30;
+  assert.strictEqual(e.engSlots, 1);
+  assert.strictEqual(e.engrave(0, 9, 'knock'), 'none', '배우지 않은 능력');
+  assert.strictEqual(e.engrave(0, 3, 'stun'), 'none', '못 본 물건');
+  const sh0 = e.s.shards;
+  assert.strictEqual(e.engrave(0, 5, 'stun'), 'ok');
+  assert.strictEqual(sh0 - e.s.shards, TG.P.engCost(5));
+  assert.strictEqual(e.s.stats.engraves, 1);
+  const re = new TG.Game(JSON.parse(JSON.stringify(e.snapshot())), seeded(1));
+  assert.deepStrictEqual(re.s.eng[0], { tier: 5, id: 'stun' });
+  e.s.ab.stun = 20;
+  let ep = 0;
+  let other = 0;
+  for (let n = 0; n < 400; n++) {
+    e.mobs = [];
+    e.spawnMob(false);
+    const m = e.mobs[0];
+    m.hp = m.max = 1e12;
+    e.events.length = 0;
+    e.hitMob(m, 1, { tier: 5, proc: true });
+    ep += e.events.filter((x) => x.type === 'proc' && x.eng).length;
+    e.events.length = 0;
+    e.hitMob(m, 1, { tier: 6, proc: true });
+    other += e.events.filter((x) => x.type === 'proc').length;
+  }
+  assert(ep > 20, `각인 ${ep}`);
+  assert.strictEqual(other, 0, '다른 물건은 안 터진다');
+  assert(e.unengrave(0));
+
+  /* 스킬 각성: 스킬 레벨이 모자라면 안 되고, 별마다 피해가 늘고 대기 시간이 준다 */
+  const k = new TG.Game(null, seeded(81));
+  k.s.shards = 1e6;
+  k.s.lv.skRain = 5;
+  assert.strictEqual(k.awakenSkill('rain'), 'lv');
+  k.s.lv.skRain = 10;
+  const cd0 = k.skillCdOf('rain');
+  assert.strictEqual(k.awakenSkill('rain'), 'ok');
+  assert(k.skillCdOf('rain') < cd0);
+  assert(k.starMult('rain') > 1.3);
+  assert.strictEqual(k.awakenSkill('rain'), 'lv', '둘째 별은 레벨 25부터');
+  k.s.lv.skRain = 40;
+  assert.strictEqual(k.awakenSkill('rain'), 'ok');
+  assert.strictEqual(k.awakenSkill('rain'), 'ok');
+  assert.strictEqual(k.awakenSkill('rain'), 'max');
+  assert.strictEqual(new TG.Game(JSON.parse(JSON.stringify(k.snapshot())), seeded(1)).s.skStar.rain, 3);
+
+  /* 유물 합성: 최고 레벨 유물에 다른 유물 레벨을 넣어 별을 올린다 */
+  const r = new TG.Game(null, seeded(82));
+  r.s.ruby = 1e6;
+  r.s.relics = { glove: 10, clover: 8, bandage: 5 };
+  const v0 = r.rv('glove');
+  assert.strictEqual(r.relicFuse('clover', 'glove'), 'lv', '최고 레벨만');
+  assert.strictEqual(r.relicFuse('glove', 'bandage'), 'fodder', '재료는 6레벨 이상');
+  assert.strictEqual(r.relicFuse('glove', 'clover'), 'ok');
+  assert.strictEqual(r.s.relics.clover, 3);
+  assert(Math.abs(r.rv('glove') - v0 * 1.5) < 1e-9, '별 하나 +50%');
+  assert.strictEqual(r.s.relicStar.glove, 1);
+  const rr = new TG.Game(JSON.parse(JSON.stringify(r.snapshot())), seeded(1));
+  assert.strictEqual(rr.s.relicStar.glove, 1);
+
+  /* 칭호와 코스튬: 조건을 채우면 열리고, 칭호마다 피해 +1% */
+  const t = new TG.Game(null, seeded(83));
+  assert.strictEqual(t.titlesOwned, 1);
+  assert.strictEqual(t.setTitle('forest'), false);
+  assert.strictEqual(t.setCostume(4), false);
+  const m1 = t.atkMult;
+  t.s.best = 50;
+  t.s.stats.kills = 500;
+  for (let n = 0; n < 25; n++) t.tick(0.05);
+  assert(t.events.some((x) => x.type === 'title' && x.id === 'forest'), '새 칭호 알림');
+  assert(t.titlesOwned >= 3);
+  assert(t.atkMult > m1 * 1.02);
+  assert(t.setTitle('forest') && t.s.title === 'forest');
+  assert(t.setCostume(4) && t.s.costume === 4, '불꽃 칭호가 코스튬을 연다');
+  const tr = new TG.Game(JSON.parse(JSON.stringify(t.snapshot())), seeded(1));
+  assert.strictEqual(tr.s.title, 'forest');
+  assert.strictEqual(tr.s.costume, 4);
+  const bad = JSON.parse(JSON.stringify(t.snapshot()));
+  bad.costume = 7;
+  bad.title = 'lord';
+  const bg = new TG.Game(bad, seeded(1));
+  assert.strictEqual(bg.s.costume, 0, '못 연 코스튬은 되돌린다');
+  assert.strictEqual(bg.s.title, 'base');
+  console.log('v0.7 ok');
+}
+
 function testStory() {
   /* 새 게임: 1장이 바로 나오고, 같은 장면은 한 번뿐이다 */
   const g = new TG.Game(null, seeded(61));
@@ -637,6 +823,7 @@ if (process.argv.includes('--pace')) {
   testV04();
   testV05();
   testV06();
+  testV07();
   testStory();
   console.log('\nall tests passed');
 }

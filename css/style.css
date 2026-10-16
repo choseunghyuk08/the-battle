@@ -375,14 +375,14 @@ button { font-family: inherit; color: inherit; }
 .tab { font-size: 13px; padding: 5px 2px 4px; gap: 1px; flex-direction: column; }
 .bar { flex-direction: column; }
 .skills { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
-.acts { display: grid; grid-template-columns: 52px 52px 52px minmax(0, 1fr); gap: 5px; align-items: stretch; }
+.acts { display: grid; grid-template-columns: repeat(4, 46px) minmax(0, 1fr); gap: 5px; align-items: stretch; }
 .acts .skill { width: auto; }
 .skill.chase.ready { border-color: #ffb13a; box-shadow: 0 0 10px #ffb13a55; }
 .skills .skill { width: auto; min-height: 46px; }
 .bar .craft { flex: none; min-height: 46px; }
 .acts .craft { min-width: 0; }
 .acts .craft .face { font-size: 15px; gap: 3px; }
-.seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
+.seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 6px; margin-bottom: 8px; }
 .seg button { appearance: none; border: 2px solid var(--line); background: var(--panel-2); color: var(--ink-2); border-radius: 8px; padding: 6px; font: inherit; font-size: 15px; cursor: pointer; }
 .seg button.on { border-color: var(--gold); color: var(--ink); }
 .pull { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin: 4px 0 8px; }
@@ -490,3 +490,31 @@ button { font-family: inherit; color: inherit; }
 .sto button { grid-row: 1 / span 2; grid-column: 2; appearance: none; border: 0; border-radius: 8px; padding: 7px 12px; font: inherit; font-size: 14px; background: var(--gold); box-shadow: 0 3px 0 #9a7a20; color: #2a1e06; cursor: pointer; }
 .sto.none { opacity: 0.45; }
 .sto.none button { display: none; }
+
+/* v0.7 */
+.skill.defend.ready { border-color: #ff9a6a; box-shadow: 0 0 10px #ff9a6a55; }
+.eng { display: grid; gap: 6px; background: var(--panel-2); border: 2px solid var(--line); border-radius: 10px; padding: 8px; margin-bottom: 6px; }
+.eng.on { border-color: var(--gold); }
+.eng.locked { opacity: 0.55; }
+.eng .nm { font-size: 15px; }
+.eng .nm small { color: var(--gold); margin-left: 6px; font-size: 12px; }
+.eng .ds { font-size: 12px; color: var(--ink-2); }
+.eng .row2 { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 6px; }
+.eng select { appearance: none; background: var(--panel); color: var(--ink); border: 2px solid var(--line); border-radius: 8px; padding: 6px; font: inherit; font-size: 13px; min-width: 0; }
+.eng .btns { display: grid; grid-template-columns: 1fr auto; gap: 6px; }
+.eng .btns button { appearance: none; border: 0; border-radius: 8px; padding: 7px 8px; font: inherit; font-size: 14px; background: #ff7a8a; box-shadow: 0 2px 0 #9a3040; color: #2a0a10; display: flex; align-items: center; justify-content: center; gap: 4px; cursor: pointer; }
+.eng .btns button.eq { background: #3a3d63; color: var(--ink); box-shadow: none; }
+.eng .btns button:disabled { background: #3a3d63; color: var(--ink-3); box-shadow: none; }
+.relic .fz { appearance: none; border: 0; border-radius: 6px; padding: 3px 8px; margin-top: 3px; font: inherit; font-size: 12px; background: var(--gold); color: #2a1e06; cursor: pointer; }
+.relic .fz:disabled { background: #3a3d63; color: var(--ink-3); }
+.fuse { margin-bottom: 8px; }
+button.back { appearance: none; width: 100%; border: 2px solid var(--line); background: var(--panel-2); color: var(--ink-2); border-radius: 8px; padding: 8px; font: inherit; font-size: 15px; cursor: pointer; }
+.sto.pick { border-color: var(--gold); }
+.sto button:disabled { background: #3a3d63; color: var(--ink-3); box-shadow: none; }
+.costumes { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.cs { appearance: none; display: grid; justify-items: center; gap: 2px; background: var(--panel-2); border: 2px solid var(--line); border-radius: 8px; padding: 6px 2px; color: var(--ink-2); font: inherit; cursor: pointer; }
+.cs canvas { image-rendering: pixelated; width: 58px; height: auto; }
+.cs small { font-size: 11px; }
+.cs.pick { border-color: var(--gold); color: var(--ink); }
+.cs.none canvas { filter: brightness(0) opacity(0.45); }
+.cs:disabled { cursor: default; }

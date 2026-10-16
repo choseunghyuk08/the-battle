@@ -262,6 +262,7 @@
         addText(`+${TG.fmt(e.gold)}`, e.x, GROUND - 38, '#ffcf4a', false);
         break;
       case 'proc':
+        if (e.eng) addFx('engraveHit', e.x, GROUND - 22, 0.4);
         if (e.id === 'chain') addFx('boltStrike', e.x, GROUND, 0.25);
         else if (e.id === 'blast') addFx('fireBurst', e.x, GROUND - 2, 0.4);
         break;
@@ -274,6 +275,14 @@
         break;
       case 'shadow-end':
         addFx('shadowPuff', P.heroX - P.shadowX, GROUND, 0.6);
+        break;
+      case 'summon':
+        addFx('summonPuff', e.x, GROUND, 0.5);
+        shake = Math.max(shake, 0.1);
+        break;
+      case 'shield':
+      case 'enrage':
+        shake = Math.max(shake, e.type === 'enrage' ? 0.3 : 0.1);
         break;
       case 'boss-start':
         addFx('bossWarn', W / 2, H / 2 - 10, 1.0);
@@ -316,6 +325,24 @@
       else if (m.state === 'walk') r = frame(def, 'walk', m.pal, S, { time: m.t, fps: m.tank ? 16 : 11 });
       else r = frame(def, 'idle', m.pal, S, { time: m.t, fps: 6 });
       put(r.fr, r.c, m.x, GROUND, m.hurt > 0.1);
+      /* 보스 특성 표시 */
+      if (m.boss) {
+        if (m.shield > 0 && !loopFx('bossShield', m.x, GROUND, clock)) {
+          ctx.strokeStyle = 'rgba(120,190,255,0.7)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.ellipse(m.x, GROUND - def.h * 0.8, def.w * 0.7, def.h * 0.95, 0, 0, Math.PI * 2);
+          ctx.stroke();
+        }
+        if (m.enraged && !loopFx('bossRage', m.x, GROUND, clock)) {
+          ctx.fillStyle = 'rgba(255,60,40,0.2)';
+          ctx.fillRect(Math.round(m.x - def.w * 0.6), Math.round(GROUND - def.h * 1.8), Math.round(def.w * 1.2), Math.round(def.h * 1.8));
+        }
+        if (m.trait === 'regen' && m.hp < m.max && !loopFx('bossHeal', m.x, GROUND, clock)) {
+          ctx.fillStyle = '#7dff8a';
+          ctx.fillRect(Math.round(m.x + Math.sin(clock * 5) * 6), Math.round(GROUND - ((clock * 24) % 40)), 2, 2);
+        }
+      }
       /* 상태 이상 표시 */
       const st = m.st;
       if (st) {
@@ -401,7 +428,8 @@
     const hero = TG.SPR.hero.main;
     const a = game.hero.act;
     const loops = { idle: 6, reload: 9, win: 11, run: 13 };
-    const hr = loops[a.kind] ? frame(hero, a.kind, 0, 1, { time: a.t, fps: loops[a.kind] }) : frame(hero, a.kind, 0, 1, { progress: Math.min(0.999, a.t / a.dur) });
+    const cs = game.s.costume || 0;
+    const hr = loops[a.kind] ? frame(hero, a.kind, cs, 1, { time: a.t, fps: loops[a.kind] }) : frame(hero, a.kind, cs, 1, { progress: Math.min(0.999, a.t / a.dur) });
     const chasing = game.mode === 'chase';
     let hy = chasing ? GROUND - CAR_H : GROUND;
     let hx = P.heroX;

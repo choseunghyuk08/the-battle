@@ -141,6 +141,38 @@
     darkTime: 8,
     abSlotsAt: [0, 60, 150], // 특수능력 칸이 열리는 최고 스테이지
     abMax: 20,
+
+    /* v0.7 */
+    defendOpen: 40, // 방어전이 열리는 최고 스테이지
+    defendTime: 45, // 버텨야 하는 시간
+    defendCd: 480, // 이기고 나서 다시 하기까지
+    defendFailCd: 120, // 지고 나서
+    defendRanks: 3, // 동시에 때리는 몬스터 수
+    defendCap: 14, // 한 번에 필드에 있는 몬스터 수
+    defendGap0: 0.9, // 몬스터가 나오는 간격 (처음 -> 끝)
+    defendGap1: 0.3,
+    defendGiantEvery: 12,
+    defendKillsPerRuby: 8,
+    bossSummonGap: 6, // 보스 소환 간격
+    bossSummonN: 2,
+    bossSummonCap: 4, // 졸개가 동시에 있을 수 있는 수
+    bossShieldGap: 9,
+    bossShieldTime: 3,
+    bossShieldCut: 0.2, // 방벽이 켜져 있으면 피해가 이만큼만 들어간다
+    bossEnrageAt: 0.5, // 체력이 이 비율 아래면 격노
+    bossEnrageAtk: 1.8,
+    bossRegen: 0.008, // 재생: 초당 최대 체력의 이만큼
+    engSlotsAt: [20, 80, 160], // 각인 칸이 열리는 최고 스테이지
+    engMult: 2.2, // 각인한 물건이 맞을 때 능력 확률 배율
+    engCost: (t) => Math.ceil(12 * 1.13 ** t), // 조각
+    skStarLv: [10, 25, 40], // 스킬 각성 별이 열리는 스킬 레벨
+    skStarCost: [300, 1500, 6000], // 조각
+    skStarCd: 0.08, // 별 하나당 대기 시간 감소
+    relicStarMax: 3,
+    relicStarBonus: 0.5, // 별 하나당 유물 효과 증가
+    relicFuseCost: [200, 500, 1000], // 루비
+    relicFuseFodder: 5, // 재료 유물이 내려가는 레벨
+    titleBonus: 0.01, // 칭호 하나당 모든 피해
   });
 
   P.mobHp = (n) => Math.round(P.mobHp0 * P.mobHpGrow ** (n - 1));
@@ -342,6 +374,35 @@
   );
   const pct = (x) => `${Math.round(x * 1000) / 10}%`;
 
+  /* 보스 특성 (v0.7): 첫 보스는 없고, 둘째부터 네 가지가 돌아가며 붙는다 */
+  TG.BOSS_TRAITS = [
+    { id: 'summon', name: '소환', desc: '몇 초마다 졸개를 불러요' },
+    { id: 'shield', name: '방벽', desc: '가끔 피해를 거의 막아요' },
+    { id: 'enrage', name: '격노', desc: '체력이 절반 아래면 더 세게 때려요' },
+    { id: 'regen', name: '재생', desc: '체력이 조금씩 차올라요' },
+  ];
+  TG.bossTrait = (k) => (k <= 1 ? null : TG.BOSS_TRAITS[(k - 2) % TG.BOSS_TRAITS.length]);
+
+  /* 코스튬: 주인공 색 묶음 번호 (js/spr_hero.js 의 palettes 와 순서가 같다) */
+  TG.COSTUMES = ['꼬마', '풀밭 조끼', '사냥꾼', '광부', '불꽃', '빙하', '수집가', '고요 망토'];
+
+  /* 칭호: 조건을 채우면 열리고, 열린 칭호마다 모든 피해 +1%. costume 은 함께 열리는 코스튬 */
+  TG.TITLES = [
+    { id: 'base', name: '들판의 꼬마', cond: '처음부터', ok: () => true, costume: 0 },
+    { id: 'kills', name: '풀밭 청소부', cond: '몬스터 200마리', ok: (g) => g.s.stats.kills >= 200, costume: 1 },
+    { id: 'forest', name: '숲 나그네', cond: '스테이지 15', ok: (g) => g.s.best >= 15 },
+    { id: 'boss3', name: '문지기 사냥꾼', cond: '보스 3번 승리', ok: (g) => g.s.boss > 3, costume: 2 },
+    { id: 'ore', name: '곡괭이 친구', cond: '철광석 300개', ok: (g) => g.s.stats.ore >= 300, costume: 3 },
+    { id: 'fire', name: '불꽃 던지기', cond: '스테이지 50', ok: (g) => g.s.best >= 50, costume: 4 },
+    { id: 'pets', name: '든든한 일행', cond: '동료 6명 모두', ok: (g) => ['monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole'].every((k) => g.s.lv[k] > 0) },
+    { id: 'relics', name: '손때 수집가', cond: '유물 10종', ok: (g) => Object.keys(g.s.relics).length >= 10, costume: 6 },
+    { id: 'defend', name: '방패막이', cond: '방어전 3번 승리', ok: (g) => g.s.stats.defends >= 3 },
+    { id: 'star', name: '번개의 손', cond: '스킬 각성 별 3개', ok: (g) => Object.values(g.s.skStar).reduce((a, b) => a + b, 0) >= 3 },
+    { id: 'engrave', name: '새기는 사람', cond: '각인 3칸 모두', ok: (g) => g.s.eng.filter(Boolean).length >= 3 },
+    { id: 'ice', name: '빙하 건너기', cond: '스테이지 120', ok: (g) => g.s.best >= 120, costume: 5 },
+    { id: 'lord', name: '고요 깬 이', cond: '스테이지 240', ok: (g) => g.s.best >= 240, costume: 7 },
+  ];
+
   /* 강화 목록. cost(L) 은 L 레벨에서 L+1 레벨로 올리는 값이고, 끝이면 null */
   const AUTO_COST = [100, 300, 900, 2700, 8100];
   const AUTO_COST2 = [200, 600, 1800, 5400, 16200];
@@ -421,6 +482,13 @@
     volt: 0, // 볼트 (추격전에서 얻고 차를 키운다)
     chaseCd: 0,
     ab: {}, // 특수능력 id -> 레벨
+    eng: [], // 각인: [{ tier, id }] 칸마다 (비면 null)
+    skStar: { rain: 0, rage: 0, shadow: 0, barrage: 0, bolt: 0, dark: 0 }, // 스킬 각성 별
+    relicStar: {}, // 유물 합성 별
+    title: 'base', // 고른 칭호
+    costume: 0, // 고른 코스튬
+    titleSeen: {}, // 알린 칭호
+    defendCd: 0,
     abEquip: [], // 장착한 특수능력
     ore: 0, // 철광석 (광산에서 얻고 동료 진화에 쓴다)
     relics: {}, // 유물 id -> 레벨
@@ -437,7 +505,7 @@
     shop: { offers: [], t: 0 },
     charges: P.craftMax,
     seen: new Array(P.tiers + 1).fill(false),
-    stats: { kills: 0, deaths: 0, merges: 0, crafts: 0, play: 0, ore: 0, pulls: 0, volt: 0 },
+    stats: { kills: 0, deaths: 0, merges: 0, crafts: 0, play: 0, ore: 0, pulls: 0, volt: 0, defends: 0, engraves: 0, fuses: 0 },
   });
 
   class Game {
@@ -462,7 +530,7 @@
         if (!hadStory) this.seedStory(save);
         this.s.gold = Math.max(0, Number(this.s.gold) || 0);
         this.s.charges = Math.max(0, Math.min(P.craftMax, Number(this.s.charges) || 0));
-        for (const k of ['ruby', 'shards', 'bossCd', 'ore', 'mineCd', 'volt', 'chaseCd']) this.s[k] = Math.max(0, Number(this.s[k]) || 0);
+        for (const k of ['ruby', 'shards', 'bossCd', 'ore', 'mineCd', 'volt', 'chaseCd', 'defendCd']) this.s[k] = Math.max(0, Number(this.s[k]) || 0);
         this.s.stars = Object.fromEntries(Object.keys(s.stars).map((k) => [k, Math.max(0, Math.min(P.evoCost.length, Math.floor(Number((save.stars || {})[k]) || 0)))]));
         this.s.boss = Math.max(1, Math.floor(this.s.boss) || 1);
         this.s.skillCd = Object.fromEntries(Object.keys(s.skillCd).map((k) => [k, Math.max(0, Number((save.skillCd || {})[k]) || 0)]));
@@ -470,14 +538,27 @@
         this.s.ab = Object.fromEntries(TG.ABILITIES.map((a) => [a.id, Math.max(0, Math.min(P.abMax, Math.floor(Number((save.ab || {})[a.id]) || 0)))]).filter(([, L]) => L > 0));
         this.s.abEquip = (Array.isArray(save.abEquip) ? save.abEquip : []).filter((id, i, arr) => this.s.ab[id] && arr.indexOf(id) === i);
         this.s.ach = Object.fromEntries(TG.ACHIEVE.map((a) => [a.id, Math.max(0, Math.min(a.goals.length, Math.floor(Number((save.ach || {})[a.id]) || 0)))]));
+        this.s.skStar = Object.fromEntries(Object.keys(s.skStar).map((k) => [k, Math.max(0, Math.min(P.skStarLv.length, Math.floor(Number((save.skStar || {})[k]) || 0)))]));
+        this.s.relicStar = Object.fromEntries(TG.RELICS.map((r) => [r.id, Math.max(0, Math.min(P.relicStarMax, Math.floor(Number((save.relicStar || {})[r.id]) || 0)))]).filter(([id, v]) => v > 0 && this.s.relics[id] === P.relicMax));
+        this.s.eng = P.engSlotsAt.map((_, i) => {
+          const e = (Array.isArray(save.eng) ? save.eng : [])[i];
+          return e && e.tier >= 1 && e.tier <= P.tiers && AB_BY[e.id] && this.s.ab[e.id] ? { tier: Math.floor(e.tier), id: e.id } : null;
+        });
+        this.s.titleSeen = Object.fromEntries(Object.entries(save.titleSeen || {}).filter(([k, v]) => v && TG.TITLES.some((t) => t.id === k)));
+        this.s.title = TG.TITLES.some((t) => t.id === save.title) ? save.title : 'base';
+        this.s.costume = Math.max(0, Math.min(TG.COSTUMES.length - 1, Math.floor(Number(save.costume) || 0)));
         const shop = save.shop && Array.isArray(save.shop.offers) ? save.shop : { offers: [], t: 0 };
         this.s.shop = { offers: shop.offers.filter((o) => o && o.tier >= 1 && o.tier <= P.tiers).map((o) => ({ tier: Math.floor(o.tier), sold: !!o.sold })), t: Number(shop.t) || 0 };
       } else {
         this.s = s;
       }
       for (let i = 0; i < P.maxSlots; i++) if (!this.s.pos[i]) this.s.pos[i] = this.freeSpot(i);
+      this.refreshTitles(true);
+      if (!this.titleOpen(this.s.title)) this.s.title = 'base';
+      if (!this.costumeOpen(this.s.costume)) this.s.costume = 0;
       this.autoCraftT = 0;
       this.autoMergeT = 0;
+      this.titleT = 0;
       this.mode = 'stage';
       this.rageT = 0;
       this.rain = null;
@@ -525,7 +606,40 @@
       return P.slotsStart + this.s.lv.slots;
     }
     get atkMult() {
-      return P.atkUp ** this.s.lv.atk * 1.15 ** this.s.lv.rAtk * (1 + this.rv('glove')) * (1 + this.rv('crown')) * 1.02 ** this.s.lv.carEngine;
+      return P.atkUp ** this.s.lv.atk * 1.15 ** this.s.lv.rAtk * (1 + this.rv('glove')) * (1 + this.rv('crown')) * 1.02 ** this.s.lv.carEngine * (1 + P.titleBonus * this.titlesOwned);
+    }
+    get titlesOwned() {
+      return this.titleCount;
+    }
+    /* 칭호가 새로 열렸는지 본다 (조용히 하면 알림 없이 본 것으로 친다) */
+    refreshTitles(silent = false) {
+      const have = TG.TITLES.filter((t) => t.ok(this));
+      this.titleCount = have.length;
+      for (const t of have) {
+        if (this.s.titleSeen[t.id]) continue;
+        this.s.titleSeen[t.id] = true;
+        if (!silent) this.events.push({ type: 'title', id: t.id });
+      }
+    }
+    titleOpen(id) {
+      const t = TG.TITLES.find((x) => x.id === id);
+      return !!t && t.ok(this);
+    }
+    costumeOpen(i) {
+      return i === 0 || TG.TITLES.some((t) => t.costume === i && t.ok(this));
+    }
+    setTitle(id) {
+      if (!this.titleOpen(id)) return false;
+      this.s.title = id;
+      return true;
+    }
+    setCostume(i) {
+      if (!this.costumeOpen(i)) return false;
+      this.s.costume = i;
+      return true;
+    }
+    get engSlots() {
+      return P.engSlotsAt.filter((x) => this.s.best >= x).length;
     }
     get goldMult() {
       return 1 + 0.15 * this.s.lv.rGold + this.rv('clover') + (this.s.lv.pig ? PET.pigGold(this.s.lv.pig, this.s.stars.pig) : 0);
@@ -539,7 +653,7 @@
     /* 유물 효과 값 (없으면 0) */
     rv(id) {
       const L = this.s.relics[id] || 0;
-      return L ? RELIC_BY[id].v(L) : 0;
+      return L ? RELIC_BY[id].v(L) * (1 + P.relicStarBonus * (this.s.relicStar[id] || 0)) : 0;
     }
     autoGap(L) {
       return AUTO_GAP[L] * (1 - this.rv('gear'));
@@ -743,6 +857,15 @@
         this.story('chase1');
         return;
       }
+      if (this.mode === 'defend') {
+        this.wave = P.waves;
+        this.defendT = P.defendTime;
+        this.defendKills = 0;
+        this.defendN = 0;
+        this.defendSpawnT = 0.6;
+        this.events.push({ type: 'defend-start' });
+        return;
+      }
       if (this.mode === 'boss') {
         this.wave = P.waves;
         this.bossT = P.bossTime;
@@ -760,12 +883,12 @@
     bossInfo(k = this.s.boss) {
       const th = TG.THEMES[(k - 1) % TG.THEMES.length];
       const n = this.bossLevel(k);
-      return { kind: th.mobs[Math.floor((k - 1) / TG.THEMES.length) % th.mobs.length], n, hp: P.mobHp(n) * P.bossHpK, atk: P.mobAtk(n) * 3, ruby: 5 + 3 * k, theme: th };
+      return { kind: th.mobs[Math.floor((k - 1) / TG.THEMES.length) % th.mobs.length], n, hp: P.mobHp(n) * P.bossHpK, atk: P.mobAtk(n) * 3, ruby: 5 + 3 * k, theme: th, trait: TG.bossTrait(k) };
     }
     spawnBoss() {
       const b = this.bossInfo();
-      this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind: b.kind, pal: 2 + Math.floor(this.s.boss / TG.THEMES.length), x: P.spawnX + 6, hp: b.hp, max: b.hp, atk: b.atk, giant: true, boss: true, state: 'walk', t: 0, atkT: 0, cd: 0, hurt: 0 });
-      this.events.push({ type: 'boss-start', boss: this.s.boss, kind: b.kind });
+      this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind: b.kind, pal: 2 + Math.floor(this.s.boss / TG.THEMES.length), x: P.spawnX + 6, hp: b.hp, max: b.hp, atk: b.atk, giant: true, boss: true, trait: b.trait ? b.trait.id : null, tT: b.trait && b.trait.id === 'shield' ? P.bossShieldGap * 0.6 : P.bossSummonGap * 0.5, state: 'walk', t: 0, atkT: 0, cd: 0, hurt: 0 });
+      this.events.push({ type: 'boss-start', boss: this.s.boss, kind: b.kind, trait: b.trait ? b.trait.id : null });
     }
     canBoss() {
       return this.mode === 'stage' && this.phase === 'fight' && this.s.bossCd <= 0;
@@ -805,6 +928,97 @@
         this.act('die', P.deadTime * 0.6);
       }
       this.mode = 'stage';
+    }
+
+    /* ---- 보스 특성: 소환, 방벽, 격노, 재생 ---- */
+    bossTrait(m, dt) {
+      if (m.shield > 0) m.shield -= dt;
+      if (m.trait === 'summon') {
+        m.tT -= dt;
+        if (m.tT <= 0) {
+          m.tT = P.bossSummonGap;
+          /* 졸개는 보스 앞에 서고, 보스는 한 발 물러난다 */
+          const base = this.s.lv.bear ? P.bearX + P.bearStop : P.heroX + P.mobRange;
+          let alive = this.mobs.filter((x) => x.minion).length;
+          for (let k = 0; k < P.bossSummonN && alive < P.bossSummonCap; k++) this.spawnMinion(base + alive++ * P.mobSpace);
+          m.x = Math.max(m.x, base + alive * P.mobSpace + 8);
+          this.events.push({ type: 'summon', x: base });
+        }
+      } else if (m.trait === 'shield') {
+        m.tT -= dt;
+        if (m.tT <= 0) {
+          m.tT = P.bossShieldGap;
+          m.shield = P.bossShieldTime;
+          this.events.push({ type: 'shield', x: m.x });
+        }
+      } else if (m.trait === 'enrage') {
+        if (!m.enraged && m.hp < m.max * P.bossEnrageAt) {
+          m.enraged = true;
+          m.atk *= P.bossEnrageAtk;
+          this.events.push({ type: 'enrage', x: m.x });
+        }
+      } else if (m.trait === 'regen') {
+        m.hp = Math.min(m.max, m.hp + m.max * P.bossRegen * dt);
+      }
+    }
+    spawnMinion(x) {
+      const n = this.bossLevel();
+      const th = this.bossInfo().theme;
+      const kind = th.mobs[Math.floor(this.rng() * th.mobs.length)];
+      const hp = P.mobHp(n) * 0.5;
+      this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind, pal: this.variant(), x, hp, max: hp, atk: P.mobAtk(n), giant: false, minion: true, state: 'walk', t: this.rng(), atkT: 0, cd: 0, hurt: 0 });
+    }
+
+    /* ---- 방어전: 몰려오는 몬스터를 제한 시간 동안 버틴다. 여럿이 한꺼번에 때린다 ---- */
+    canDefend() {
+      return this.mode === 'stage' && this.phase === 'fight' && this.s.defendCd <= 0 && this.s.best >= P.defendOpen;
+    }
+    startDefend() {
+      if (!this.canDefend()) return false;
+      this.mode = 'defend';
+      this.startStage();
+      return true;
+    }
+    tickDefend(dt) {
+      this.defendT -= dt;
+      if (this.defendT <= 0) {
+        this.defendEnd(true);
+        return;
+      }
+      this.defendSpawnT -= dt;
+      if (this.defendSpawnT > 0 || this.mobs.length >= P.defendCap) return;
+      const p = 1 - this.defendT / P.defendTime;
+      this.defendSpawnT = P.defendGap0 + (P.defendGap1 - P.defendGap0) * p;
+      this.spawnMob(++this.defendN % P.defendGiantEvery === 0);
+    }
+    defendEnd(win) {
+      const kills = this.defendKills;
+      const ruby = Math.round((kills / P.defendKillsPerRuby) * (win ? 1 : 0.5) * (1 + this.rv('ring')));
+      const gold = win ? Math.ceil(P.mobGold(this.s.stage) * kills * 0.5 * this.goldMult) : 0;
+      this.s.ruby += ruby;
+      this.s.gold += gold;
+      this.s.defendCd = win ? P.defendCd : P.defendFailCd;
+      if (win) this.s.stats.defends++;
+      this.events.push({ type: 'defend-end', win, kills, ruby, gold });
+      this.proj = [];
+      this.queue = [];
+      this.pending = [];
+      this.bananas = [];
+      this.fires = [];
+      this.petQ = [];
+      this.mobs = [];
+      this.mode = 'stage';
+      if (win) {
+        this.nextStage = this.s.stage;
+        this.phase = 'win';
+        this.phaseT = P.winTime;
+        this.act('win', P.winTime);
+      } else {
+        this.noPenalty = true;
+        this.phase = 'dead';
+        this.phaseT = P.deadTime;
+        this.act('die', P.deadTime * 0.6);
+      }
     }
 
     /* ---- 광산: 늘어선 바위를 제한 시간 동안 부숴 철광석을 모은다. 몬스터가 없어서 다치지 않는다 ---- */
@@ -921,6 +1135,73 @@
       if (m.hp <= 0) this.killMob(m);
     }
 
+    /* ---- 각인: 물건 한 종류에 능력을 새긴다. 그 물건이 맞을 때 그 능력이 더 자주 터진다 ---- */
+    engrave(slot, tier, id) {
+      if (slot < 0 || slot >= this.engSlots) return 'slot';
+      if (!this.s.seen[tier] || !this.s.ab[id]) return 'none';
+      const cost = P.engCost(tier);
+      if (this.s.shards < cost) return 'poor';
+      this.s.shards -= cost;
+      this.s.eng[slot] = { tier, id };
+      this.s.stats.engraves++;
+      this.events.push({ type: 'engrave', slot, tier, id });
+      return 'ok';
+    }
+    unengrave(slot) {
+      if (!this.s.eng[slot]) return false;
+      this.s.eng[slot] = null;
+      return true;
+    }
+    procEngraved(m, dmg, tier) {
+      for (let i = 0; i < this.engSlots; i++) {
+        const e = this.s.eng[i];
+        if (!e || e.tier !== tier) continue;
+        const L = this.s.ab[e.id] || 0;
+        const a = AB_BY[e.id];
+        if (!L || m.ore || m.tank || !this.mobs.includes(m) || this.rng() >= Math.min(0.9, a.chance(L) * P.engMult)) continue;
+        if (a.apply(this, m, dmg, L) !== false) this.events.push({ type: 'proc', id: e.id, x: m.x, giant: m.giant, eng: true });
+        if (!this.mobs.includes(m) || this.phase !== 'fight') return;
+      }
+    }
+
+    /* ---- 스킬 각성: 별 하나마다 피해가 늘고 대기 시간이 줄어든다 ---- */
+    skStar(id) {
+      return this.s.skStar[id] || 0;
+    }
+    skNeed(id) {
+      const st = this.skStar(id);
+      return st >= P.skStarLv.length ? null : { lv: P.skStarLv[st], cost: P.skStarCost[st] };
+    }
+    skLevel(id) {
+      return this.s.lv[{ rain: 'skRain', rage: 'skRage', shadow: 'skShadow', barrage: 'skBarrage', bolt: 'skBolt', dark: 'skDark' }[id]] || 0;
+    }
+    awakenSkill(id) {
+      const need = this.skNeed(id);
+      if (!need) return 'max';
+      if (this.skLevel(id) < need.lv) return 'lv';
+      if (this.s.shards < need.cost) return 'poor';
+      this.s.shards -= need.cost;
+      this.s.skStar[id]++;
+      this.events.push({ type: 'sk-star', id, star: this.s.skStar[id] });
+      return 'ok';
+    }
+
+    /* ---- 유물 합성: 최고 레벨 유물에 다른 유물의 레벨을 넣어 별을 올린다 ---- */
+    relicFuse(id, fodder) {
+      const st = this.s.relicStar[id] || 0;
+      if (id === fodder || (this.s.relics[id] || 0) < P.relicMax) return 'lv';
+      if (st >= P.relicStarMax) return 'max';
+      if ((this.s.relics[fodder] || 0) <= P.relicFuseFodder) return 'fodder';
+      const cost = P.relicFuseCost[st];
+      if (this.s.ruby < cost) return 'poor';
+      this.s.ruby -= cost;
+      this.s.relics[fodder] -= P.relicFuseFodder;
+      this.s.relicStar[id] = st + 1;
+      this.s.stats.fuses++;
+      this.events.push({ type: 'fuse', id, fodder, star: st + 1 });
+      return 'ok';
+    }
+
     /* ---- 동료 진화: 철광석으로 별을 올린다 (레벨 5, 10, 15, ... 이 되어야 다음 별) ---- */
     evoNeed(id) {
       const st = this.s.stars[id];
@@ -982,7 +1263,10 @@
 
     /* ---- 스킬 ---- */
     shadowMult() {
-      return 0.5 + 0.03 * (this.s.lv.skShadow - 1);
+      return (0.5 + 0.03 * (this.s.lv.skShadow - 1)) * this.starMult('shadow');
+    }
+    starMult(id) {
+      return 1 + 0.35 * this.skStar(id);
     }
     skillReady(id) {
       const need = { shadow: 'skShadow', barrage: 'skBarrage', bolt: 'skBolt', dark: 'skDark' }[id];
@@ -990,33 +1274,33 @@
       return this.phase === 'fight' && this.s.skillCd[id] <= 0 && this.mobs.length > 0;
     }
     skillCdOf(id) {
-      return { rain: P.rainCd, rage: P.rageCd, shadow: P.shadowCd, barrage: P.barrageCd, bolt: P.boltCd, dark: P.darkCd }[id] * (1 - this.rv('sand'));
+      return { rain: P.rainCd, rage: P.rageCd, shadow: P.shadowCd, barrage: P.barrageCd, bolt: P.boltCd, dark: P.darkCd }[id] * (1 - this.rv('sand')) * (1 - P.skStarCd * this.skStar(id));
     }
     useSkill(id) {
       if (!this.skillReady(id)) return false;
       const top = this.highest || 1;
       if (id === 'rain') {
         const n = 6 + 2 * this.s.lv.skRain;
-        this.rain = { left: n, t: 0, gap: 1.2 / n, tier: top, dmg: TG.tierAtk(top) * this.atkMult * (1 + 0.25 * this.s.lv.skRain) };
+        this.rain = { left: n, t: 0, gap: 1.2 / n, tier: top, dmg: TG.tierAtk(top) * this.atkMult * (1 + 0.25 * this.s.lv.skRain) * this.starMult('rain') };
         this.s.skillCd.rain = this.skillCdOf('rain');
       } else if (id === 'rage') {
-        this.rageT = P.rageTime + this.s.lv.skRage;
+        this.rageT = P.rageTime + this.s.lv.skRage + 2 * this.skStar('rage');
         this.s.skillCd.rage = this.skillCdOf('rage');
       } else if (id === 'shadow') {
-        this.shadowT = 10 + 0.2 * (this.s.lv.skShadow - 1);
+        this.shadowT = 10 + 0.2 * (this.s.lv.skShadow - 1) + 2 * this.skStar('shadow');
         this.s.skillCd.shadow = this.skillCdOf('shadow');
       } else if (id === 'barrage') {
         const L = this.s.lv.skBarrage;
         const n = 10 + 2 * (L - 1);
-        this.barrage = { left: n, t: 0, gap: P.barrageTime / n, tier: top, dmg: TG.tierAtk(top) * this.atkMult * (0.6 + 0.05 * (L - 1)) };
+        this.barrage = { left: n, t: 0, gap: P.barrageTime / n, tier: top, dmg: TG.tierAtk(top) * this.atkMult * (0.6 + 0.05 * (L - 1)) * this.starMult('barrage') };
         this.s.skillCd.barrage = this.skillCdOf('barrage');
       } else if (id === 'bolt') {
         const L = this.s.lv.skBolt;
         const n = 5 + Math.floor((L - 1) / 5);
-        this.bolt = { left: n, t: 0, gap: 0.9 / n, dmg: TG.tierAtk(top) * this.atkMult * (1.5 + 0.08 * (L - 1)) };
+        this.bolt = { left: n, t: 0, gap: 0.9 / n, dmg: TG.tierAtk(top) * this.atkMult * (1.5 + 0.08 * (L - 1)) * this.starMult('bolt') };
         this.s.skillCd.bolt = this.skillCdOf('bolt');
       } else if (id === 'dark') {
-        this.darkT = P.darkTime + 0.2 * (this.s.lv.skDark - 1);
+        this.darkT = P.darkTime + 0.2 * (this.s.lv.skDark - 1) + this.skStar('dark');
         this.s.skillCd.dark = this.skillCdOf('dark');
       } else return false;
       this.events.push({ type: 'skill', id });
@@ -1026,7 +1310,7 @@
       return this.rageT > 0;
     }
     curse() {
-      return 0.25 + 0.015 * (this.s.lv.skDark - 1);
+      return 0.25 + 0.015 * (this.s.lv.skDark - 1) + 0.05 * this.skStar('dark');
     }
     tickSkills(dt) {
       for (const k of TG.SKILLS) if (this.s.skillCd[k] > 0) this.s.skillCd[k] = Math.max(0, this.s.skillCd[k] - dt);
@@ -1186,7 +1470,7 @@
       const f = this.front();
       if (!f) return;
       const aw = this.s.lv.awaken;
-      const rage = this.raging ? 1.5 + 0.1 * this.s.lv.skRage : 1;
+      const rage = this.raging ? 1.5 + 0.1 * this.s.lv.skRage + 0.2 * this.skStar('rage') : 1;
       const power = aw > 0 && this.rng() < PET.powerChance(aw);
       this.proj.push({ tier, t: P.flight, dur: P.flight, target: f, dmg: TG.tierAtk(tier) * this.atkMult * rage * (power ? 2 + this.rv('star') : 1), spin: this.rng() * 360, power, extra });
       if (this.shadowT > 0 && !extra) this.proj.push({ tier, t: P.flight, dur: P.flight, target: f, dmg: TG.tierAtk(tier) * this.atkMult * rage * this.shadowMult(), spin: this.rng() * 360, shadow: true, extra: true });
@@ -1354,11 +1638,15 @@
       let k = (m.giant ? 1 + this.rv('horn') : 1) * (m.boss ? 1 + this.rv('flag') : 1);
       if (this.darkT > 0) k *= 1 + this.curse();
       if (this.mode === 'chase') k *= 1 + 0.1 * this.s.lv.carGun;
+      if (m.shield > 0) k *= P.bossShieldCut;
       const d = dmg * k;
       m.hp -= d;
       m.hurt = 0.16;
       this.events.push({ type: 'hit', id: m.id, x: m.x, giant: m.giant, dmg: d, ...info });
-      if (m.hp > 0 && info.proc) this.procAbilities(m, d);
+      if (m.hp > 0 && info.proc) {
+        this.procAbilities(m, d);
+        if (info.tier) this.procEngraved(m, d, info.tier);
+      }
       if (m.hp <= 0) this.killMob(m);
     }
 
@@ -1391,6 +1679,7 @@
       const gold = Math.ceil(P.mobGold(n) * (m.giant ? P.giantGold : 1) * this.goldMult);
       this.s.gold += gold;
       this.s.stats.kills++;
+      if (this.mode === 'defend') this.defendKills++;
       if (this.s.lv.pig) this.pets.pig.k++;
       this.events.push({ type: 'kill', x: m.x, giant: m.giant, gold });
       if (m.boss) {
@@ -1422,6 +1711,10 @@
     die() {
       if (this.mode === 'boss') {
         this.bossEnd(false);
+        return;
+      }
+      if (this.mode === 'defend') {
+        this.defendEnd(false);
         return;
       }
       this.s.stats.deaths++;
@@ -1462,6 +1755,12 @@
       if (s.bossCd > 0) s.bossCd = Math.max(0, s.bossCd - dt);
       if (s.mineCd > 0) s.mineCd = Math.max(0, s.mineCd - dt);
       if (s.chaseCd > 0) s.chaseCd = Math.max(0, s.chaseCd - dt);
+      if (s.defendCd > 0) s.defendCd = Math.max(0, s.defendCd - dt);
+      this.titleT += dt;
+      if (this.titleT >= 1) {
+        this.titleT = 0;
+        this.refreshTitles();
+      }
       s.shop.t -= dt;
       if (s.shop.t <= 0) this.shopRoll();
       if (s.lv.autoShop && s.autoShopOn) {
@@ -1525,6 +1824,7 @@
           return;
         }
       }
+      if (this.mode === 'boss') for (const m of [...this.mobs]) if (m.boss) this.bossTrait(m, dt);
 
       /* 상태 이상: 기절, 빙결 시간이 줄고, 출혈은 틱마다 피해 */
       for (const m of [...this.mobs]) {
@@ -1544,6 +1844,9 @@
       /* 웨이브 진행 (보스전에서는 보스 하나뿐이고, 광산에는 바위뿐이다) */
       if (this.mode === 'boss' || this.mode === 'mine' || this.mode === 'chase') {
         /* 아무것도 안 한다 */
+      } else if (this.mode === 'defend') {
+        this.tickDefend(dt);
+        if (this.mode !== 'defend') return;
       } else if (this.gapT > 0) {
         this.gapT -= dt;
         if (this.gapT <= 0) {
@@ -1568,6 +1871,8 @@
       let prev = null;
       const front = this.s.lv.bear ? P.bearX + P.bearStop : P.heroX + P.mobRange;
       let oreIdx = 0;
+      let rank = 0;
+      const maxRank = this.mode === 'defend' ? P.defendRanks : 1;
       const darkSlow = this.darkT > 0 ? 0.5 : 1;
       for (const m of this.mobs) {
         if (m.hurt > 0) m.hurt -= dt;
@@ -1592,6 +1897,7 @@
             m.cd = 0.4;
           } else if (m.state === 'walk') m.state = 'idle';
           prev = m;
+          rank++;
           continue;
         }
         const mdt = dt * (st && st.slow > 0 ? 0.4 : 1) * darkSlow;
@@ -1616,13 +1922,14 @@
         } else {
           m.state = 'idle';
           if (m.cd > 0) m.cd -= mdt;
-          if (!prev && m.cd <= 0) {
+          if (rank < maxRank && m.cd <= 0) {
             m.state = 'attack';
             m.atkT = 0;
             m.struck = false;
           }
         }
         prev = m;
+        rank++;
       }
       if (hero.hp <= 0) {
         hero.hp = 0;
