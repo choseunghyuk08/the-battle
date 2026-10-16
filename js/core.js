@@ -60,6 +60,8 @@
     gold0: 2,
     mergeGold: 0.5, // 합칠 때마다 이 스테이지 몬스터 한 마리 골드의 이만큼
     goldGrow: 1.046,
+    setBonus: 0.03, // 세트 하나를 다 찾을 때마다 그 종류 보너스 +3%
+    setAllBonus: 0.1, // 세트를 전부 모으면 최종 공격력 +10%
     landRuby: 20, // 땅 첫 도착 선물: 페이즈 번호 x 이만큼 루비
     landSapphire: 2, // 사파이어는 페이즈 번호 x 이만큼
     growKnee: 330, // 이 스테이지부터 단계당 세지는 폭이 줄어든다 (곱셈 → 거듭제곱)
@@ -544,6 +546,26 @@
     { id: 'abyss', name: '심연', mobs: ['shade', 'eyeling', 'tendril'] },
   ];
 
+  /* 던질 것 도감 세트: 범위의 물건을 다 찾으면 종류별 보너스 (atk 합산 공격, gold 골드, hp 체력) */
+  TG.ITEM_SETS = [
+    { id: 'kitchen', name: '집어 든 것들', from: 1, to: 10, kind: 'gold' },
+    { id: 'magic', name: '마법과 별빛', from: 11, to: 20, kind: 'atk' },
+    { id: 'legend', name: '전설의 물건', from: 21, to: 30, kind: 'hp' },
+    { id: 'time', name: '별과 시간', from: 31, to: 40, kind: 'atk' },
+    { id: 'sky', name: '하늘의 무기', from: 41, to: 50, kind: 'gold' },
+    { id: 'god', name: '신의 물건', from: 51, to: 60, kind: 'hp' },
+    { id: 'old', name: '먼저 던진 이들의 것', from: 61, to: 70, kind: 'atk' },
+    { id: 'sound', name: '돌아온 소리', from: 71, to: 79, kind: 'gold' },
+    { id: 'land', name: '땅의 무기', from: 80, to: 90, kind: 'hp' },
+    { id: 'home', name: '돌아온 살림', from: 91, to: 100, kind: 'atk' },
+    { id: 'market', name: '장터와 대장간', from: 101, to: 110, kind: 'gold' },
+    { id: 'war', name: '싸움터', from: 111, to: 120, kind: 'hp' },
+    { id: 'heaven', name: '하늘과 땅의 것', from: 121, to: 130, kind: 'atk' },
+    { id: 'first', name: '처음의 것들', from: 131, to: 140, kind: 'gold' },
+    { id: 'end', name: '끝에서 시작으로', from: 141, to: 150, kind: 'hp' },
+  ];
+  TG.SET_KIND = { atk: '공격력', gold: '골드', hp: '체력' };
+
   TG.tierAtk = (n) => Math.round(P.atk0 * P.atkGrow ** (n - 1));
 
   const newState = () => ({
@@ -636,6 +658,7 @@
         this.s = s;
       }
       for (let i = 0; i < P.maxSlots; i++) if (!this.s.pos[i]) this.s.pos[i] = this.freeSpot(i);
+      this.refreshSets();
       this.refreshTitles(true);
       if (!this.titleOpen(this.s.title)) this.s.title = 'base';
       if (!this.costumeOpen(this.s.costume)) this.s.costume = 0;
@@ -689,12 +712,12 @@
       return P.slotsStart + this.s.lv.slots;
     }
     get atkMult() {
-      return this.atkPool * (1 + P.sapAtkPct * this.s.lv.fAtk);
+      return this.atkPool * (1 + P.sapAtkPct * this.s.lv.fAtk + (this.setAll ? P.setAllBonus : 0));
     }
     /* 합산 %: 골드, 루비, 유물, 엔진, 칭호를 한 데 더한다 */
     get atkPool() {
       const L = this.s.lv;
-      return 1 + P.goldAtkPct * L.atk + P.rubyAtkPct * L.rAtk + this.rv('glove') + this.rv('crown') + P.enginePct * L.carEngine + P.titleBonus * this.titlesOwned;
+      return 1 + P.goldAtkPct * L.atk + P.rubyAtkPct * L.rAtk + this.rv('glove') + this.rv('crown') + P.enginePct * L.carEngine + P.titleBonus * this.titlesOwned + this.setPct('atk');
     }
     get titlesOwned() {
       return this.titleCount;
@@ -738,14 +761,37 @@
     get engSlots() {
       return P.engSlotsAt.filter((x) => this.s.best >= x).length;
     }
+    /* 세트: 찾은 물건으로 다 모은 세트를 센다 (물건을 볼 때마다 새로 센다) */
+    refreshSets() {
+      this.setDone = TG.ITEM_SETS.map((st) => {
+        for (let t = st.from; t <= st.to; t++) if (!this.s.seen[t]) return false;
+        return true;
+      });
+    }
+    setFound(i) {
+      const st = TG.ITEM_SETS[i];
+      let n = 0;
+      for (let t = st.from; t <= st.to; t++) if (this.s.seen[t]) n++;
+      return n;
+    }
+    setPct(kind) {
+      let n = 0;
+      TG.ITEM_SETS.forEach((st, i) => {
+        if (st.kind === kind && this.setDone[i]) n++;
+      });
+      return n * P.setBonus;
+    }
+    get setAll() {
+      return this.setDone.every(Boolean);
+    }
     get goldMult() {
-      return 1 + 0.15 * this.s.lv.rGold + this.rv('clover') + (this.s.lv.pig ? PET.pigGold(this.s.lv.pig, this.s.stars.pig) : 0);
+      return 1 + 0.15 * this.s.lv.rGold + this.rv('clover') + this.setPct('gold') + (this.s.lv.pig ? PET.pigGold(this.s.lv.pig, this.s.stars.pig) : 0);
     }
     get abSlots() {
       return P.abSlotsAt.filter((x) => this.s.best >= x).length;
     }
     get maxHp() {
-      return Math.round(P.hpBase * (1 + P.goldHpPct * this.s.lv.hp + this.rv('bandage')) * (1 + P.sapHpPct * this.s.lv.fHp));
+      return Math.round(P.hpBase * (1 + P.goldHpPct * this.s.lv.hp + this.rv('bandage') + this.setPct('hp')) * (1 + P.sapHpPct * this.s.lv.fHp));
     }
     /* 유물 효과 값 (없으면 0) */
     rv(id) {
@@ -762,7 +808,9 @@
     see(t) {
       if (t > 0 && !this.s.seen[t]) {
         this.s.seen[t] = true;
+        this.refreshSets();
         this.events.push({ type: 'new', tier: t });
+        for (const [i, st] of TG.ITEM_SETS.entries()) if (t >= st.from && t <= st.to && this.setDone[i]) this.events.push({ type: 'set', i });
         if (t === 60) this.story('true_end');
         if (t === P.echoTier) this.story('echo1');
       }

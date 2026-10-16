@@ -793,20 +793,36 @@
     const body = $('#sheetBody');
     const game = ui.game;
     const grid = el('div', { class: 'dex' });
-    TG.ITEMS.forEach((it, k) => {
-      const tier = k + 1;
-      const seen = game.s.seen[tier];
-      const cv = spriteCanvas(TG.itemDef(tier), 'icon');
-      if (!seen) {
-        const x = cv.getContext('2d');
-        x.globalCompositeOperation = 'source-in';
-        x.fillStyle = '#0c0d1c';
-        x.fillRect(0, 0, cv.width, cv.height);
+    TG.ITEM_SETS.forEach((st, si) => {
+      const done = game.setDone[si];
+      grid.append(
+        el('div', { class: `setrow${done ? ' done' : ''}` }, [
+          el('b', { text: st.name }),
+          el('span', { text: `${game.setFound(si)}/${st.to - st.from + 1}` }),
+          el('small', { text: `${done ? '적용 중' : '다 찾으면'} ${TG.SET_KIND[st.kind]} +${Math.round(P.setBonus * 100)}%` }),
+        ]),
+      );
+      for (let tier = st.from; tier <= st.to; tier++) {
+        const it = TG.ITEMS[tier - 1];
+        const seen = game.s.seen[tier];
+        const cv = spriteCanvas(TG.itemDef(tier), 'icon');
+        if (!seen) {
+          const x = cv.getContext('2d');
+          x.globalCompositeOperation = 'source-in';
+          x.fillStyle = '#0c0d1c';
+          x.fillRect(0, 0, cv.width, cv.height);
+        }
+        grid.append(el('div', { class: `it${seen ? '' : ' unseen'}` }, [cv, `${tier}. ${seen ? it.name : '???'}`, el('small', { text: seen ? it.line : '합쳐서 찾아봐요' })]));
       }
-      grid.append(el('div', { class: `it${seen ? '' : ' unseen'}` }, [cv, `${tier}. ${seen ? it.name : '???'}`, el('small', { text: seen ? it.line : '합쳐서 찾아봐요' })]));
     });
     const found = game.s.seen.slice(0, TG.NAMED + 1).filter(Boolean).length;
-    body.replaceChildren(questSeg(), el('p', { class: 'note', text: `찾은 물건 ${found}/${TG.ITEMS.length}. 같은 물건 둘을 합치면 다음 단계가 나와요.` }), grid);
+    const sets = game.setDone.filter(Boolean).length;
+    body.replaceChildren(
+      questSeg(),
+      el('p', { class: 'note', text: `찾은 물건 ${found}/${TG.ITEMS.length}. 같은 물건 둘을 합치면 다음 단계가 나와요.` }),
+      el('p', { class: 'note', text: `세트 ${sets}/${TG.ITEM_SETS.length}. 세트를 다 모으면 최종 공격력 +${Math.round(P.setAllBonus * 100)}%.` }),
+      grid,
+    );
   }
 
   /* ---- 땅 구경: 12곳의 배경, 스테이지 범위, 나오는 몬스터 ---- */
@@ -1421,6 +1437,12 @@
           toast(null, `코스튬 · ${TG.COSTUMES[e.i]}`, '칭호 탭에서 골라 입어요.');
           sfx.discover();
           break;
+        case 'set': {
+          const st = TG.ITEM_SETS[e.i];
+          toast(null, `세트 완성 · ${st.name}`, `${TG.SET_KIND[st.kind]} +${Math.round(P.setBonus * 100)}%`);
+          sfx.discover();
+          break;
+        }
         case 'sk-star':
           toast(null, `${SKILL_NAME[e.id]} 각성 ${'★'.repeat(e.star)}`, '피해가 늘고 대기 시간이 줄었어요.');
           break;

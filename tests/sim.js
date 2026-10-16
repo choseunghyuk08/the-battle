@@ -990,6 +990,29 @@ function testV18() {
   assert.strictEqual(TG.saveCode.decode('abc'), null);
   assert.strictEqual(TG.saveCode.decode(''), null);
   assert.strictEqual(TG.saveCode.decode('MD1.0.'), null);
+  /* 도감 세트: 범위를 다 찾으면 보너스가 붙고, 전부 찾으면 최종 공격력이 오른다 */
+  assert.strictEqual(TG.ITEM_SETS.length, 15);
+  assert.strictEqual(TG.ITEM_SETS[0].from, 1);
+  assert.strictEqual(TG.ITEM_SETS[14].to, 150);
+  for (let i = 1; i < TG.ITEM_SETS.length; i++) assert.strictEqual(TG.ITEM_SETS[i].from, TG.ITEM_SETS[i - 1].to + 1, '범위가 이어진다');
+  const h = new TG.Game(null, seeded(182));
+  const gold0 = h.goldMult;
+  for (let t2 = 1; t2 <= 9; t2++) h.s.seen[t2] = true;
+  h.refreshSets();
+  assert.strictEqual(h.goldMult, gold0, '아홉 개로는 안 된다');
+  h.see(10);
+  assert(h.events.some((e) => e.type === 'set' && e.i === 0), '세트 알림');
+  assert(Math.abs(h.goldMult - gold0 - TG.P.setBonus) < 1e-9);
+  const atk0 = h.atkMult;
+  for (let t2 = 11; t2 <= 20; t2++) h.s.seen[t2] = true;
+  h.refreshSets();
+  assert(Math.abs(h.atkPool - (atk0 + TG.P.setBonus)) < 1e-9, '합산 공격 +3%');
+  assert.strictEqual(h.setAll, false);
+  for (let t2 = 1; t2 <= 150; t2++) h.s.seen[t2] = true;
+  h.refreshSets();
+  assert.strictEqual(h.setAll, true);
+  assert(h.atkMult > h.atkPool * (1 + TG.P.setAllBonus * 0.99), '전부 모으면 최종 +10%');
+  assert.strictEqual(new TG.Game(h.snapshot(), seeded(183)).setAll, true, '저장해도 남는다');
 }
 function testV12() {
   /* 150단계까지 이름이 있고, 150 을 둘 합치면 별이 붙는다 (151 = ★1) */
