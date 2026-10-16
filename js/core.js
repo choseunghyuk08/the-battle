@@ -3,7 +3,7 @@
 
   /* 조정할 수 있는 숫자는 전부 여기 있다. 바꾼 뒤에는 `node tests/sim.js --pace` 로 속도를 본다 */
   const P = (TG.P = {
-    tiers: 60,
+    tiers: 90,
     maxSlots: 60, // 필드에 둘 수 있는 물건 최대 개수 (보유 개수 강화의 끝)
     slotsStart: 8,
     slotCost0: 60,
@@ -250,7 +250,7 @@
     { id: 'kills', name: '몬스터 사냥', unit: '마리', stat: (g) => g.s.stats.kills, goals: [50, 500, 2000, 10000, 50000, 200000, 1000000] },
     { id: 'stage', name: '멀리 가기', unit: '스테이지', stat: (g) => g.s.best, goals: [10, 25, 50, 100, 150, 200, 300, 400, 500] },
     { id: 'merges', name: '합치기', unit: '번', stat: (g) => g.s.stats.merges, goals: [20, 200, 1000, 5000, 20000, 100000] },
-    { id: 'found', name: '물건 찾기', unit: '단계', stat: (g) => g.s.seen.filter(Boolean).length, goals: [5, 10, 15, 20, 25, 30, 40, 50, 60] },
+    { id: 'found', name: '물건 찾기', unit: '단계', stat: (g) => g.s.seen.filter(Boolean).length, goals: [5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 90] },
     { id: 'boss', name: '보스 사냥', unit: '번', stat: (g) => g.s.boss - 1, goals: [1, 5, 10, 20, 40, 80, 150] },
     { id: 'ore', name: '광부', unit: '개', stat: (g) => g.s.stats.ore, goals: [10, 100, 500, 2000, 10000] },
     { id: 'pets', name: '동료 모으기', unit: '점', stat: (g) => Object.values(g.s.stars).reduce((a, b) => a + b, 0) + ['monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole'].filter((k) => g.s.lv[k]).length, goals: [1, 2, 4, 8, 12, 16, 24, 32] },
@@ -402,9 +402,9 @@
   TG.bossTrait2 = (k) => (k < 9 ? null : TG.BOSS_TRAITS[(k - 2 + 3) % TG.BOSS_TRAITS.length]); /* 아홉째 보스부터 맞은편 특성이 하나 더 붙는다 */
 
   /* 코스튬: 주인공 색 묶음 번호 (js/spr_hero.js 의 palettes 와 순서가 같다) */
-  TG.COSTUMES = ['꼬마', '풀밭 조끼', '사냥꾼', '광부', '불꽃', '빙하', '수집가', '고요 망토', '여행자', '그림자', '황금', '무지개'];
+  TG.COSTUMES = ['꼬마', '풀밭 조끼', '사냥꾼', '광부', '불꽃', '빙하', '수집가', '고요 망토', '여행자', '그림자', '황금', '무지개', '사막 나그네', '늪지기', '해적', '구름 날개', '기술자', '심연 뿔', '마법사', '닌자', '왕', '토끼', '고양이', '음악가'];
   /* 메달로 사는 코스튬: 번호 -> 값 (칭호로 열리지 않는다) */
-  TG.COSTUME_SHOP = { 8: 20, 9: 40, 10: 70, 11: 100 };
+  TG.COSTUME_SHOP = { 8: 20, 9: 40, 10: 70, 11: 100, 18: 60, 19: 80, 20: 110, 21: 140, 22: 170, 23: 220 };
 
   /* 칭호: 조건을 채우면 열리고, 열린 칭호마다 모든 피해 +1%. costume 은 함께 열리는 코스튬 */
   TG.TITLES = [
@@ -417,6 +417,12 @@
     { id: 'pets', name: '든든한 일행', cond: '동료 6명 모두', ok: (g) => ['monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole'].every((k) => g.s.lv[k] > 0) },
     { id: 'relics', name: '손때 수집가', cond: '유물 10종', ok: (g) => Object.keys(g.s.relics).length >= 10, costume: 6 },
     { id: 'defend', name: '방패막이', cond: '방어전 3번 승리', ok: (g) => g.s.stats.defends >= 3 },
+    { id: 'desert', name: '모래 걷는 이', cond: '스테이지 65', ok: (g) => g.s.best >= 65, costume: 12 },
+    { id: 'swamp', name: '늪 건너는 이', cond: '스테이지 75', ok: (g) => g.s.best >= 75, costume: 13 },
+    { id: 'ocean', name: '물 밑 손님', cond: '스테이지 85', ok: (g) => g.s.best >= 85, costume: 14 },
+    { id: 'sky', name: '구름 위 던지기', cond: '스테이지 95', ok: (g) => g.s.best >= 95, costume: 15 },
+    { id: 'factory', name: '녹슨 손', cond: '스테이지 105', ok: (g) => g.s.best >= 105, costume: 16 },
+    { id: 'abyss', name: '어둠 응시', cond: '스테이지 115', ok: (g) => g.s.best >= 115, costume: 17 },
     { id: 'wall', name: '철벽', cond: '방어전 6단계', ok: (g) => g.s.defendTier >= 6 },
     { id: 'star', name: '번개의 손', cond: '스킬 각성 별 3개', ok: (g) => Object.values(g.s.skStar).reduce((a, b) => a + b, 0) >= 3 },
     { id: 'engrave', name: '새기는 사람', cond: '각인 3칸 모두', ok: (g) => g.s.eng.filter(Boolean).length >= 3 },
@@ -487,6 +493,12 @@
     { id: 'volcano', name: '화산', mobs: ['salamander', 'magma', 'imp'] },
     { id: 'ice', name: '빙하', mobs: ['penguin', 'snowman', 'wisp'] },
     { id: 'space', name: '우주', mobs: ['alien', 'meteor', 'jelly'] },
+    { id: 'desert', name: '사막', mobs: ['scorpion', 'cactoid', 'mummy'] },
+    { id: 'swamp', name: '늪', mobs: ['toad', 'gator', 'bogling'] },
+    { id: 'ocean', name: '바다 속', mobs: ['crab', 'octopus', 'angler'] },
+    { id: 'sky', name: '하늘섬', mobs: ['harpy', 'stormcloud', 'thunderbird'] },
+    { id: 'factory', name: '고철 공장', mobs: ['scrapbot', 'cogbrute', 'drone'] },
+    { id: 'abyss', name: '심연', mobs: ['shade', 'eyeling', 'tendril'] },
   ];
 
   TG.tierAtk = (n) => Math.round(P.atk0 * P.atkGrow ** (n - 1));
