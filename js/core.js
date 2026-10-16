@@ -60,6 +60,20 @@
     gold0: 2,
     mergeGold: 0.5, // 합칠 때마다 이 스테이지 몬스터 한 마리 골드의 이만큼
     goldGrow: 1.046,
+    towerOpen: 100, // 끝없는 탑이 열리는 최고 스테이지
+    towerFree: 1, // 하루에 공짜로 오르는 횟수
+    towerExtraMedals: 30, // 더 오르려면 메달 이만큼
+    towerBaseK: 0.4, // 1층 몬스터 = 최고 스테이지 x 이 값 단계의 몬스터
+    towerHpGrow: 1.1, // 층마다 체력 배율
+    towerBossK: 8, // 탑 보스 체력 = 보통 몬스터 x 이 값
+    towerAtkFrac: 0.04, // 1층 몬스터 한 대가 때리는 피해 = 주인공 최대 체력의 이만큼
+    towerAtkGrow: 1.05, // 층마다 공격 배율
+    towerFloorTime: 45, // 한 층을 못 깨고 버틸 수 있는 시간
+    towerHeal: 0.2, // 층을 깰 때마다 체력 회복 (최대 체력의 이만큼)
+    towerBossEvery: 5, // 이 층마다 보스
+    towerRubyPerFloor: 2,
+    towerSapPerRecord: 0.5, // 기록을 한 층 깰 때마다 사파이어 (소수는 버린다)
+    towerSapPer: 20, // 한 판에서 이 층마다 사파이어 1
     setBonus: 0.03, // 세트 하나를 다 찾을 때마다 그 종류 보너스 +3%
     setAllBonus: 0.1, // 세트를 전부 모으면 최종 공격력 +10%
     landRuby: 20, // 땅 첫 도착 선물: 페이즈 번호 x 이만큼 루비
@@ -608,6 +622,7 @@
     defendTier: 0, // 방어전을 이긴 가장 높은 단계
     medals: 0, // 방어 메달 (방어전에서 얻고 코스튬을 산다)
     costumeBought: {}, // 메달로 산 코스튬
+    tower: { best: 0, day: 0, used: 0, runs: 0 }, // 끝없는 탑: 최고 층, 오늘 오른 횟수
     lands: {}, // 페이즈 번호 -> 첫 도착 선물을 받았는지
     abEquip: [], // 장착한 특수능력
     ore: 0, // 철광석 (광산에서 얻고 동료 진화에 쓴다)
@@ -628,6 +643,12 @@
     seen: new Array(P.tiers + 1).fill(false),
     stats: { kills: 0, deaths: 0, merges: 0, crafts: 0, play: 0, ore: 0, pulls: 0, volt: 0, defends: 0, engraves: 0, fuses: 0, sapphire: 0 },
   });
+
+  /* 오늘 날짜 숫자 (20261016). 시험에서는 바꿔 끼운다 */
+  TG.today = () => {
+    const d = new Date();
+    return d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+  };
 
   class Game {
     constructor(save, rng = Math.random) {
@@ -669,6 +690,7 @@
         this.s.title = TG.TITLES.some((t) => t.id === save.title) ? save.title : 'base';
         this.s.costume = Math.max(0, Math.min(TG.COSTUMES.length - 1, Math.floor(Number(save.costume) || 0)));
         this.s.costumeBought = Object.fromEntries(Object.keys(TG.COSTUME_SHOP).filter((k) => (save.costumeBought || {})[k]).map((k) => [k, true]));
+        this.s.tower = { best: Math.max(0, Math.floor(Number((save.tower || {}).best) || 0)), day: Math.max(0, Math.floor(Number((save.tower || {}).day) || 0)), used: Math.max(0, Math.floor(Number((save.tower || {}).used) || 0)), runs: Math.max(0, Math.floor(Number((save.tower || {}).runs) || 0)) };
         this.s.lands = Object.fromEntries(Object.keys(save.lands || {}).filter((k) => (save.lands || {})[k] && +k >= 2 && +k <= TG.THEMES.length).map((k) => [k, true]));
         const shop = save.shop && Array.isArray(save.shop.offers) ? save.shop : { offers: [], t: 0 };
         this.s.shop = { offers: shop.offers.filter((o) => o && o.tier >= 1 && o.tier <= P.tiers).map((o) => ({ tier: Math.floor(o.tier), sold: !!o.sold })), t: Number(shop.t) || 0 };
@@ -1050,6 +1072,11 @@
         this.events.push({ type: 'defend-start', lvl: this.defendLvl });
         return;
       }
+      if (this.mode === 'tower') {
+        this.wave = P.waves;
+        this.towerFloorStart();
+        return;
+      }
       if (this.mode === 'boss') {
         this.wave = P.waves;
         this.bossT = P.bossTime;
@@ -1186,11 +1213,131 @@
       }
     }
     spawnMinion(x) {
-      const n = this.bossLevel();
-      const th = this.bossInfo().theme;
+      const tw = this.mode === 'tower';
+      const n = tw ? 1 : this.bossLevel();
+      const th = tw ? this.theme() : this.bossInfo().theme;
       const kind = th.mobs[Math.floor(this.rng() * th.mobs.length)];
-      const hp = P.mobHp(n) * 0.5;
-      this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind, pal: this.variant(), x, hp, max: hp, atk: P.mobAtk(n), giant: false, minion: true, state: 'walk', t: this.rng(), atkT: 0, cd: 0, hurt: 0 });
+      const hp = tw ? this.towerHp(0.5) : P.mobHp(n) * 0.5;
+      this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind, pal: this.variant(), x, hp, max: hp, atk: tw ? this.towerAtk(0.7) : P.mobAtk(n), giant: false, minion: true, state: 'walk', t: this.rng(), atkT: 0, cd: 0, hurt: 0 });
+    }
+
+    /* ---- 끝없는 탑: 층마다 몬스터가 세지는 한 판짜리 도전. 죽거나 한 층을 못 깨면 끝난다 ---- */
+    towerUsedToday() {
+      const t = this.s.tower;
+      return t.day === TG.today() ? t.used : 0;
+    }
+    towerFreeLeft() {
+      return Math.max(0, P.towerFree - this.towerUsedToday());
+    }
+    canTower() {
+      return this.mode === 'stage' && this.phase === 'fight' && this.s.best >= P.towerOpen && (this.towerFreeLeft() > 0 || this.s.medals >= P.towerExtraMedals);
+    }
+    /* 탑 몬스터의 한 대 피해: 주인공 체력에 비례한다 (몇 대 맞으면 쓰러지는지가 층으로 정해진다) */
+    towerAtk(k = 1) {
+      return this.maxHp * P.towerAtkFrac * P.towerAtkGrow ** (this.towerF - 1) * k;
+    }
+    /* 한 번에 던지는 피해 합 (필드의 모든 물건, 각성 기대값 포함) */
+    volley() {
+      let v = 0;
+      for (let i = 0; i < this.slots; i++) if (this.s.board[i]) v += TG.tierAtk(this.s.board[i]) * this.atkMult;
+      return v * (1 + PET.powerChance(this.s.lv.awaken)) * (1 + PET.doubleChance(this.s.lv.awaken));
+    }
+    /* 1층 몬스터의 기준 단계: 내 최고 스테이지의 일부 */
+    towerBase() {
+      return Math.max(1, Math.floor(this.s.best * P.towerBaseK));
+    }
+    /* 층 f 보통 몬스터 체력 */
+    towerHp(k = 1) {
+      return P.mobHp(this.towerBase()) * P.towerHpGrow ** (this.towerF - 1) * k;
+    }
+    startTower() {
+      if (!this.canTower()) return false;
+      const t = this.s.tower;
+      if (t.day !== TG.today()) {
+        t.day = TG.today();
+        t.used = 0;
+      }
+      if (this.towerFreeLeft() <= 0) this.s.medals -= P.towerExtraMedals;
+      t.used++;
+      t.runs++;
+      this.mode = 'tower';
+      this.towerF = 1;
+      this.towerT = P.towerFloorTime;
+      this.towerGap = 0;
+      this.towerClear = 0;
+      this.startStage();
+      return true;
+    }
+    /* 층 몬스터를 줄 세운다: 보통 둘과 거대 하나, 5층마다 보스 */
+    towerFloorStart() {
+      const f = this.towerF;
+      this.towerT = P.towerFloorTime;
+      if (f % P.towerBossEvery === 0) {
+        this.spawnList = [];
+        this.spawnTowerBoss(f / P.towerBossEvery);
+      } else this.spawnList = [false, false, true];
+      this.spawnT = 0;
+      this.events.push({ type: 'tower-floor', f });
+    }
+    spawnTowerBoss(k) {
+      const kinds = this.theme().mobs;
+      const tr = TG.bossTrait(k + 1);
+      const tr2 = TG.bossTrait2(k + 1);
+      const tInit = (t) => (t ? (t.id === 'shield' ? P.bossShieldGap * 0.6 : t.id === 'charge' ? P.bossChargeGap * 0.5 : t.id === 'wall' ? P.bossWallGap * 0.5 : P.bossSummonGap * 0.5) : 0);
+      const hp = this.towerHp(P.towerBossK);
+      this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind: kinds[k % kinds.length], pal: this.variant() + 2, x: P.spawnX + 6, hp, max: hp, atk: this.towerAtk(3), giant: true, boss: true, tower: true, trait: tr ? tr.id : null, trait2: tr2 ? tr2.id : null, tT: tInit(tr), tT2: tInit(tr2), state: 'walk', t: 0, atkT: 0, cd: 0, hurt: 0 });
+    }
+    tickTower(dt) {
+      this.towerT -= dt;
+      if (this.towerT <= 0) {
+        this.towerEnd();
+        return;
+      }
+      if (this.towerGap > 0) {
+        this.towerGap -= dt;
+        if (this.towerGap <= 0) this.towerFloorStart();
+        return;
+      }
+      if (this.spawnList.length) {
+        this.spawnT -= dt;
+        if (this.spawnT <= 0) {
+          this.spawnMob(this.spawnList.shift());
+          this.spawnT = P.spawnGap;
+        }
+      } else if (!this.mobs.length && !this.proj.length) {
+        /* 층을 깼다 */
+        this.towerClear = this.towerF;
+        this.events.push({ type: 'tower-clear', f: this.towerF });
+        this.hero.hp = Math.min(this.maxHp, this.hero.hp + this.maxHp * P.towerHeal);
+        this.towerF++;
+        this.towerGap = 1.2;
+      }
+    }
+    towerEnd() {
+      const f = this.towerClear;
+      const t = this.s.tower;
+      const gain = Math.max(0, f - t.best);
+      const ruby = Math.round(f * P.towerRubyPerFloor * (1 + this.rv('ring')));
+      const sapphire = Math.floor(gain * P.towerSapPerRecord) + Math.floor(f / P.towerSapPer);
+      const medals = Math.floor(f / P.towerBossEvery);
+      t.best = Math.max(t.best, f);
+      this.s.ruby += ruby;
+      this.s.sapphire += sapphire;
+      this.s.stats.sapphire += sapphire;
+      this.s.medals += medals;
+      this.events.push({ type: 'tower-end', f, record: gain > 0, ruby, sapphire, medals });
+      this.proj = [];
+      this.queue = [];
+      this.pending = [];
+      this.bananas = [];
+      this.fires = [];
+      this.petQ = [];
+      this.mobs = [];
+      this.mode = 'stage';
+      this.noPenalty = true;
+      this.phase = 'dead';
+      this.phaseT = P.deadTime;
+      this.act('die', P.deadTime * 0.6);
     }
 
     /* ---- 방어전: 몰려오는 몬스터를 제한 시간 동안 버틴다. 여럿이 한꺼번에 때린다 ---- */
@@ -1688,7 +1835,8 @@
       const kinds = th.mobs;
       const kind = giant ? kinds[(n + this.phaseNo) % kinds.length] : kinds[Math.floor(this.rng() * kinds.length)];
       const dm = this.mode === 'defend' ? P.defendTierHp ** (this.defendLvl - 1) : 1;
-      const hp = P.mobHp(n) * (giant ? P.giantHp : 1) * dm * this.landMod('mobHp');
+      const tw = this.mode === 'tower';
+      const hp = tw ? this.towerHp(giant ? P.giantHp : 1) : P.mobHp(n) * (giant ? P.giantHp : 1) * dm * this.landMod('mobHp');
       this.mobs.push({
         id: (this.mobId = (this.mobId || 0) + 1),
         kind,
@@ -1696,7 +1844,7 @@
         x: P.spawnX + (giant ? 10 : 0),
         hp,
         max: hp,
-        atk: P.mobAtk(n) * (giant ? 2 : 1) * dm,
+        atk: tw ? this.towerAtk(giant ? 2 : 1) : P.mobAtk(n) * (giant ? 2 : 1) * dm,
         giant,
         state: 'walk',
         t: this.rng(),
@@ -1942,7 +2090,7 @@
       if (this.mode === 'defend') this.defendKills++;
       if (this.s.lv.pig) this.pets.pig.k++;
       this.events.push({ type: 'kill', x: m.x, giant: m.giant, gold });
-      if (m.boss) {
+      if (m.boss && !m.tower) {
         this.bossEnd(true);
         return;
       }
@@ -1969,6 +2117,10 @@
     }
 
     die() {
+      if (this.mode === 'tower') {
+        this.towerEnd();
+        return;
+      }
       if (this.mode === 'boss') {
         this.bossEnd(false);
         return;
@@ -2084,7 +2236,7 @@
           return;
         }
       }
-      if (this.mode === 'boss') for (const m of [...this.mobs]) if (m.boss) this.bossTrait(m, dt);
+      if (this.mode === 'boss' || this.mode === 'tower') for (const m of [...this.mobs]) if (m.boss) this.bossTrait(m, dt);
 
       /* 상태 이상: 기절, 빙결 시간이 줄고, 출혈은 틱마다 피해 */
       for (const m of [...this.mobs]) {
@@ -2104,6 +2256,9 @@
       /* 웨이브 진행 (보스전에서는 보스 하나뿐이고, 광산에는 바위뿐이다) */
       if (this.mode === 'boss' || this.mode === 'mine' || this.mode === 'chase') {
         /* 아무것도 안 한다 */
+      } else if (this.mode === 'tower') {
+        this.tickTower(dt);
+        if (this.mode !== 'tower') return;
       } else if (this.mode === 'defend') {
         this.tickDefend(dt);
         if (this.mode !== 'defend') return;

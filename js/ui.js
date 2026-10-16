@@ -238,7 +238,7 @@
     const game = ui.game;
     const th = game.theme();
     $('#stageNum').textContent = `스테이지 ${game.s.stage}`;
-    $('#stageSub').textContent = game.mode === 'chase' ? `추격전 · 남은 시간 ${Math.ceil(game.chaseT)}초 · 볼트 +${game.chaseGot}` : game.mode === 'mine' ? `광산 · 남은 시간 ${Math.ceil(game.mineT)}초 · 철광석 +${game.mineGot}` : game.mode === 'boss' ? `보스전 ${game.s.boss} · 남은 시간 ${Math.ceil(game.bossT)}초` : game.mode === 'defend' ? `방어전 ${game.defendLvl}단계 · 남은 시간 ${Math.ceil(game.defendT)}초 · 처치 ${game.defendKills}` : game.phase === 'run' ? `${game.phaseNo}페이즈 · ${th.name} · 다음 스테이지로` : `${game.phaseNo}페이즈 · ${th.name} · 웨이브 ${Math.max(1, game.wave)}/${P.waves}`;
+    $('#stageSub').textContent = game.mode === 'chase' ? `추격전 · 남은 시간 ${Math.ceil(game.chaseT)}초 · 볼트 +${game.chaseGot}` : game.mode === 'mine' ? `광산 · 남은 시간 ${Math.ceil(game.mineT)}초 · 철광석 +${game.mineGot}` : game.mode === 'tower' ? `탑 ${game.towerF}층 · 남은 시간 ${Math.ceil(game.towerT)}초` : game.mode === 'boss' ? `보스전 ${game.s.boss} · 남은 시간 ${Math.ceil(game.bossT)}초` : game.mode === 'defend' ? `방어전 ${game.defendLvl}단계 · 남은 시간 ${Math.ceil(game.defendT)}초 · 처치 ${game.defendKills}` : game.phase === 'run' ? `${game.phaseNo}페이즈 · ${th.name} · 다음 스테이지로` : `${game.phaseNo}페이즈 · ${th.name} · 웨이브 ${Math.max(1, game.wave)}/${P.waves}`;
     $('#goldNum').textContent = TG.fmt(game.s.gold);
     $('#rubyNum').textContent = TG.fmt(game.s.ruby);
     $('#sapBox').hidden = !game.s.stats.sapphire && !game.s.sapphire;
@@ -286,16 +286,14 @@
     $('#craft').classList.toggle('empty', ch < 1);
     $('#countNum').textContent = `${game.s.board.slice(0, game.slots).filter(Boolean).length}/${game.slots}`;
     /* 전투 정보 줄: 내 체력과 공격력, 앞에 있는 적의 이름, 체력, 공격력 */
-    let volley = 0;
-    for (let i = 0; i < game.slots; i++) if (game.s.board[i]) volley += TG.tierAtk(game.s.board[i]) * game.atkMult;
-    volley *= (1 + TG.PET.powerChance(game.s.lv.awaken)) * (1 + TG.PET.doubleChance(game.s.lv.awaken)); /* 각성 기대값 */
+    const volley = game.volley();
     $('#meHp').textContent = `${TG.fmt(Math.max(0, game.hero.hp))}/${TG.fmt(game.maxHp)}`;
     $('#meHpBar').style.width = `${Math.max(0, Math.min(100, (game.hero.hp / game.maxHp) * 100))}%`;
     $('#meAtk').textContent = TG.fmt(volley);
     const f = game.front() || game.mobs[0];
     if (f) {
       const def = TG.SPR.mob[f.kind] || TG.SPR.mob.slime;
-      $('#foeName').textContent = f.tank ? `${def.name || '폭주 거북'} ${f.k + 1}번째 장갑` : f.ore ? `${def.name || '광석 바위'} ${f.k + 1}번째` : f.boss ? `보스 ${game.s.boss}: ${def.name || f.kind}${f.trait ? ` · ${[f.trait, f.trait2].filter(Boolean).map((id) => TG.BOSS_TRAITS.find((x) => x.id === id).name).join('·')}` : ''}` : `${f.giant ? '거대 ' : ''}${def.name || f.kind} Lv.${game.s.stage}`;
+      $('#foeName').textContent = f.tank ? `${def.name || '폭주 거북'} ${f.k + 1}번째 장갑` : f.ore ? `${def.name || '광석 바위'} ${f.k + 1}번째` : f.boss && f.tower ? `탑 ${game.towerF}층 보스 · ${def.name || f.kind}` : f.boss ? `보스 ${game.s.boss}: ${def.name || f.kind}${f.trait ? ` · ${[f.trait, f.trait2].filter(Boolean).map((id) => TG.BOSS_TRAITS.find((x) => x.id === id).name).join('·')}` : ''}` : `${f.giant ? '거대 ' : ''}${def.name || f.kind} Lv.${game.s.stage}`;
       $('#foeHp').textContent = `${TG.fmt(Math.max(0, f.hp))}/${TG.fmt(f.max)}`;
       $('#foeHpBar').style.width = `${Math.max(0, Math.min(100, (f.hp / f.max) * 100))}%`;
       $('#foeAtk').textContent = f.ore || f.tank ? '-' : TG.fmt(f.atk);
@@ -633,6 +631,7 @@
       el('button', { type: 'button', class: seg === 'quest' ? 'on' : '', text: '임무', onclick: () => { ui.questSeg = 'quest'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'dex' ? 'on' : '', text: '물건', onclick: () => { ui.questSeg = 'dex'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'boss' ? 'on' : '', text: '보스', onclick: () => { ui.questSeg = 'boss'; buildQuest(); } }),
+      el('button', { type: 'button', class: seg === 'tower' ? 'on' : '', text: '탑', onclick: () => { ui.questSeg = 'tower'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'land' ? 'on' : '', text: '땅', onclick: () => { ui.questSeg = 'land'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'title' ? 'on' : '', text: '칭호', onclick: () => { ui.questSeg = 'title'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'story' ? 'on' : '', text: '이야기', onclick: () => { ui.questSeg = 'story'; buildQuest(); } }),
@@ -658,6 +657,10 @@
     }
     if (ui.questSeg === 'land') {
       buildLands();
+      return;
+    }
+    if (ui.questSeg === 'tower') {
+      buildTower();
       return;
     }
     const list = el('div', {});
@@ -840,6 +843,37 @@
       ctx.drawImage(TG.clip(def, name, pals[0], 1, 'p0').frames[0].canvas, 0, 0);
     }
     return cv;
+  }
+  /* ---- 끝없는 탑 ---- */
+  function buildTower() {
+    const game = ui.game;
+    const t = game.s.tower;
+    const open = game.s.best >= P.towerOpen;
+    const free = game.towerFreeLeft();
+    const running = game.mode === 'tower';
+    const can = game.canTower();
+    const label = running ? '오르는 중' : !open ? `최고 스테이지 ${P.towerOpen}부터` : free > 0 ? '오늘의 도전' : `메달 ${P.towerExtraMedals}개로 한 번 더`;
+    const go = el('button', { type: 'button', class: 'towergo', text: label, ...(can ? {} : { disabled: '' }), onclick: () => startTowerUi() });
+    const stop = running ? el('button', { type: 'button', class: 'towerstop', text: '그만두기', onclick: () => { game.towerEnd(); handleEvents(); updateHud(); save(); buildTower(); } }) : null;
+    $('#sheetBody').replaceChildren(
+      questSeg(),
+      el('p', { class: 'note', text: '끝없는 탑에서는 층마다 몬스터가 세져요. 5층마다 보스가 서요. 쓰러지거나 한 층을 45초 안에 못 깨면 끝나요.' }),
+      el('div', { class: 'sto tower' }, [
+        el('div', { class: 'nm', text: `최고 ${t.best}층` }),
+        el('div', { class: 'ln', text: running ? `지금 ${game.towerF}층` : `오늘 남은 도전 ${free}번 · 지금까지 ${t.runs}번 올랐어요` }),
+        el('div', { class: 'ln', text: `보상: 깬 층마다 루비 ${P.towerRubyPerFloor}, ${P.towerBossEvery}층마다 메달 1, 기록을 깨면 사파이어` }),
+        go,
+        stop,
+      ]),
+    );
+  }
+  function startTowerUi() {
+    const game = ui.game;
+    if (!game.startTower()) return;
+    closeSheet();
+    toast(null, '끝없는 탑', `1층부터 올라요. ${P.towerBossEvery}층마다 보스가 서요.`);
+    updateHud();
+    save();
   }
   function landRuleRow(i) {
     const r = TG.LAND_RULES[i];
@@ -1446,6 +1480,14 @@
         case 'costume':
           toast(null, `코스튬 · ${TG.COSTUMES[e.i]}`, '칭호 탭에서 골라 입어요.');
           sfx.discover();
+          break;
+        case 'tower-floor':
+          if (e.f % P.towerBossEvery === 0) toast(null, `탑 ${e.f}층 · 보스`, '특성이 있는 보스가 서 있어요.');
+          break;
+        case 'tower-end':
+          toast(null, e.record ? `탑 ${e.f}층 · 새 기록` : `탑 ${e.f}층에서 끝`, `루비 +${e.ruby}${e.sapphire ? `, 사파이어 +${e.sapphire}` : ''}${e.medals ? `, 메달 +${e.medals}` : ''}`);
+          sfx.clear();
+          if (ui.sheet === 'quest' && ui.questSeg === 'tower') buildTower();
           break;
         case 'land-enter': {
           const r = TG.LAND_RULES[e.i];

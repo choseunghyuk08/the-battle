@@ -560,3 +560,8 @@ button.back { appearance: none; width: 100%; border: 2px solid var(--line); back
 .landrule .lr-up { color: #7bd88f; }
 .landrule .lr-down { color: var(--bad); }
 .landrule span:first-of-type:last-of-type { color: var(--ink-3); }
+.sto.tower { grid-template-columns: 1fr; }
+.sto.tower .ln { grid-column: 1; }
+.towergo, .towerstop { grid-column: 1 !important; grid-row: auto !important; width: 100%; margin-top: 4px; }
+.towerstop { background: var(--panel) !important; color: var(--bad) !important; box-shadow: none !important; border: 2px solid #7a2a35 !important; }
+.seg button { padding-left: 0; padding-right: 0; }

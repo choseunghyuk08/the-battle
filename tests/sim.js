@@ -1040,6 +1040,63 @@ function testV19() {
   assert.strictEqual(TG.landEffectText({ k: 'sap', x: 1.5 }), '사파이어 획득 +50%');
   assert.strictEqual(TG.landEffectText({ k: 'mobSpd', x: 0.7 }), '몬스터 이동 속도 -30%');
 }
+function testV20() {
+  /* 끝없는 탑: 열리는 조건, 하루 한 번, 메달로 한 번 더, 기록과 보상 */
+  const realToday = TG.today;
+  let day = 20261016;
+  TG.today = () => day;
+  const g = new TG.Game(null, seeded(200));
+  g.s.best = 99;
+  assert.strictEqual(g.canTower(), false, '100 전에는 잠김');
+  g.s.best = 150;
+  assert.strictEqual(g.canTower(), true);
+  assert.strictEqual(g.towerFreeLeft(), 1);
+  assert.strictEqual(g.startTower(), true);
+  assert.strictEqual(g.mode, 'tower');
+  assert.strictEqual(g.s.tower.used, 1);
+  assert(g.mobs.length === 0 && g.spawnList.length === 3, '1층: 보통 둘과 거대 하나');
+  /* 약한 주인공은 결국 쓰러지거나 시간이 다 돼 끝난다 */
+  let n = 0;
+  while (g.mode === 'tower' && n < 60000) {
+    g.tick(0.1);
+    n++;
+  }
+  assert.strictEqual(g.mode, 'stage', '끝났다');
+  const end = g.events.find((e) => e.type === 'tower-end');
+  assert(end, '끝 알림');
+  assert.strictEqual(g.s.tower.best, end.f);
+  assert.strictEqual(end.ruby, Math.round(end.f * TG.P.towerRubyPerFloor));
+  /* 같은 날 두 번째는 막힘 (메달이 없으면) */
+  g.phase = 'fight';
+  g.noPenalty = false;
+  assert.strictEqual(g.towerFreeLeft(), 0);
+  assert.strictEqual(g.canTower(), false);
+  g.s.medals = TG.P.towerExtraMedals;
+  assert.strictEqual(g.canTower(), true, '메달로 한 번 더');
+  assert.strictEqual(g.startTower(), true);
+  assert.strictEqual(g.s.medals, 0);
+  /* 기록 보상: 한 판 안에서 직접 끝내 본다 */
+  g.towerClear = 40;
+  const sap0 = g.s.sapphire;
+  g.s.tower.best = 20;
+  g.towerEnd();
+  assert.strictEqual(g.s.sapphire - sap0, Math.floor(20 * TG.P.towerSapPerRecord) + Math.floor(40 / TG.P.towerSapPer));
+  assert.strictEqual(g.s.tower.best, 40);
+  assert.strictEqual(g.mode, 'stage');
+  /* 다음 날이면 다시 공짜 */
+  day = 20261017;
+  g.phase = 'fight';
+  assert.strictEqual(g.towerFreeLeft(), 1);
+  /* 저장에 남는다 */
+  const g2 = new TG.Game(JSON.parse(JSON.stringify(g.snapshot())), seeded(201));
+  assert.strictEqual(g2.s.tower.best, 40);
+  /* 땅 특성과 세트 보너스는 탑에서 꺼진다 */
+  g2.s.best = 150;
+  g2.phase = 'fight';
+  g2.startTower();
+  assert.strictEqual(g2.landMod('atk'), 1);
+  TG.today = realToday;
+}
 function testV12() {
   /* 150단계까지 이름이 있고, 150 을 둘 합치면 별이 붙는다 (151 = ★1) */
   assert.strictEqual(TG.ITEMS.length, 150);
@@ -1258,6 +1315,7 @@ if (process.argv.includes('--pace')) {
   testV14();
   testV18();
   testV19();
+  testV20();
   testStory();
   console.log('\nall tests passed');
 }
