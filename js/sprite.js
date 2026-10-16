@@ -12,7 +12,7 @@
        draw: 그 동작의 i번째 장(0..n-1)을 그린다. 반복 동작은 ph = i / n (0..1 미만), 한 번만 하는 동작은 pr = i / (n - 1) (0..1)
        pal: 색 묶음, ctx.S: 크기 배율 (1 보통, 2 거대 몬스터). 그릴 때 좌표는 늘 배율 1 기준으로 쓰면 된다. */
   TG.SPR = TG.SPR || {};
-  for (const k of ['hero', 'pet', 'mob', 'item', 'bg', 'fx', 'ui']) TG.SPR[k] = TG.SPR[k] || {};
+  for (const k of ['hero', 'pet', 'mob', 'item', 'bg', 'fx', 'ui', 'story']) TG.SPR[k] = TG.SPR[k] || {};
 
   const HEX = /^#[0-9a-f]{6}$/i;
   const rgb = (c) => {
