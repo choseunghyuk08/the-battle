@@ -359,6 +359,135 @@ function testV05() {
   console.log('v0.5 ok');
 }
 
+function testV06() {
+  /* 특수능력: 배우면 칸에 장착되고, 칸 수는 최고 스테이지가 정한다 */
+  const g = new TG.Game(null, seeded(41));
+  assert.strictEqual(g.abSlots, 1);
+  g.s.ruby = 1e6;
+  assert(g.abBuy('stun'));
+  assert.deepStrictEqual(g.s.abEquip, ['stun'], '처음 배운 건 바로 장착');
+  assert(g.abBuy('knock'));
+  assert.strictEqual(g.abToggle('knock'), 'full', '칸이 모자라다');
+  g.s.best = 60;
+  assert.strictEqual(g.abSlots, 2);
+  assert.strictEqual(g.abToggle('knock'), 'on');
+  const re = new TG.Game(JSON.parse(JSON.stringify(g.snapshot())), seeded(1));
+  assert.deepStrictEqual(re.s.abEquip, ['stun', 'knock']);
+  assert.strictEqual(re.s.ab.stun, 1);
+
+  /* 모든 특수능력: 20레벨에 장착하고 맞혀도 문제없이 돈다 */
+  for (const a of TG.ABILITIES) {
+    const t = new TG.Game(null, seeded(50));
+    t.s.best = 200;
+    t.s.ab[a.id] = 20;
+    t.s.abEquip = [a.id];
+    t.s.board[0] = 5;
+    t.s.board[1] = 5;
+    t.s.lv.hp = 200;
+    const fill = () => {
+      for (let i = 0; i < 3; i++) t.spawnMob(false);
+      t.mobs.forEach((m, i) => {
+        m.x = 100 + i * 10;
+        m.hp = m.max = 4000;
+        if (a.id === 'execute') m.hp = m.max * 0.2; /* 처형은 체력이 낮아야 터진다 */
+      });
+      t.gapT = 99;
+    };
+    fill();
+    let procs = 0;
+    for (let k = 0; k < 400; k++) {
+      t.tick(0.05);
+      for (const e of t.events) if (e.type === 'proc' && e.id === a.id) procs++;
+      t.events.length = 0;
+      if (!t.mobs.length) fill();
+    }
+    assert(procs > 0, `${a.id} 가 한 번도 안 터졌다`);
+  }
+  /* 기절한 몬스터는 때리지 않는다 */
+  const st = new TG.Game(null, seeded(51));
+  st.s.lv.hp = 100;
+  st.spawnMob(false);
+  st.mobs[0].x = 60;
+  st.mobs[0].st = { stun: 5 };
+  st.mobs[0].hp = st.mobs[0].max = 1e12;
+  st.gapT = 99;
+  const hp0 = st.hero.hp;
+  for (let k = 0; k < 100; k++) {
+    st.tick(0.05);
+    st.events.length = 0;
+  }
+  assert.strictEqual(st.hero.hp, hp0, '기절 중에는 안 맞는다');
+
+  /* 새 스킬: 뇌전은 번개를 내리고, 어둠장막은 느리게 하고 피해를 늘린다 */
+  const k = new TG.Game(null, seeded(52));
+  k.s.board[0] = 6;
+  for (let t = 0; t < 3; t += 0.05) k.tick(0.05);
+  assert.strictEqual(k.useSkill('bolt'), false, '배우기 전');
+  k.s.lv.skBolt = 1;
+  k.s.lv.skDark = 1;
+  for (const m of k.mobs) m.hp = m.max = 1e12;
+  assert(k.useSkill('bolt'));
+  assert(k.useSkill('dark'));
+  let bolts = 0;
+  for (let t = 0; t < 2; t += 0.02) {
+    k.tick(0.02);
+    bolts += k.events.filter((e) => e.type === 'bolt').length;
+    k.events.length = 0;
+  }
+  assert(bolts >= 5, `번개 ${bolts}`);
+  assert(k.darkT > 0);
+  const m0 = k.mobs[0];
+  const hp1 = m0.hp;
+  k.hitMob(m0, 100);
+  assert(hp1 - m0.hp > 124, '어둠장막 피해 +25%');
+
+  /* 추격전: 최고 스테이지 30부터, 볼트를 얻고, 끝나면 하던 스테이지 */
+  const c = new TG.Game(null, seeded(53));
+  assert.strictEqual(c.startChase(), false, '처음엔 잠김');
+  c.s.stage = c.s.best = 40;
+  c.startStage();
+  c.s.board.fill(14, 0, 8);
+  c.s.lv.atk = 40;
+  assert(c.startChase());
+  assert.strictEqual(c.mobs.length, 1);
+  assert(c.mobs[0].tank);
+  for (let t = 0; t < TG.P.chaseTime + 4; t += 0.05) {
+    c.tick(0.05);
+    c.events.length = 0;
+  }
+  assert.strictEqual(c.mode, 'stage');
+  assert(c.s.volt > 0, `볼트 ${c.s.volt}`);
+  assert.strictEqual(c.s.stage, 40);
+  assert(c.s.chaseCd > 0 && !c.canChase());
+  const eng0 = c.atkMult;
+  c.s.volt = 1e6;
+  assert(c.buy('carEngine'));
+  assert(c.atkMult > eng0, '엔진은 모든 공격력');
+  assert(c.s.volt < 1e6);
+
+  /* 황금 돼지: 골드가 늘고 동전을 뿜는다. 두더지: 철광석을 캔다 */
+  const p = new TG.Game(null, seeded(54));
+  const gm0 = p.goldMult;
+  p.s.lv.pig = 10;
+  assert(p.goldMult > gm0);
+  p.s.lv.mole = 10;
+  p.s.board[0] = 5;
+  p.s.lv.hp = 200;
+  let coins = 0;
+  let dug = 0;
+  for (let t = 0; t < 200; t += 0.05) {
+    p.tick(0.05);
+    for (const e of p.events) {
+      if (e.type === 'coins') coins++;
+      if (e.type === 'dig') dug++;
+    }
+    p.events.length = 0;
+  }
+  assert(coins >= 1, '동전 뿜기');
+  assert(dug >= 1 && p.s.ore > 0, '두더지 철광석');
+  console.log('v0.6 ok');
+}
+
 /* ---- 속도 ---- */
 function bot(kind, minutes, seed = 7) {
   const g = new TG.Game(null, seeded(seed));
@@ -440,6 +569,7 @@ if (process.argv.includes('--pace')) {
   testV03();
   testV04();
   testV05();
+  testV06();
   console.log('\nall tests passed');
 }
 
