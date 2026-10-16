@@ -231,6 +231,35 @@
     }, true);
   }
 
+  /* ---- 12~23번 코스튬 소품용 도우미 ---- */
+  /* 머리에 붙은 끝점 (머리 좌표). rest 는 쉴 때의 끝, 머리가 움직이면 한 박자 늦게 따라온다 */
+  const tipHead = (c, rest, k, d, fx = 1.3, fy = 0.5, gx = 2.2, gy = 1.4) => {
+    const lg = c.lag(headAnchor, rest, k);
+    return [rest[0] + lg[0] * gx + c.flow(d, fx), rest[1] + lg[1] * gy + c.flow(d, fy, 0.25)];
+  };
+  /* 몸통에 붙은 끝점 (몸통 좌표). base 에서 rest 만큼 떨어진 끝 */
+  const tipTorso = (c, base, rest, k, d, fx = 1.4, fy = 0.7, gx = 2.4, gy = 1.6) => {
+    const lg = c.lag(torsoAnchor(() => base), rest, k);
+    return [base[0] + rest[0] + lg[0] * gx + c.flow(d, fx), base[1] + rest[1] + lg[1] * gy + c.flow(d, fy, 0.25)];
+  };
+  /* 타원 둘레의 점들 (각도 a0 -> a1, 도) */
+  const arcPts = (cx, cy, rx, ry, a0, a1, steps = 14) => {
+    const out = [];
+    for (let s = 0; s <= steps; s++) {
+      const a = toRad(a0 + ((a1 - a0) * s) / steps);
+      out.push([cx + Math.cos(a) * rx, cy + Math.sin(a) * ry]);
+    }
+    return out;
+  };
+  /* 끝에서 진행 방향 (단위 벡터) */
+  const dirEnd = (sp) => {
+    const a = sp[sp.length - 2];
+    const z = sp[sp.length - 1];
+    const m = Math.hypot(z[0] - a[0], z[1] - a[1]) || 1;
+    return [(z[0] - a[0]) / m, (z[1] - a[1]) / m];
+  };
+  const blinkOf = (c) => c.p.eyes === 'shut' || c.p.eyes === 'x' || c.p.eyes === 'blink' || (c.ph >= 0.6 && c.ph < 0.7);
+
   const ACC = {
     /* 1 풀밭 조끼: 머리띠에 꽂은 큰 풀잎 두 장 */
     leaf: {
@@ -495,6 +524,463 @@
         }, false);
       },
     },
+
+    /* ---- v1.0 코스튬 12벌 (색 묶음 12~23) ---- */
+
+    /* 12 사막 나그네: 감은 천 터번, 뒤로 늘어진 천 끝, 앞에 붉은 보석 */
+    turban: {
+      top: -11.2,
+      head(c) {
+        const { b, wind } = c;
+        const cl = '#f2e2b8';
+        const sh = '#c4a468';
+        /* 늘어진 천 끝 (바람에 한 박자 늦게) */
+        const base = [-6.0, -3.2];
+        const tip = tipHead(c, [-8.0 - 6.4 * wind, 4.8 - 6.0 * wind], 0.34, 0.1, 1.5, 0.7);
+        const rb = ribbon(base, [base[0] - 3.4, base[1] + 0.6 + 1.2 * (1 - wind)], tip, (t) => 3.6 - t * 1.2);
+        c.headPart(() => {
+          b.poly(rb.poly, cl);
+          const q = rb.spine[5];
+          b.line(q[0] - 0.9, q[1] - 1.2, q[0] + 0.9, q[1] + 1.2, 0.9, sh, { shade: false });
+          const z = rb.spine[8];
+          b.px(z[0], z[1], '#d8403a');
+          b.px(z[0] - 1, z[1] + 0.4, '#d8403a');
+        }, true);
+        c.headPart(() => {
+          b.ell(-0.6, -5.2, 7.6, 4.0, cl);
+          b.rrect(-7.6, -4.6, 14.4, 2.6, 1.3, cl);
+          b.disc(-0.6, -9.2, 1.6, cl);
+          /* 감긴 천의 결 */
+          b.line(-6.2, -2.8, -2.4, -8.0, 0.9, sh, { shade: false });
+          b.line(-3.0, -2.6, 1.0, -8.4, 0.9, sh, { shade: false });
+          b.line(0.2, -2.6, 3.8, -7.6, 0.9, sh, { shade: false });
+          b.line(-7.2, -3.6, 6.2, -3.4, 0.7, b.tone(sh, 0.12), { shade: false });
+          /* 앞의 붉은 보석 */
+          b.disc(3.6, -4.4, 1.5, '#d8403a');
+          b.px(3.1, -5.0, '#ffd0d0');
+        }, true);
+      },
+    },
+
+    /* 13 늪지기: 머리에 얹은 큰 연잎, 연꽃, 눈 깜빡이는 작은 개구리 */
+    lily: {
+      top: -12.6,
+      head(c) {
+        const { b } = c;
+        const lg = c.lag(headAnchor, [0, -8], 0.4, 2);
+        const ox = lg[0] * 0.7;
+        const oy = lg[1] * 0.7 + c.flow(0.16, 0.45);
+        const pad = '#3f9a52';
+        c.headPart(() => {
+          b.save();
+          b.translate(ox * 0.6, oy * 0.6);
+          /* 연잎: 한쪽이 갈라진 둥근 잎 */
+          const pts = [[0.2, -6.0]].concat(arcPts(0.2, -6.0, 8.4, 2.5, -160, 170, 16).map((q) => [q[0], q[1]]));
+          pts.push([0.2, -6.0]);
+          b.poly(pts, pad);
+          for (const a of [-40, 20, 80, 130]) {
+            const r = toRad(a);
+            b.line(0.2, -6.0, 0.2 + Math.cos(r) * 6.4, -6.0 + Math.sin(r) * 1.7, 0.8, '#2d7a40', { shade: false });
+          }
+          b.px(5.8, -7.4, '#c8f0ff');
+          b.px(-6.0, -5.0, '#c8f0ff');
+          b.restore();
+        }, true);
+        c.headPart(() => {
+          b.save();
+          b.translate(ox, oy);
+          /* 작은 연꽃 */
+          const cx = -3.8;
+          b.ell(cx - 1.5, -8.6, 1.3, 1.7, '#ffa6cc');
+          b.ell(cx + 1.5, -8.6, 1.3, 1.7, '#ff8ab8');
+          b.ell(cx, -9.6, 1.4, 2.1, '#ffc4de');
+          b.disc(cx, -8.0, 0.9, '#ffe27a', { shade: false });
+          /* 개구리 */
+          const fx = 3.4;
+          const fy = -8.4;
+          b.ell(fx, fy, 2.7, 1.9, '#7ad45a');
+          b.disc(fx - 1.2, fy - 1.9, 1.2, '#7ad45a');
+          b.disc(fx + 1.4, fy - 1.9, 1.2, '#7ad45a');
+          b.rect(fx - 0.8, fy + 0.6, 2.6, 0.8, '#d8f0a0', { shade: false });
+          const blink = blinkOf(c);
+          for (const ex of [fx - 1.2, fx + 1.4]) {
+            if (blink) b.px(ex - 0.4, fy - 1.9, '#2a5a2a');
+            else {
+              b.px(ex - 0.4, fy - 2.2, '#17121e');
+              b.px(ex + 0.4, fy - 2.2, '#ffffff');
+            }
+          }
+          b.px(fx + 1.8, fy + 0.4, '#17121e');
+          b.restore();
+        }, true);
+      },
+    },
+
+    /* 14 해적: 삼각 모자와 해골 문장, 한쪽 눈 가리개 */
+    pirate: {
+      top: -11.6,
+      head(c) {
+        const { b } = c;
+        const hat = '#2c2733';
+        const lgA = tipHead(c, [-10.0, -7.8], 0.4, 0.08, 0.6, 0.4, 0.8, 0.7);
+        const lgB = tipHead(c, [10.0, -8.0], 0.4, 0.2, 0.6, 0.4, 0.8, 0.7);
+        /* 눈 가리개 끈은 머리 뒤로, 가리개는 뒤쪽 눈 하나 */
+        c.headPart(() => {
+          b.line(-6.2, -2.4, 0.4, 0.9, 1.0, '#17121e', { shade: false });
+          b.line(0.4, 0.9, 2.2, -1.8, 0.9, '#17121e', { shade: false });
+          b.disc(0.4, 0.9, 1.9, '#2a2530', { shade: false });
+          b.px(-0.2, 0.2, '#58505e');
+        }, false);
+        c.headPart(() => {
+          /* 챙: 양 끝이 위로 말린다 */
+          b.poly([[-9.0, -4.2], [lgA[0], lgA[1]], [-6.0, -5.8], [-2, -6.2], [2, -6.2], [6.0, -5.8], [lgB[0], lgB[1]], [9.2, -4.4], [4, -3.2], [-4, -3.2]], hat);
+          b.ell(0.2, -7.2, 6.6, 3.4, hat);
+          b.line(-8.4, -4.4, 8.6, -4.6, 1.0, '#e0b43c', { shade: false });
+          /* 해골 문장 */
+          for (const [x, y] of [[-0.6, -9.2], [0.6, -9.2], [1.8, -9.2], [-0.6, -8.2], [0.6, -8.2], [1.8, -8.2], [0.6, -7.2]]) b.px(x, y, '#f4f0e6');
+          b.px(-0.6, -8.2, '#17121e');
+          b.px(1.8, -8.2, '#17121e');
+          b.px(-1.8, -6.4, '#f4f0e6');
+          b.px(3.0, -6.4, '#f4f0e6');
+          b.px(-1.8, -9.8, '#f4f0e6');
+          b.px(3.0, -9.8, '#f4f0e6');
+        }, true);
+      },
+    },
+
+    /* 15 구름 날개: 머리 위 금빛 고리, 등의 구름 날개 한 쌍 (퍼덕) */
+    wings: {
+      top: -10.6,
+      pack(c) {
+        const { b, ph, clip } = c;
+        const F = { idle: 2, throw: 2, reload: 2, hurt: 1, die: 1, win: 3, run: 2 }[clip] || 1;
+        const A = { idle: 11, throw: 13, reload: 9, hurt: 6, die: 4, win: 20, run: 15 }[clip] || 10;
+        const bias = { run: -8, hurt: -4, die: -10, win: 4 }[clip] || 0;
+        /* 쓰러지면 날개는 접혀서 작아진다 (등이 땅에 닿는다) */
+        const sc = clip === 'die' ? Math.max(0.3, 1 - 0.8 * c.pr) : 1;
+        const wing = (px, py, ang, col, lineCol) => {
+          c.torsoPart(() => {
+            b.translate(px, py);
+            b.rotate(ang);
+            b.scale(sc);
+            for (const [x, y, r] of [[-2.6, -1.4, 2.7], [-5.6, -2.4, 3.0], [-8.6, -3.4, 2.8], [-11.4, -4.4, 2.2], [-4.4, 1.2, 2.0], [-7.4, 0.6, 2.0], [-10.2, -0.6, 1.8]]) b.disc(x, y, r, col);
+            b.line(-4.4, -0.8, -11.0, -3.2, 0.8, lineCol, { shade: false });
+            b.line(-5.6, 1.2, -9.6, -0.2, 0.7, lineCol, { shade: false });
+          }, true);
+        };
+        wing(-2.4, -7.6, bias + 38 + A * 0.9 * Math.sin((ph * F - 0.09) * TAU), '#cfe4f4', '#a6c6e0');
+        wing(-3.4, -5.6, bias + 8 + A * Math.sin(ph * F * TAU), '#f8fcff', '#bcd8ee');
+      },
+      head(c) {
+        const { b } = c;
+        const by = c.flow(0.1, 0.5);
+        /* 금빛 고리 (머리 위에 살짝 걸쳐 있다) */
+        const outer = arcPts(0.4, -8.0 + by, 4.8, 1.8, 0, 360, 16);
+        const inner = arcPts(0.4, -8.0 + by, 2.9, 0.8, 360, 0, 12);
+        c.headPart(() => {
+          b.poly(outer.concat(inner), '#ffd84a');
+          b.px(-3.4, -8.8 + by, '#fff8c0');
+          b.px(-2.4, -9.5 + by, '#fff8c0');
+        }, true);
+      },
+    },
+
+    /* 16 기술자: 이마 위 큰 고글, 안테나 나사못 */
+    goggles: {
+      top: -14.4,
+      head(c) {
+        const { b, ph } = c;
+        const tip = tipHead(c, [-3.2, -11.6], 0.3, 0.1, 0.6, 0.2, 1.2, 0.7);
+        c.headPart(() => {
+          /* 가죽 끈 */
+          b.line(-3.0, -5.6, -7.6, -3.6, 1.6, '#4a3424', { shade: false });
+          /* 안테나 나사못 */
+          b.rrect(-4.2, -8.6, 3.8, 1.8, 0.6, '#aab4be');
+          b.line(-2.3, -8.4, tip[0], tip[1], 1.4, '#9aa6b0', { shade: false });
+          for (const t of [0.3, 0.55, 0.78]) b.px(-2.3 + (tip[0] + 2.3) * t, -8.4 + (tip[1] + 8.4) * t, '#5a6670');
+          b.disc(tip[0], tip[1] - 0.3, 1.3, '#ff5a3c');
+          b.disc(tip[0], tip[1] - 0.3, 2.4 + 0.6 * Math.sin(ph * TAU * 2), '#ff8a6a', { shade: false, alpha: 0.28 });
+          /* 고글: 렌즈 둘과 가운데 다리 */
+          b.rect(2.2, -6.2, 1.4, 1.4, '#9a6a24', { shade: false });
+          b.disc(-0.6, -5.4, 3.0, '#c8963c');
+          b.disc(4.6, -5.2, 3.0, '#c8963c');
+          b.disc(-0.6, -5.4, 1.9, '#6fd6ea', { shade: false });
+          b.disc(4.6, -5.2, 1.9, '#6fd6ea', { shade: false });
+          b.px(-1.6, -6.4, '#f4ffff');
+          b.px(3.6, -6.2, '#f4ffff');
+          b.px(0.2, -4.6, '#3a9ab0');
+          b.px(5.4, -4.4, '#3a9ab0');
+        }, true);
+        /* 작업복에 묻은 기름 */
+        c.torsoPart(() => {
+          b.rect(-2.8, -4.4, 1.6, 1.0, '#6a3a18', { shade: false });
+          b.px(-0.6, -3.6, '#6a3a18');
+          b.px(1.6, -5.4, '#6a3a18');
+        }, false);
+      },
+    },
+
+    /* 17 심연 뿔: 작은 뿔 둘, 은은히 붉은 눈, 등 뒤 짧은 꼬리 (늦게 따라옴) */
+    horns: {
+      top: -11.6,
+      pack(c) {
+        const { b, wind } = c;
+        const base = [-3.2, -1.0];
+        const tip = tipTorso(c, base, [-5.8 - 2.0 * wind, 2.4 - 2.8 * wind], 0.3, 0.1, 1.2, 0.6);
+        const rb = ribbon(base, [base[0] - 3.4, base[1] + 3.0 + 0.8 * wind], tip, (t) => 2.2 - t * 1.0);
+        const d = dirEnd(rb.spine);
+        const z = rb.spine[rb.spine.length - 1];
+        c.torsoPart(() => {
+          b.poly(rb.poly, '#5a3a86');
+          b.poly([[z[0] + d[0] * 2.6, z[1] + d[1] * 2.6], [z[0] - d[1] * 1.7, z[1] + d[0] * 1.7], [z[0] + d[1] * 1.7, z[1] - d[0] * 1.7]], '#ff4a6a');
+        }, true);
+      },
+      head(c) {
+        const { b, ph, p } = c;
+        for (const [x0, y0, x1, y1, W] of [[-3.4, -5.4, -4.8, -11.8, 3.2], [2.4, -5.6, 4.4, -11.4, 3.0]]) {
+          const out = x1 < 0 ? -1 : 1;
+          const rb = ribbon([x0, y0], [x0 + out * 3.6, y0 - 3.2], [x1, y1], (t) => 0.3 + W * Math.pow(1 - t, 0.8));
+          c.headPart(() => {
+            b.poly(rb.poly, '#efe0c4');
+            b.line(x0, y0 - 0.2, x0 + (x1 - x0) * 0.4, y0 + (y1 - y0) * 0.4, 1.5, '#b0486a', { shade: false });
+          }, true);
+        }
+        /* 눈이 은은히 붉게 */
+        const pulse = 0.8 + 0.2 * Math.sin(ph * TAU);
+        const shut = p.eyes === 'shut' || p.eyes === 'x' || p.eyes === 'blink';
+        const dx = p.eyes === 'side' ? -0.8 : 0;
+        c.headPart(() => {
+          for (const x of [0.4, 3.6]) {
+            b.disc(x + 0.4, 1.2, 2.1, '#ff4a5a', { shade: false, alpha: (shut ? 0.05 : 0.13) * pulse });
+            if (!shut) {
+              b.px(x + dx, 0.4, '#ff3646');
+              b.px(x + dx, 1.4, pulse > 0.9 ? '#e0202e' : '#a8141e');
+            }
+          }
+        }, false);
+      },
+    },
+
+    /* 18 마법사: 별 무늬 뾰족 모자 (끝이 꺾여 흔들림) */
+    wizard: {
+      top: -13.6,
+      head(c) {
+        const { b } = c;
+        const hat = '#4a44b4';
+        const tip = tipHead(c, [-5.4, -11.2], 0.3, 0.1, 1.2, 0.9, 2.0, 1.6);
+        const rb = ribbon([0.2, -5.8], [1.4, -11.4], tip, (t) => 1.2 + 8.6 * Math.pow(1 - t, 0.9), 10);
+        c.headPart(() => {
+          b.poly(rb.poly, hat);
+          {
+            const q = rb.spine[3];
+            for (const [dx, dy] of [[0, 0], [1, 0], [-1, 0], [0, 1], [0, -1]]) b.px(q[0] + 0.6 + dx, q[1] + dy, '#ffe27a');
+            b.px(rb.spine[1][0] - 2.6, rb.spine[1][1] - 0.6, '#ffe27a');
+            b.px(rb.spine[5][0] - 0.4, rb.spine[5][1] + 0.4, '#ffe27a');
+          }
+          b.ell(0.4, -5.2, 8.6, 2.0, '#38329a');
+          b.line(-4.6, -6.0, 5.0, -6.0, 1.1, '#e0b43c', { shade: false });
+        }, true);
+      },
+    },
+
+    /* 19 닌자: 눈만 보이는 두건, 이마 가리개, 길게 날리는 목도리 끝 */
+    ninja: {
+      top: -8.6,
+      pack(c) {
+        const { b, wind } = c;
+        const base = [-3.6, -7.2];
+        const tip = tipTorso(c, base, [-5.6 - 9.0 * wind, 3.8 - 6.8 * wind], 0.3, 0.1, 1.9, 1.0, 2.6, 1.8);
+        const rb = ribbon(base, [base[0] - 4.4, base[1] + 1.2 - wind], tip, (t) => 2.8 - t * 0.8);
+        c.torsoPart(() => {
+          b.poly(rb.poly, '#d8403a');
+          const q = rb.spine[5];
+          b.rect(q[0] - 0.5, q[1] - 1.2, 1.0, 2.4, '#8a1f26', { shade: false });
+          const z = rb.spine[8];
+          b.rect(z[0] - 0.5, z[1] - 1.1, 1.0, 2.2, '#8a1f26', { shade: false });
+        }, true);
+      },
+      head(c) {
+        const { b, p } = c;
+        const cl = '#2a2b36';
+        c.headPart(() => {
+          /* 두건: 눈 줄만 비워 둔다 */
+          b.poly([[-6.6, 5.0], [-7.6, 0], [-7.0, -4.4], [-4, -7.0], [1, -7.6], [5.4, -6.4], [7.2, -3.8], [7.2, -1.3], [-2.6, -1.3], [-2.6, 2.4], [-3.0, 5.2]], cl);
+          b.rrect(0.6, -4.8, 5.8, 2.6, 0.8, '#c8d0d8');
+          b.px(3.2, -3.6, '#4a5560');
+          b.px(2.6, -3.6, '#4a5560');
+          b.px(3.8, -3.6, '#4a5560');
+          b.px(1.4, -4.2, '#ffffff');
+          /* 아래 얼굴 가리개 */
+          b.poly([[-3.4, 3.0], [7.4, 3.0], [7.2, 5.6], [3.4, 7.2], [-3.0, 6.6]], cl);
+          b.line(-2.0, 4.0, 6.4, 4.0, 0.7, '#3e4152', { shade: false });
+          /* 입 모양은 천 위의 그늘로 */
+          if (p.mouth === 'yell' || p.mouth === 'o') {
+            b.rect(2.0, 4.6, 1.6, 1.6, '#14141c', { shade: false });
+          }
+        }, true);
+        /* 목도리 감은 부분 */
+        c.torsoPart(() => {
+          b.rrect(-4.8, -8.6, 9.6, 2.4, 1.2, '#d8403a');
+          b.rect(-4.2, -7.4, 8.4, 0.7, '#8a1f26', { shade: false });
+        }, true);
+      },
+    },
+
+    /* 20 왕: 보석 금관, 붉은 망토와 털 깃 */
+    crown: {
+      top: -12.4,
+      pack(c) {
+        const { b } = c;
+        const col = '#c0283c';
+        const A = torsoAnchor(() => [-3, -8]);
+        const W = c.wind;
+        const hem = [
+          { x: -5.6, y: -3.4, k: 0.5, d: 0.04, wx: 2.8, wy: 1.8 },
+          { x: -7.2, y: 0.4, k: 0.4, d: 0.12, wx: 4.4, wy: 3.0 },
+          { x: -5.6, y: 3.2, k: 0.33, d: 0.22, wx: 5.0, wy: 4.0 },
+          { x: -1.6, y: 2.6, k: 0.28, d: 0.3, wx: 3.2, wy: 3.6 },
+        ].map((h) => {
+          const rest = [h.x - h.wx * W + 3, h.y - h.wy * W + 8];
+          const lg = c.lag(A, rest, h.k);
+          return [h.x - h.wx * W + lg[0] * 2.4 + c.flow(h.d, 1.3 * (0.4 + W)), h.y - h.wy * W + lg[1] * 1.6 + c.flow(h.d, 0.8 * (0.4 + W), 0.25)];
+        });
+        c.torsoPart(() => {
+          b.poly([[2.4, -7.6], [-3.8, -8.8], hem[0], hem[1], hem[2], hem[3], [1.8, -1.0]], col);
+          b.line(-2.4, -7.2, hem[1][0] + 1.2, hem[1][1] - 0.6, 1, b.tone(col, -0.32), { shade: false });
+          b.line(hem[0][0], hem[0][1], hem[1][0], hem[1][1], 0.9, '#f2c94c', { shade: false });
+          b.line(hem[1][0], hem[1][1], hem[2][0], hem[2][1], 0.9, '#f2c94c', { shade: false });
+        }, true);
+      },
+      head(c) {
+        const { b, ph } = c;
+        c.headPart(() => {
+          b.poly([[-4.8, -6.6], [-4.8, -11.0], [-2.4, -8.4], [0.1, -11.6], [2.6, -8.4], [5.0, -11.0], [5.0, -6.6]], '#f6c32e');
+          b.rrect(-5.0, -7.2, 10.2, 2.8, 0.8, '#f6c32e');
+          b.line(-4.4, -7.0, 4.6, -7.0, 0.8, '#fff0a0', { shade: false });
+          b.disc(0.1, -5.8, 1.3, '#ff3a5a');
+          b.px(-0.3, -6.2, '#ffd0d8');
+          b.px(-3.0, -5.8, '#5ad0ff');
+          b.px(3.2, -5.8, '#7affa0');
+          if (ph < 0.25 || (ph >= 0.5 && ph < 0.75)) b.px(0.1, -12.4, '#ffffff');
+        }, true);
+        /* 털 깃 */
+        c.torsoPart(() => {
+          b.rrect(-5.0, -8.6, 10.0, 2.0, 1.0, '#f8f4f8');
+          b.rect(-4.4, -6.8, 8.8, 1.4, '#c0283c');
+          for (const x of [-3.4, -0.4, 2.6]) b.px(x, -7.7, '#2a2530');
+          b.px(0.6, -6.0, '#f6c32e');
+        }, true);
+      },
+    },
+
+    /* 21 토끼: 긴 귀 둘 (한쪽이 접혀 늦게 흔들림), 엉덩이 솜꼬리 */
+    bunny: {
+      top: -14.8,
+      pack(c) {
+        const { b } = c;
+        const lg = c.lag(torsoAnchor(() => [-4.8, -1.0]), [0, 0], 0.4, 2);
+        const x = -4.8 + lg[0] * 1.2;
+        const y = -0.8 + lg[1] * 1.0 + c.flow(0.2, 0.5);
+        c.torsoPart(() => {
+          b.disc(x, y, 2.5, '#ffffff');
+          b.disc(x - 1.6, y - 1.0, 1.2, '#ffffff');
+          b.px(x + 0.6, y + 1.0, '#f0d8e4');
+        }, true);
+      },
+      head(c) {
+        const { b } = c;
+        const ew = (t) => 1.6 + 2.2 * Math.sin(Math.PI * (0.15 + 0.7 * t));
+        /* 뒤쪽 귀: 서서 뒤로 살짝 눕는다 */
+        const tA = tipHead(c, [-5.8, -12.2], 0.34, 0.08, 0.9, 0.6, 1.2, 0.8);
+        const ra = ribbon([-2.4, -5.4], [-3.0, -10.2], tA, ew);
+        /* 앞쪽 귀: 중간이 접혀 앞으로 숙인다 */
+        const tB = tipHead(c, [6.8, -9.8], 0.28, 0.2, 1.2, 0.7, 1.5, 1.1);
+        const rbb = ribbon([2.0, -5.6], [3.2, -12.0], tB, ew);
+        const inner = (rb, p0, c1, tp) => ribbon(p0, c1, tp, (t) => (t < 0.14 || t > 0.9 ? 0.1 : ew(t) * 0.42));
+        c.headPart(() => {
+          b.poly(ra.poly, '#fff4f8');
+          b.poly(inner(ra, [-2.4, -6.0], [-3.0, -10.4], tA).poly, '#ffa6c4', { shade: false });
+          b.disc(tA[0], tA[1], 1.3, '#fff4f8');
+        }, true);
+        c.headPart(() => {
+          b.poly(rbb.poly, '#fff4f8');
+          b.poly(inner(rbb, [2.0, -6.2], [3.2, -12.0], tB).poly, '#ffa6c4', { shade: false });
+          b.disc(tB[0], tB[1], 1.3, '#f2e4ec');
+        }, true);
+      },
+    },
+
+    /* 22 고양이: 쫑긋 서는 귀 둘, 살랑이는 꼬리, 회색 줄무늬 */
+    cat: {
+      top: -11.8,
+      pack(c) {
+        const { b, wind } = c;
+        const base = [-3.0, -1.4];
+        const tip = tipTorso(c, base, [-7.4 - 3.0 * wind, -6.2 + 4.4 * wind], 0.3, 0.1, 1.6, 1.0, 2.6, 2.0);
+        const rb = ribbon(base, [base[0] - 5.4, base[1] + 1.8 - wind], tip, (t) => 2.8 - t * 0.6, 10);
+        c.torsoPart(() => {
+          b.poly(rb.poly, '#9aa0aa');
+          for (const s of [3, 5, 7]) b.disc(rb.spine[s][0], rb.spine[s][1], 1.2, '#4a4f5a', { shade: false });
+          const z = rb.spine[10];
+          b.disc(z[0], z[1], 1.3, '#e8eaf0');
+        }, true);
+      },
+      head(c) {
+        const { b, ph } = c;
+        const flick = Math.pow(Math.max(0, Math.sin((ph * 2 - 0.2) * TAU)), 3);
+        const tA = tipHead(c, [-5.4, -11.2], 0.45, 0.1, 0.5, 0.3, 1.2, 0.8);
+        const tB = tipHead(c, [4.6, -11.4], 0.45, 0.2, 0.5, 0.3, 1.2, 0.8);
+        tB[0] += flick * 1.2;
+        tB[1] += flick * 0.8;
+        c.headPart(() => {
+          b.poly([[-6.4, -4.8], [tA[0], tA[1]], [-1.6, -6.0]], '#8a909a');
+          b.poly([[-5.2, -5.2], [tA[0] + 0.2, tA[1] + 2.4], [-2.8, -6.0]], '#f0a0b8', { shade: false });
+          b.poly([[0.2, -5.8], [tB[0], tB[1]], [5.2, -4.4]], '#9aa0aa');
+          b.poly([[1.4, -5.8], [tB[0] - 0.2, tB[1] + 2.4], [4.2, -5.0]], '#f0a0b8', { shade: false });
+        }, true);
+        /* 줄무늬 옷 */
+        c.torsoPart(() => {
+          for (const y of [-6.6, -4.4, -2.4]) b.rect(-3.6, y, 7.4, 0.9, '#5d636e', { shade: false, alpha: 0.7 });
+        }, false);
+      },
+    },
+
+    /* 23 음악가: 큰 헤드폰과 가끔 떠오르는 반투명 음표 */
+    headphones: {
+      top: -13,
+      head(c) {
+        const { b, ph, clip } = c;
+        c.headPart(() => {
+          /* 머리 위로 넘어가는 띠 */
+          b.line(-3.6, -1.4, -5.8, -5.2, 1.9, '#e6eaf4', { shade: false });
+          b.line(-5.8, -5.2, -3.0, -8.0, 1.9, '#e6eaf4', { shade: false });
+          b.line(-3.0, -8.0, 1.4, -8.8, 1.9, '#e6eaf4', { shade: false });
+          b.line(1.4, -8.8, 5.2, -6.8, 1.9, '#e6eaf4', { shade: false });
+          b.line(5.2, -6.8, 6.4, -4.0, 1.9, '#e6eaf4', { shade: false });
+          b.line(-3.0, -8.4, 1.4, -9.2, 0.7, '#9aa4bc', { shade: false });
+          b.px(5.4, -7.4, '#9aa4bc');
+          /* 귀덮개 */
+          b.ell(-3.0, 1.8, 2.8, 3.4, '#f2f4fa');
+          b.disc(-3.0, 1.8, 1.6, '#6ed04a', { shade: false });
+          b.px(-3.6, 0.8, '#d8ffc0');
+          b.px(-2.0, 2.8, '#3a8a2a');
+        }, true);
+        /* 떠오르는 음표 (반투명) */
+        const cyc = { run: 2, win: 2, reload: 2 }[clip] || 1;
+        const t = (ph * cyc) % 1;
+        if (clip !== 'hurt' && clip !== 'die' && t < 0.8) {
+          const u = t / 0.8;
+          const al = Math.sin(Math.PI * u) * 0.8;
+          const x = 3.4 + 1.6 * Math.sin(u * TAU * 0.8);
+          const y = -9.6 - 3.2 * u;
+          c.headPart(() => {
+            b.disc(x, y + 2.8, 1.7, '#c4f8ff', { shade: false, alpha: al });
+            b.line(x + 1.4, y + 2.6, x + 1.4, y - 1.4, 1.1, '#c4f8ff', { shade: false, alpha: al });
+            b.line(x + 1.4, y - 1.4, x + 3.2, y + 0.6, 1.1, '#c4f8ff', { shade: false, alpha: al });
+          }, false);
+        }
+      },
+    },
   };
 
   function draw(b, clip, i, n, pal) {
@@ -542,6 +1028,7 @@
           i,
           n,
           ph: i / n,
+          pr: n > 1 ? i / (n - 1) : 1,
           wind: WIND[clip] || 0,
           /* 한 박자 늦게 출렁이는 값: d 만큼 늦은 사인 (동작마다 반복 횟수가 정수라서 처음 = 끝) */
           flow: (d, a = 1, ph2 = 0, fm = 1) => Math.sin(((i / n) * (FREQ[clip] || 1) * fm - d + ph2) * TAU) * (AMP[clip] || 1) * a,
@@ -736,6 +1223,19 @@
         { ...BASE_PAL, acc: 'cloak', shirt: '#2b2540', band: '#7a5cff', shorts: '#1a1626', hair: '#14101c', shoe: '#4a4560', bag: '#3a3050' },
         { ...BASE_PAL, acc: 'collector', shirt: '#e8c24a', band: '#fff1a8', shorts: '#8a6a20', shoe: '#fff1a8', bag: '#ffd45a' },
         { ...BASE_PAL, acc: 'flame', shirt: '#ff6ab0', band: '#6af0ff', shorts: '#7a5cff', shoe: '#fff6d8', bag: '#9af06a' },
+        /* 12~23 은 새 코스튬 12벌 */
+        { ...BASE_PAL, acc: 'turban', shirt: '#d9b878', band: '#c88a3a', shorts: '#8a6a3a', shoe: '#a8784a', bag: '#b8905a' },
+        { ...BASE_PAL, acc: 'lily', shirt: '#6c9a4a', band: '#3f7a42', shorts: '#4a5a3a', shoe: '#7a6a3a', bag: '#7a8a52' },
+        { ...BASE_PAL, acc: 'pirate', shirt: '#c8352e', band: '#2a2530', shorts: '#2a2a3a', shoe: '#3a2a22', bag: '#7a4a2a' },
+        { ...BASE_PAL, acc: 'wings', shirt: '#eaf6ff', band: '#ffd45a', shorts: '#9cc4e8', shoe: '#ffffff', bag: '#bcd8f0' },
+        { ...BASE_PAL, acc: 'goggles', shirt: '#ee8a2c', band: '#3a3a44', shorts: '#a04a1a', shoe: '#4a4a52', bag: '#8a6a3a' },
+        { ...BASE_PAL, acc: 'horns', shirt: '#4a3070', band: '#c0405e', shorts: '#231a38', shoe: '#5a4a7a', bag: '#5a3a6a', hair: '#1a1426' },
+        { ...BASE_PAL, acc: 'wizard', shirt: '#26408f', band: '#ffe27a', shorts: '#1a2a5a', shoe: '#5a4a8a', bag: '#6a5a98' },
+        { ...BASE_PAL, acc: 'ninja', shirt: '#2a2b36', band: '#d8403a', shorts: '#1c1c26', shoe: '#3a3a48', bag: '#3a3a48' },
+        { ...BASE_PAL, acc: 'crown', shirt: '#8a3aa8', band: '#f6c32e', shorts: '#5a2a78', shoe: '#f2e6b0', bag: '#8a6a9a' },
+        { ...BASE_PAL, acc: 'bunny', shirt: '#ff9ec4', band: '#ffffff', shorts: '#d46a9a', shoe: '#ffffff', bag: '#f0c8d8' },
+        { ...BASE_PAL, acc: 'cat', shirt: '#9aa0aa', band: '#ff8aa8', shorts: '#4a4f5a', shoe: '#e6e6ee', bag: '#7a7f8a' },
+        { ...BASE_PAL, acc: 'headphones', shirt: '#8fd96a', band: '#ff8a5a', shorts: '#3f7a4a', shoe: '#f6f2e0', bag: '#7a9a52' },
       ],
       draw,
       pose,
