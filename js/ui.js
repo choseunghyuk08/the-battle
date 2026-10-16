@@ -1732,7 +1732,7 @@
       let dt = Math.max(0, (now - last) / 1000);
       last = now;
       if (dt > 0.25) dt = 0.25;
-      acc += dt;
+      acc += dt * TG.render.timeScale(dt); /* 크게 맞거나 부술 때 아주 잠깐 멈칫 */
       while (acc >= STEP) {
         ui.game.tick(STEP);
         acc -= STEP;

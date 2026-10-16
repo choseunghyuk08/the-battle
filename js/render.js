@@ -333,6 +333,108 @@
     } else if (game.heroStunT > 0 && Math.floor(clock * 6) % 2 === 1) game._stunFx = false;
   }
 
+  /* ---- 움직임 보조: 알갱이, 스프링, 멈칫, 번쩍 ---- */
+  const parts = [];
+  const MAX_PARTS = 360;
+  function spawnPart(o) {
+    if (parts.length >= MAX_PARTS) parts.shift();
+    parts.push({ t: 0, life: 0.5, g: 0, drag: 0, size: 1, color: '#ffffff', shape: 'sq', bounce: 0, grow: 0, a: 1, ...o });
+  }
+  /* 사방으로 퍼지는 알갱이. up 은 위쪽으로 치우치는 정도 */
+  function burst(x, y, n, o = {}) {
+    const cols = o.colors || ['#ffffff'];
+    for (let i = 0; i < n; i++) {
+      const ang = o.arc ? o.arc[0] + Math.random() * (o.arc[1] - o.arc[0]) : Math.random() * Math.PI * 2;
+      const sp = (o.speed || 40) * (0.4 + Math.random() * 0.8);
+      spawnPart({
+        x: x + (Math.random() - 0.5) * (o.spread || 0),
+        y: y + (Math.random() - 0.5) * (o.spread || 0),
+        vx: Math.cos(ang) * sp,
+        vy: Math.sin(ang) * sp - (o.up || 0),
+        life: (o.life || 0.5) * (0.7 + Math.random() * 0.6),
+        g: o.g || 0,
+        drag: o.drag || 0,
+        size: o.size || 1,
+        color: cols[i % cols.length],
+        shape: o.shape || 'sq',
+        bounce: o.bounce || 0,
+        grow: o.grow || 0,
+        a: o.a === undefined ? 1 : o.a,
+      });
+    }
+  }
+  function drawParts(dt) {
+    for (let i = parts.length - 1; i >= 0; i--) {
+      const p = parts[i];
+      p.t += dt;
+      if (p.t >= p.life) {
+        parts.splice(i, 1);
+        continue;
+      }
+      p.vx -= p.vx * p.drag * dt;
+      p.vy += p.g * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      if (p.bounce && p.y > GROUND && p.vy > 0) {
+        p.y = GROUND;
+        p.vy *= -p.bounce;
+        p.vx *= 0.7;
+      }
+      const k = p.t / p.life;
+      ctx.globalAlpha = Math.max(0, p.a * (k < 0.7 ? 1 : 1 - (k - 0.7) / 0.3));
+      ctx.fillStyle = p.color;
+      const s = Math.max(1, Math.round(p.size + p.grow * k));
+      if (p.shape === 'ring') {
+        ctx.strokeStyle = p.color;
+        ctx.lineWidth = 1;
+        const r = Math.round(p.size + p.grow * k);
+        ctx.strokeRect(Math.round(p.x - r), Math.round(p.y - r * 0.4), r * 2, Math.max(1, Math.round(r * 0.8)));
+      } else if (p.shape === 'streak') {
+        const l = Math.max(2, Math.round(Math.hypot(p.vx, p.vy) * 0.05));
+        const ang = Math.atan2(p.vy, p.vx);
+        for (let q = 0; q < l; q++) ctx.fillRect(Math.round(p.x - Math.cos(ang) * q), Math.round(p.y - Math.sin(ang) * q), 1, 1);
+      } else ctx.fillRect(Math.round(p.x - s / 2), Math.round(p.y - s / 2), s, s);
+    }
+    ctx.globalAlpha = 1;
+  }
+
+  /* 스프링: 맞으면 밀렸다가 출렁이며 돌아온다 */
+  function spring(v, dt, k = 260, c = 15) {
+    v.v += (-k * v.x - c * v.v) * dt;
+    v.x += v.v * dt;
+  }
+  const mobVS = new Map();
+  function vsOf(m) {
+    let v = mobVS.get(m.id);
+    if (!v) {
+      v = { x: m.x, kx: { x: 0, v: 0 }, sq: { x: 0, v: 0 }, age: 0, dust: 0, seen: 0 };
+      mobVS.set(m.id, v);
+      v.fresh = true;
+    }
+    return v;
+  }
+  const heroSpring = { x: { x: 0, v: 0 }, hop: { x: 0, v: 0 } };
+  let hitStop = 0;
+  let flash = 0;
+  let flashColor = '255,255,255';
+  const bolts = [];
+  const trails = new WeakMap();
+  const STOP = 0.12; /* 멈칫하는 동안 게임 시간이 이 배율로 흐른다 */
+  function timeScale(dt) {
+    if (hitStop <= 0) return 1;
+    hitStop -= dt;
+    return STOP;
+  }
+  function jagged(x0, y0, x1, y1, n) {
+    const pts = [[x0, y0]];
+    for (let i = 1; i < n; i++) {
+      const k = i / n;
+      pts.push([x0 + (x1 - x0) * k + (Math.random() - 0.5) * 12, y0 + (y1 - y0) * k]);
+    }
+    pts.push([x1, y1]);
+    return pts;
+  }
+
   function heightOf(m) {
     const def = mobDef(m.kind);
     return def.h * (m.giant ? 2 : 1) * 0.55;
@@ -384,23 +486,47 @@
         if (e.chain) addFx('boltStrike', e.x, GROUND, 0.25);
         addText(TG.fmt(e.dmg), e.x, y - 6, e.power ? '#ffb13a' : e.fire ? '#ff7a3a' : e.banana ? '#ffe45a' : '#ffffff', e.power || e.fire);
         if (e.giant) shake = Math.max(shake, 0.12);
+        burst(e.x - 2, y, e.power ? 9 : e.giant ? 7 : 5, { speed: e.power ? 90 : 60, g: 140, life: 0.35, colors: e.power ? ['#ffb13a', '#fff6b0', '#ffffff'] : ['#fff6b0', '#ffffff', '#ffe45a'], shape: 'streak', drag: 2 });
+        {
+          const mv = mobVS.get(e.id);
+          if (mv) {
+            mv.kx.v += e.giant ? 45 : 90;
+            mv.sq.v += e.giant ? 3 : 6;
+          }
+        }
         break;
       }
       case 'kill':
         addFx('poof', e.x, GROUND - 6, 0.45, e.giant ? 2 : 1);
         addFx('coin', e.x, GROUND - 14, 0.6);
         addText(`+${TG.fmt(e.gold)}`, e.x, GROUND - 22, '#ffcf4a', true);
-        if (e.giant) shake = 0.3;
+        burst(e.x, GROUND - 10, e.giant ? 22 : 11, { speed: e.giant ? 80 : 55, up: 50, g: 220, life: 0.7, colors: ['#ffe9a0', '#ffffff', '#ffb13a', '#ff8a3a'], bounce: 0.4, size: e.giant ? 2 : 1 });
+        burst(e.x, GROUND - 2, e.giant ? 8 : 4, { speed: 30, arc: [Math.PI, Math.PI * 2], g: 30, drag: 3, life: 0.5, colors: ['#c8bfa8', '#9a927e'], grow: 3, size: 1, a: 0.6 });
+        spawnPart({ x: e.x, y: GROUND - 1, life: 0.4, shape: 'ring', size: 2, grow: e.giant ? 16 : 9, color: '#ffffff', a: 0.7 });
+        if (e.giant) {
+          shake = 0.3;
+          hitStop = Math.max(hitStop, 0.07);
+        }
         break;
       case 'hurt':
         shake = Math.max(shake, 0.15);
+        heroSpring.x.v -= 160;
+        heroSpring.hop.v -= 70;
+        burst(P.heroX + 2, GROUND - 22, 6, { speed: 55, up: 30, g: 200, life: 0.4, colors: ['#ff5d6c', '#ffffff', '#ffb0b8'] });
+        hitStop = Math.max(hitStop, 0.04);
+        flash = Math.max(flash, 0.18);
+        flashColor = '255,60,70';
         break;
       case 'throw':
         addFx('throwfx', P.heroX + 8, GROUND - 24, 0.2);
+        heroSpring.x.v -= 55;
+        burst(P.heroX + 10, GROUND - 24, 3, { speed: 40, arc: [-0.7, 0.4], life: 0.2, colors: ['#ffffff', '#cfeaff'], drag: 4 });
         break;
       case 'drop':
         addFx('rainHit', e.x, GROUND - 2, 0.35);
         shake = Math.max(shake, 0.06);
+        burst(e.x, GROUND - 2, 6, { speed: 45, arc: [Math.PI * 1.05, Math.PI * 1.95], g: 160, life: 0.35, colors: ['#ffffff', '#cfeaff', '#ffe9a0'] });
+        spawnPart({ x: e.x, y: GROUND - 1, life: 0.3, shape: 'ring', size: 1, grow: 6, color: '#ffffff', a: 0.6 });
         break;
       case 'sapphire':
         addFx('rubyPop', e.x, GROUND - 4, 0.8);
@@ -413,10 +539,14 @@
       case 'fire':
         addFx('fireBurst', e.x, GROUND - 2, 0.5);
         shake = Math.max(shake, 0.1);
+        burst(e.x, GROUND - 6, 12, { speed: 70, up: 30, g: 40, life: 0.6, colors: ['#ff7a3a', '#ffd04a', '#ff5a2a', '#ffffff'], drag: 1.5 });
         break;
       case 'bash':
         addFx('bash', e.x, GROUND - 14, 0.3);
         shake = Math.max(shake, 0.1);
+        spawnPart({ x: e.x, y: GROUND - 1, life: 0.35, shape: 'ring', size: 3, grow: 14, color: '#ffffff', a: 0.8 });
+        burst(e.x, GROUND - 4, 8, { speed: 70, arc: [Math.PI, Math.PI * 2], g: 150, life: 0.5, colors: ['#c8bfa8', '#9a927e', '#ffffff'], bounce: 0.3 });
+        hitStop = Math.max(hitStop, 0.05);
         break;
       case 'ore':
         addText(`+${e.n}`, e.x, GROUND - 30, '#9fd8ff', true);
@@ -461,6 +591,10 @@
       case 'bolt':
         addFx('boltStrike', e.x, GROUND, 0.3);
         shake = Math.max(shake, 0.12);
+        bolts.push({ pts: jagged(e.x + 10, 0, e.x, GROUND - 6, 7), t: 0, dur: 0.28 });
+        flash = Math.max(flash, 0.1);
+        flashColor = '255,250,200';
+        burst(e.x, GROUND - 4, 8, { speed: 70, arc: [Math.PI, Math.PI * 2], g: 120, life: 0.35, colors: ['#fff6b0', '#ffe45a', '#ffffff'], shape: 'streak' });
         break;
       case 'volt':
         addFx('voltPop', e.x, GROUND - 4, 0.6);
@@ -483,23 +617,60 @@
         if (e.id === 'chain') addFx('boltStrike', e.x, GROUND, 0.25);
         else if (e.id === 'blast') addFx('fireBurst', e.x, GROUND - 2, 0.4);
         break;
+      case 'clear':
+        burst(P.heroX + 4, GROUND - 30, 16, { speed: 70, up: 60, g: 160, life: 0.9, colors: ['#ffd85a', '#ff7a8a', '#7bd88f', '#6ab0ff', '#ffffff'], size: 2, bounce: 0.3 });
+        break;
+      case 'tower-clear':
+        spawnPart({ x: P.heroX + 4, y: GROUND - 2, life: 0.5, shape: 'ring', size: 3, grow: 18, color: '#7bd88f', a: 0.9 });
+        burst(P.heroX + 4, GROUND - 20, 10, { speed: 40, up: 30, g: 40, life: 0.7, colors: ['#7bd88f', '#ffffff', '#cfeaff'], drag: 1 });
+        break;
+      case 'boss-win':
+        hitStop = Math.max(hitStop, 0.18);
+        flash = Math.max(flash, 0.3);
+        flashColor = '255,240,180';
+        for (let q = 0; q < 3; q++) burst(40 + q * 60, 0, 14, { speed: 40, arc: [Math.PI * 0.2, Math.PI * 0.8], g: 120, life: 1.4, colors: ['#ffd85a', '#ff7a8a', '#7bd88f', '#6ab0ff', '#c26bff'], size: 2, bounce: 0.35, spread: 30 });
+        break;
       case 'heal':
         addFx('heal', P.heroX, GROUND, 1.0);
         addText(`+${TG.fmt(e.amount)}`, P.heroX, GROUND - 44, '#7dff8a', true);
         break;
-      case 'skill':
+      case 'skill': {
         if (e.id === 'shadow') addFx('shadowPuff', P.heroX - P.shadowX, GROUND, 0.6);
+        const cx = P.heroX + 4;
+        if (e.id === 'rage') {
+          spawnPart({ x: cx, y: GROUND - 2, life: 0.5, shape: 'ring', size: 3, grow: 26, color: '#ff7a3a', a: 0.9 });
+          burst(cx, GROUND - 14, 18, { speed: 70, up: 30, g: -30, life: 0.7, colors: ['#ff7a3a', '#ffd04a', '#ff5a2a'], drag: 1.5 });
+          flash = Math.max(flash, 0.12);
+          flashColor = '255,120,60';
+          shake = Math.max(shake, 0.15);
+        } else if (e.id === 'shadow') {
+          burst(P.heroX - P.shadowX, GROUND - 16, 14, { speed: 40, g: -10, life: 0.7, colors: ['#8a5aff', '#c26bff', '#2a1048'], drag: 2, size: 2, a: 0.8 });
+        } else if (e.id === 'rain') {
+          spawnPart({ x: W / 2, y: 4, life: 0.4, shape: 'ring', size: 4, grow: 60, color: '#ffe9a0', a: 0.6 });
+          flash = Math.max(flash, 0.08);
+          flashColor = '255,240,200';
+        } else if (e.id === 'dark') {
+          burst(W / 2, GROUND - 30, 24, { speed: 30, g: -6, life: 1.0, colors: ['#5a2a8a', '#2a1048', '#8a5aff'], drag: 1, size: 2, a: 0.7, spread: 120 });
+        } else if (e.id === 'barrage') {
+          burst(cx + 10, GROUND - 24, 10, { speed: 80, arc: [-0.5, 0.3], life: 0.25, colors: ['#ffffff', '#ffe9a0'], shape: 'streak', drag: 2 });
+        }
         break;
+      }
       case 'shadow-end':
         addFx('shadowPuff', P.heroX - P.shadowX, GROUND, 0.6);
         break;
       case 'summon':
         addFx('summonPuff', e.x, GROUND, 0.5);
         shake = Math.max(shake, 0.1);
+        burst(e.x, GROUND - 8, 12, { speed: 40, g: -20, life: 0.6, colors: ['#c26bff', '#8a5aff', '#ff8ac8'], drag: 2 });
         break;
       case 'charge-slam':
         addFx('chargeSlam', P.heroX + 12, GROUND, 0.5);
         shake = Math.max(shake, 0.4);
+        hitStop = Math.max(hitStop, 0.08);
+        flash = Math.max(flash, 0.22);
+        flashColor = '255,200,150';
+        burst(P.heroX + 12, GROUND - 2, 16, { speed: 90, arc: [Math.PI, Math.PI * 2], g: 160, life: 0.6, colors: ['#c8bfa8', '#9a927e', '#ffb13a'], bounce: 0.3, size: 2 });
         break;
       case 'wall':
         shake = Math.max(shake, 0.12);
@@ -511,6 +682,8 @@
       case 'boss-start':
         addFx('bossWarn', W / 2, H / 2 - 10, 1.0);
         shake = 0.25;
+        flash = 0.25;
+        flashColor = '255,140,200';
         addBanner('보스전', '', '#ff9ac8');
         break;
       default:
@@ -525,7 +698,12 @@
     const theme = game.mode === 'mine' ? MINE : game.mode === 'chase' ? ROAD : game.theme();
     ctx.save();
     ctx.clearRect(0, 0, W, H);
-    if (shake > 0) ctx.translate(Math.round((Math.random() - 0.5) * 3), Math.round((Math.random() - 0.5) * 2));
+    if (shake > 0) {
+      const amp = Math.min(1, shake / 0.3) * 2.6;
+      ctx.translate(Math.round(Math.sin(clock * 71) * amp), Math.round(Math.sin(clock * 53 + 1) * amp * 0.6));
+    }
+    spring(heroSpring.x, dt);
+    spring(heroSpring.hop, dt, 320, 18);
     drawBg(theme);
     ambient(theme);
     phaseTint(game);
@@ -535,11 +713,33 @@
     for (const d of game.dying) {
       const def = mobDef(d.m.kind);
       const { fr, c } = frame(def, 'die', d.m.pal, d.m.giant ? 2 : 1, { progress: d.t / P.dieTime });
-      put(fr, c, d.m.x, GROUND, false);
+      const kd = Math.min(1, d.t / P.dieTime);
+      const slide = (1 - (1 - kd) * (1 - kd)) * (d.m.giant ? 5 : 9);
+      ctx.globalAlpha = kd > 0.7 ? 1 - (kd - 0.7) / 0.3 : 1;
+      put(fr, c, d.m.x + slide, GROUND, kd < 0.12);
+      ctx.globalAlpha = 1;
     }
     for (const m of mobs) {
       const def = mobDef(m.kind);
       const S = m.giant ? 2 : 1;
+      const vs = vsOf(m);
+      vs.age += dt;
+      vs.seen = clock;
+      vs.x += (m.x - vs.x) * (1 - Math.exp(-dt * 36));
+      if (Math.abs(m.x - vs.x) > 12) vs.x = m.x;
+      spring(vs.kx, dt, 300, 17);
+      spring(vs.sq, dt, 380, 14);
+      if (vs.fresh) {
+        vs.fresh = false;
+        if (m.x > P.spawnX - 60 && !m.minion) burst(m.x, GROUND - 2, S === 2 ? 8 : 5, { speed: 22, arc: [Math.PI, Math.PI * 2], g: 20, drag: 3, life: 0.5, colors: ['#c8bfa8', '#9a927e'], grow: 3, a: 0.5 });
+      }
+      if (m.state === 'walk') {
+        vs.dust -= dt;
+        if (vs.dust <= 0) {
+          vs.dust = (S === 2 ? 0.14 : 0.2) * (0.8 + Math.random() * 0.4);
+          spawnPart({ x: m.x + 4 * S, y: GROUND - 1, vx: 6 + Math.random() * 6, vy: -4 - Math.random() * 6, life: 0.35, g: 0, drag: 2, color: '#b8b09a', size: 1, grow: 2, a: 0.55 });
+        }
+      }
       if (m.boss && !loopFx('bossAura', m.x, GROUND, clock)) {
         ctx.fillStyle = 'rgba(160,80,255,0.18)';
         ctx.beginPath();
@@ -551,7 +751,21 @@
       else if (m.hurt > 0) r = frame(def, 'hurt', m.pal, S, { progress: 1 - m.hurt / 0.16 });
       else if (m.state === 'walk') r = frame(def, 'walk', m.pal, S, { time: m.t, fps: m.tank ? 16 : 11 });
       else r = frame(def, 'idle', m.pal, S, { time: m.t, fps: 6 });
-      put(r.fr, r.c, m.x, GROUND, m.hurt > 0.1);
+      {
+        const lunge = m.state === 'attack' ? -Math.sin(Math.min(1, m.atkT / P.mobAtkDur) * Math.PI) * (S === 2 ? 4 : 2.5) : 0;
+        const mx = vs.x + Math.round(vs.kx.x * 10) / 10 + lunge;
+        const fade = Math.min(1, vs.age / 0.18);
+        const sq = Math.max(-0.25, Math.min(0.3, vs.sq.x));
+        ctx.globalAlpha = fade;
+        if (Math.abs(sq) > 0.015) {
+          ctx.save();
+          ctx.translate(Math.round(mx), GROUND);
+          ctx.scale(1 - sq * 0.45, 1 + sq * 0.6);
+          ctx.drawImage(m.hurt > 0.1 ? white(r.fr.canvas) : r.fr.canvas, -r.c.ax, -r.c.ay);
+          ctx.restore();
+        } else put(r.fr, r.c, mx, GROUND, m.hurt > 0.1);
+        ctx.globalAlpha = 1;
+      }
       /* 보스 특성 표시 */
       if (m.boss) {
         if (m.shield > 0 && !loopFx('bossShield', m.x, GROUND, clock)) {
@@ -664,6 +878,10 @@
     const chasing = game.mode === 'chase';
     let hy = chasing ? GROUND - CAR_H : GROUND;
     let hx = P.heroX;
+    const hxo = Math.round(heroSpring.x.x);
+    const hyo = Math.round(Math.min(0, heroSpring.hop.x));
+    if (a.kind === 'run' && Math.random() < dt * 11) spawnPart({ x: P.heroX - 3, y: GROUND - 1, vx: -14 - Math.random() * 10, vy: -3 - Math.random() * 5, life: 0.4, drag: 2, color: '#b8b09a', size: 1, grow: 2, a: 0.55 });
+    if (game.raging && Math.random() < dt * 28) spawnPart({ x: P.heroX + (Math.random() - 0.5) * 18, y: GROUND - 6, vx: (Math.random() - 0.5) * 8, vy: -22 - Math.random() * 14, life: 0.7, color: Math.random() < 0.5 ? '#ff7a3a' : '#ffd04a', size: 1, a: 0.9 });
     if (chasing) {
       const car = TG.SPR.pet.car;
       if (car) {
@@ -687,7 +905,7 @@
       ctx.drawImage(shade(hr.fr.canvas), Math.round(sx - hr.c.ax), Math.round(hy - hr.c.ay));
       ctx.globalAlpha = 1;
     }
-    put(hr.fr, hr.c, hx, hy, a.kind === 'hurt' && a.t < 0.08);
+    put(hr.fr, hr.c, hx + hxo, hy + hyo, a.kind === 'hurt' && a.t < 0.08);
     if (game.barrage) loopFx('barrage', P.heroX + 8, hy - 22, clock, 14);
     drawPet('bear', P.bearX, GROUND);
     drawPet('dragon', P.dragonX, GROUND - P.dragonY);
@@ -717,12 +935,34 @@
       const y = sy + (ty - sy) * k - Math.sin(Math.PI * k) * 10;
       const def = itemDef(p.tier);
       const c = TG.clip(def, 'icon', def.palettes ? def.palettes[0] : {}, 1, 'p0');
+      let tr = trails.get(p);
+      if (!tr) {
+        tr = [];
+        trails.set(p, tr);
+      }
+      tr.push({ x, y, r: p.spin + k * 900 });
+      if (tr.length > 5) tr.shift();
+      /* 바닥 그림자: 높을수록 작고 옅다 */
+      ctx.fillStyle = `rgba(0,0,0,${0.22 - Math.min(0.15, (GROUND - y) / 200)})`;
+      ctx.fillRect(Math.round(x - 3), GROUND, 6, 1);
+      for (let q = 0; q < tr.length - 1; q++) {
+        const gh = tr[q];
+        ctx.save();
+        ctx.globalAlpha = (q + 1) / (tr.length * 3);
+        ctx.translate(Math.round(gh.x), Math.round(gh.y));
+        ctx.rotate((gh.r * Math.PI) / 180);
+        ctx.drawImage(c.frames[0].canvas, -c.ax * 0.7, -c.ay * 0.7, c.w * 0.7, c.h * 0.7);
+        ctx.restore();
+      }
       ctx.save();
       ctx.translate(Math.round(x), Math.round(y));
       ctx.rotate(((p.spin + k * 900) * Math.PI) / 180);
       ctx.drawImage(c.frames[0].canvas, -c.ax * 0.75, -c.ay * 0.75, c.w * 0.75, c.h * 0.75);
       ctx.restore();
     }
+
+    for (const fb of game.fires) if (Math.random() < dt * 60) spawnPart({ x: fb.x - 2, y: GROUND - P.dragonY - 2 + Math.random() * 4, vx: -10, vy: -8, life: 0.35, color: Math.random() < 0.5 ? '#ff8a2a' : '#ffd04a', size: 1, a: 0.8 });
+    if (game.barrage && Math.random() < dt * 40) spawnPart({ x: P.heroX + 12, y: GROUND - 26 + (Math.random() - 0.5) * 6, vx: 50 + Math.random() * 40, vy: (Math.random() - 0.5) * 20, life: 0.2, color: '#ffffff', size: 1, shape: 'streak' });
 
     /* 쏟아지기: 하늘에서 떨어지는 물건 */
     for (const d of game.drops) {
@@ -763,6 +1003,30 @@
       }
     }
 
+    if (mobVS.size > 40) for (const [id, v] of mobVS) if (clock - v.seen > 2) mobVS.delete(id);
+    drawParts(dt);
+    for (let i = bolts.length - 1; i >= 0; i--) {
+      const b = bolts[i];
+      b.t += dt;
+      if (b.t >= b.dur) {
+        bolts.splice(i, 1);
+        continue;
+      }
+      const a = 1 - b.t / b.dur;
+      if (Math.floor(b.t * 40) % 2 === 0 || b.t < 0.08) {
+        ctx.globalAlpha = a;
+        ctx.fillStyle = '#fff6b0';
+        for (let q = 0; q < b.pts.length - 1; q++) {
+          const [x0, y0] = b.pts[q];
+          const [x1, y1] = b.pts[q + 1];
+          const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0));
+          for (let s = 0; s <= n; s += 1) ctx.fillRect(Math.round(x0 + ((x1 - x0) * s) / n), Math.round(y0 + ((y1 - y0) * s) / n), 1, 1);
+        }
+        ctx.fillStyle = 'rgba(255,230,120,0.45)';
+        for (const [px, py] of b.pts) ctx.fillRect(Math.round(px) - 1, Math.round(py) - 1, 3, 3);
+        ctx.globalAlpha = 1;
+      }
+    }
     eventOverlay(game);
 
     /* 떠오르는 글자 */
@@ -775,7 +1039,8 @@
       }
       const y = t.y + t.vy * t.t + 12 * t.t * t.t;
       ctx.globalAlpha = Math.min(1, (t.dur - t.t) * 4);
-      if (t.img) ctx.drawImage(t.img, Math.round(t.x - t.img.width / 2), Math.round(y));
+      const pop = t.t < 0.12 ? 1 + 0.6 * (1 - t.t / 0.12) : 1;
+      if (t.img) ctx.drawImage(t.img, Math.round(t.x - (t.img.width * pop) / 2), Math.round(y - (t.img.height * (pop - 1)) / 2), Math.round(t.img.width * pop), Math.round(t.img.height * pop));
       else {
         ctx.font = '7px monospace';
         ctx.fillStyle = t.color;
@@ -785,6 +1050,11 @@
       ctx.globalAlpha = 1;
     }
     drawBanners(dt);
+    if (flash > 0) {
+      ctx.fillStyle = `rgba(${flashColor},${Math.min(0.5, flash * 1.6)})`;
+      ctx.fillRect(-4, -4, W + 8, H + 8);
+      flash -= dt;
+    }
     ctx.restore();
 
     /* 체력은 위쪽 정보 줄에 나온다 */
@@ -866,5 +1136,5 @@
     while (warmQ.length && performance.now() - t < 6) warmQ.shift()();
   }
 
-  TG.render = { init, draw, fit, onEvent, warmTheme, warmStep, W, H };
+  TG.render = { init, draw, fit, onEvent, warmTheme, warmStep, timeScale, W, H };
 })(globalThis);
