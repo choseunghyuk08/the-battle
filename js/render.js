@@ -123,6 +123,47 @@
     ctx.fillRect(0, 0, W, H);
   }
 
+  /* 땅마다 떠다니는 알갱이 (분위기만, 계산에는 안 들어감). 위치는 시간의 함수라 상태가 없다 */
+  const AMBIENT = {
+    field: { n: 7, c: ['#fff3a0', '#ffffff'], vx: 3, vy: -2, sw: 4, s: 1, a: 0.55 },
+    forest: { n: 9, c: ['#7bc65a', '#d89a3a', '#a8d86a'], vx: -4, vy: 11, sw: 8, s: 2, a: 0.8 },
+    cave: { n: 9, c: ['#a8c8ff', '#d6b8ff'], vx: 1, vy: -1.5, sw: 3, s: 1, a: 0.6, tw: 1 },
+    volcano: { n: 14, c: ['#ff9a3a', '#ff5a2a', '#ffd04a'], vx: 3, vy: -16, sw: 5, s: 1, a: 0.85, tw: 1 },
+    ice: { n: 18, c: ['#ffffff', '#cfeaff'], vx: -5, vy: 10, sw: 6, s: 1, a: 0.85 },
+    space: { n: 16, c: ['#ffffff', '#ffe9a0', '#bfd0ff'], vx: 0, vy: 0, sw: 0, s: 1, a: 0.9, tw: 2 },
+    desert: { n: 14, c: ['#e8c88a', '#f5deb0'], vx: -46, vy: 2, sw: 2, s: 1, a: 0.6, streak: 4 },
+    swamp: { n: 9, c: ['#d8ff6a', '#a8ff8a'], vx: 2, vy: -1, sw: 6, s: 1, a: 0.85, tw: 1.5 },
+    ocean: { n: 12, c: ['#cfeaff', '#9fd8ff'], vx: 0, vy: -11, sw: 4, s: 1, a: 0.7 },
+    sky: { n: 6, c: ['#ffffff'], vx: -26, vy: 0, sw: 1, s: 1, a: 0.5, streak: 8 },
+    factory: { n: 10, c: ['#ffd04a', '#ff8a3a', '#9a9aa8'], vx: -3, vy: 22, sw: 3, s: 1, a: 0.85, tw: 2 },
+    abyss: { n: 12, c: ['#c26bff', '#8a5aff', '#ff8ac8'], vx: 1, vy: -3, sw: 7, s: 1, a: 0.7, tw: 1.2 },
+  };
+  const hash01 = (i, k) => {
+    let h = Math.imul(i + 1, 0x9e3779b1) ^ Math.imul(k + 7, 0x85ebca6b);
+    h ^= h >>> 15;
+    h = Math.imul(h, 0xc2b2ae35);
+    h ^= h >>> 13;
+    return ((h >>> 0) % 10000) / 10000;
+  };
+  function ambient(theme) {
+    const a = AMBIENT[theme.id];
+    if (!a) return;
+    ctx.save();
+    for (let i = 0; i < a.n; i++) {
+      const x0 = hash01(i, 1) * W;
+      const y0 = hash01(i, 2) * GROUND;
+      const ph = hash01(i, 3) * 6.283;
+      const sp = 0.7 + hash01(i, 4) * 0.6;
+      const x = (((x0 + a.vx * sp * clock + Math.sin(clock * 0.9 + ph) * a.sw) % W) + W) % W;
+      const y = (((y0 + a.vy * sp * clock) % GROUND) + GROUND) % GROUND;
+      const tw = a.tw ? 0.5 + 0.5 * Math.sin(clock * a.tw * 3 + ph) : 1;
+      ctx.globalAlpha = a.a * tw;
+      ctx.fillStyle = a.c[i % a.c.length];
+      ctx.fillRect(Math.round(x), Math.round(y), a.streak || a.s, a.s);
+    }
+    ctx.restore();
+  }
+
   function drawBg(theme) {
     const def = TG.SPR.bg[theme.id];
     if (!def) {
@@ -323,6 +364,7 @@
     ctx.clearRect(0, 0, W, H);
     if (shake > 0) ctx.translate(Math.round((Math.random() - 0.5) * 3), Math.round((Math.random() - 0.5) * 2));
     drawBg(theme);
+    ambient(theme);
     phaseTint(game);
 
     /* 몬스터 (오른쪽부터 그려서 앞쪽이 위에 오게) */
