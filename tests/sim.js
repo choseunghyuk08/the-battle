@@ -302,9 +302,9 @@ function testV04() {
 
 function testV05() {
   /* 90단계 (60 은 뭐든지, 61 부터는 그 뒤 이야기) */
-  assert.strictEqual(TG.ITEMS.length, 90);
+  assert.strictEqual(TG.ITEMS.length, 150);
   assert.strictEqual(TG.ITEMS[59].name, '뭐든지');
-  assert.strictEqual(TG.TIER_COLORS.length, 90);
+  assert.strictEqual(TG.TIER_COLORS.length, 170);
   assert.strictEqual(TG.ITEMS[59].name, '뭐든지');
 
   /* 유물: 루비로 뽑고, 같은 게 나오면 레벨업, 효과가 들어간다 */
