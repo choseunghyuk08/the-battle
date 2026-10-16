@@ -828,7 +828,9 @@
     }
     chaseEnd() {
       this.s.chaseCd = P.chaseCd;
-      this.events.push({ type: 'chase-end', volt: this.chaseGot, broken: this.chaseBroken });
+      const ruby = Math.floor(this.chaseBroken / 4);
+      this.s.ruby += ruby;
+      this.events.push({ type: 'chase-end', volt: this.chaseGot, broken: this.chaseBroken, ruby });
       this.mode = 'stage';
       this.proj = [];
       this.queue = [];

@@ -39,22 +39,27 @@
         <button class="skill" id="skRage" type="button" aria-label="분노 스킬"><span id="skRageIcon" class="icon x2"></span><span class="cd"></span><small>분노</small></button>
         <button class="skill" id="skShadow" type="button" aria-label="그림자 분신 스킬"><span id="skShadowIcon" class="icon x2"></span><span class="cd"></span><small>분신</small></button>
         <button class="skill" id="skBarrage" type="button" aria-label="난사 스킬"><span id="skBarrageIcon" class="icon x2"></span><span class="cd"></span><small>난사</small></button>
+        <button class="skill" id="skBolt" type="button" aria-label="뇌전 스킬"><span id="skBoltIcon" class="icon x2"></span><span class="cd"></span><small>뇌전</small></button>
+        <button class="skill" id="skDark" type="button" aria-label="어둠장막 스킬"><span id="skDarkIcon" class="icon x2"></span><span class="cd"></span><small>어둠</small></button>
+      </div>
+      <div class="acts">
         <button class="skill boss" id="bossBtn" type="button" aria-label="보스전"><span id="bossIcon" class="icon x2"></span><span class="cd"></span><small id="bossLabel">보스 1</small></button>
         <button class="skill mine" id="mineBtn" type="button" aria-label="광산"><span id="mineIcon" class="icon x2"></span><span class="cd"></span><small id="mineLabel">광산</small></button>
+        <button class="skill chase" id="chaseBtn" type="button" aria-label="추격전"><span id="chaseIcon" class="icon x2"></span><span class="cd"></span><small id="chaseLabel">추격</small></button>
+        <button class="craft" id="craft" type="button" aria-label="던질 것 만들기">
+          <span class="face"><span id="craftIcon" class="icon"></span>만들기 <span id="craftCount">5/5</span><span class="fill" id="craftFill"></span></span>
+        </button>
       </div>
-      <button class="craft" id="craft" type="button" aria-label="던질 것 만들기">
-        <span class="face"><span id="craftIcon" class="icon"></span>만들기 <span id="craftCount">5/5</span><span class="fill" id="craftFill"></span></span>
-      </button>
     </div>
 
     <section class="field" id="field" aria-label="합성 필드. 같은 물건을 끌어다 겹치면 합쳐진다"><canvas id="fieldCv"></canvas><div class="fieldtag"><span id="countIcon" class="icon"></span><b id="countNum">0/8</b><span class="auto" id="autoTag"></span></div></section>
 
     <nav class="dock">
       <button class="tab" id="tabUp" type="button"><span id="upIcon" class="icon"></span>강화<span class="dot" id="upDot" hidden></span></button>
+      <button class="tab" id="tabAb" type="button"><span id="abIcon" class="icon"></span>능력<span class="dot" id="abDot" hidden></span></button>
       <button class="tab" id="tabPet" type="button"><span id="petIcon" class="icon"></span>동료<span class="dot" id="petDot" hidden></span></button>
       <button class="tab" id="tabShop" type="button"><span id="shopIcon" class="icon"></span>상점<span class="dot" id="shopDot" hidden></span></button>
       <button class="tab" id="tabQuest" type="button"><span id="questIcon" class="icon"></span>임무<span class="dot" id="questDot" hidden></span></button>
-      <button class="tab" id="tabDex" type="button"><span id="dexIcon" class="icon"></span>도감</button>
       <button class="tab" id="tabSet" type="button"><span id="setIcon" class="icon"></span>설정</button>
     </nav>
 

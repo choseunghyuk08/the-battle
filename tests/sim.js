@@ -517,21 +517,32 @@ function bot(kind, minutes, seed = 7) {
     /* 보스전은 열리면 바로, 상점은 살 수 있으면 산다, 스킬은 자동 스킬을 사기 전엔 손으로 */
     if (g.canBoss() && g.highest >= 6) g.startBoss();
     else if (g.canMine()) g.startMine();
-    for (const id of ['monkey', 'hippo', 'bear', 'dragon']) g.evolve(id);
+    else if (g.canChase()) g.startChase();
+    for (const id of ['monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole']) g.evolve(id);
     for (const a of TG.ACHIEVE) g.claim(a.id);
     if (kind === 'active') {
       for (let k = 0; k < g.s.shop.offers.length; k++) g.shopBuy(k);
       if (!g.s.lv.autoSkill) for (const id of ['rain', 'rage']) g.useSkill(id);
     }
-    /* 루비: 자동 기능과 동료 데려오기, 스킬 배우기가 먼저. 그다음은 가장 싼 것부터 (유물 한 번 뽑기 포함) */
-    for (const id of ['autoSkill', 'monkey', 'hippo', 'bear', 'dragon', 'autoShop', 'skShadow', 'skBarrage']) if (!g.s.lv[id]) g.buy(id);
-    const locked = ['autoSkill', 'monkey', 'hippo', 'bear', 'dragon'].some((id) => !g.s.lv[id]);
+    /* 루비: 자동 기능과 동료 데려오기, 스킬 배우기가 먼저. 그다음은 가장 싼 것부터 (유물 한 번 뽑기, 특수능력 포함) */
+    const unlock = ['autoSkill', 'monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole', 'autoShop', 'skShadow', 'skBarrage', 'skBolt', 'skDark'];
+    for (const id of unlock) if (!g.s.lv[id]) g.buy(id);
+    const locked = ['autoSkill', 'monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole'].some((id) => !g.s.lv[id]);
+    const abOrder = ['bleed', 'chain', 'stun', 'knock', 'lucky', 'execute', 'vamp', 'pierce', 'blast', 'freeze'];
     for (let k = 0; k < 20 && !locked; k++) {
-      const unlock = ['autoSkill', 'autoShop', 'monkey', 'hippo', 'bear', 'dragon', 'skShadow', 'skBarrage'];
-      const ids = TG.UPGRADES.filter((u) => u.cur === 'ruby' && (g.s.lv[u.id] > 0 || !unlock.includes(u.id)) && g.cost(u.id) !== null).map((u) => u.id);
-      ids.sort((a, b) => g.cost(a) - g.cost(b));
-      const relicFirst = TG.P.relicCost < g.cost(ids[0]) && TG.RELICS.some((r) => (g.s.relics[r.id] || 0) < TG.P.relicMax);
-      if (relicFirst ? !g.relicPull(1).ok : !g.buy(ids[0])) break;
+      const cand = [];
+      for (const u of TG.UPGRADES) if (u.cur === 'ruby' && (g.s.lv[u.id] > 0 || !unlock.includes(u.id)) && g.cost(u.id) !== null) cand.push({ cost: g.cost(u.id), act: () => g.buy(u.id) });
+      /* 특수능력은 칸 수만큼만 키운다 */
+      const use = abOrder.filter((id) => g.s.ab[id]).concat(abOrder.filter((id) => !g.s.ab[id])).slice(0, g.abSlots);
+      for (const id of use) if (TG.abCost(g.s.ab[id] || 0) !== null) cand.push({ cost: TG.abCost(g.s.ab[id] || 0), act: () => g.abBuy(id) });
+      if (TG.RELICS.some((r) => (g.s.relics[r.id] || 0) < TG.P.relicMax)) cand.push({ cost: TG.P.relicCost, act: () => g.relicPull(1).ok });
+      cand.sort((a, b) => a.cost - b.cost);
+      if (!cand.length || !cand[0].act()) break;
+    }
+    /* 볼트: 엔진이 제일 값지고, 연료와 터렛은 그다음 */
+    for (let k = 0; k < 10; k++) {
+      const ids = ['carEngine', 'carFuel', 'carGun'].filter((id) => g.cost(id) !== null).sort((a, b) => g.cost(a) - g.cost(b));
+      if (!ids.length || !g.buy(ids[0])) break;
     }
     while (g.buy('awaken'));
     /* 자동 기능 첫 레벨을 먼저, 그다음은 가장 싼 골드 강화 */
@@ -547,7 +558,7 @@ function bot(kind, minutes, seed = 7) {
       ids.sort((a, b) => g.cost(a) - g.cost(b));
       if (g.buy(ids[0])) bought = true;
     }
-    for (const m of marks) if (!out[m] && t >= m * 60 - dt * 1.5) out[m] = { stage: g.s.stage, best: g.s.best, top: g.highest, deaths: g.s.stats.deaths, lv: { ...g.s.lv }, ruby: g.s.ruby, boss: g.s.boss, shards: g.s.shards, ore: g.s.ore, stars: { ...g.s.stars } };
+    for (const m of marks) if (!out[m] && t >= m * 60 - dt * 1.5) out[m] = { stage: g.s.stage, best: g.s.best, top: g.highest, deaths: g.s.stats.deaths, lv: { ...g.s.lv }, ruby: g.s.ruby, boss: g.s.boss, shards: g.s.shards, ore: g.s.ore, volt: g.s.volt, ab: { ...g.s.ab }, stars: { ...g.s.stars } };
   }
   return out;
 }
@@ -557,7 +568,7 @@ if (process.argv.includes('--pace')) {
   for (const kind of ['idle', 'active']) {
     const r = bot(kind, minutes);
     console.log(`\n[${kind}]`);
-    for (const [m, v] of Object.entries(r)) console.log(`${String(m).padStart(4)}분  스테이지 ${v.stage} (최고 ${v.best})  최고 단계 ${v.top}  쓰러짐 ${v.deaths}  보스 ${v.boss - 1}승  루비 ${v.ruby}  동료 ${['monkey', 'hippo', 'bear', 'dragon'].map((k) => `${v.lv[k]}★${v.stars[k]}`).join('/')} 각성 ${v.lv.awaken} 철 ${v.ore}`);
+    for (const [m, v] of Object.entries(r)) console.log(`${String(m).padStart(4)}분  스테이지 ${v.stage} (최고 ${v.best})  최고 단계 ${v.top}  쓰러짐 ${v.deaths}  보스 ${v.boss - 1}승  루비 ${v.ruby}  동료 ${['monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole'].map((k) => `${v.lv[k]}★${v.stars[k]}`).join('/')} 각성 ${v.lv.awaken} 철 ${v.ore} 볼트 ${v.volt} 능력 ${Object.values(v.ab).join('/')} 엔진 ${v.lv.carEngine}`);
   }
 } else {
   testBoard();

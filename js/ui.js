@@ -238,7 +238,7 @@
     const game = ui.game;
     const th = game.theme();
     $('#stageNum').textContent = `스테이지 ${game.s.stage}`;
-    $('#stageSub').textContent = game.mode === 'mine' ? `광산 · 남은 시간 ${Math.ceil(game.mineT)}초 · 철광석 +${game.mineGot}` : game.mode === 'boss' ? `보스전 ${game.s.boss} · 남은 시간 ${Math.ceil(game.bossT)}초` : game.phase === 'run' ? `${th.name} · 다음 스테이지로` : `${th.name} · 웨이브 ${Math.max(1, game.wave)}/${P.waves}`;
+    $('#stageSub').textContent = game.mode === 'chase' ? `추격전 · 남은 시간 ${Math.ceil(game.chaseT)}초 · 볼트 +${game.chaseGot}` : game.mode === 'mine' ? `광산 · 남은 시간 ${Math.ceil(game.mineT)}초 · 철광석 +${game.mineGot}` : game.mode === 'boss' ? `보스전 ${game.s.boss} · 남은 시간 ${Math.ceil(game.bossT)}초` : game.phase === 'run' ? `${th.name} · 다음 스테이지로` : `${th.name} · 웨이브 ${Math.max(1, game.wave)}/${P.waves}`;
     $('#goldNum').textContent = TG.fmt(game.s.gold);
     $('#rubyNum').textContent = TG.fmt(game.s.ruby);
     /* 스킬과 보스 버튼: 남은 대기 시간만큼 어둡게 덮는다 */
@@ -251,7 +251,7 @@
       btn.classList.toggle('ready', ready);
     };
     for (const [id, btn, lv] of SKILL_BTN) {
-      const on = id === 'rage' ? game.raging : id === 'shadow' ? game.shadowT > 0 : id === 'barrage' ? !!game.barrage : false;
+      const on = id === 'rage' ? game.raging : id === 'shadow' ? game.shadowT > 0 : id === 'barrage' ? !!game.barrage : id === 'dark' ? game.darkT > 0 : id === 'bolt' ? !!game.bolt : false;
       cdView($(btn), on ? 0 : game.s.skillCd[id], game.skillCdOf(id), game.skillReady(id));
       $(btn).classList.toggle('on', on);
       $(btn).classList.toggle('locked', !!lv && !game.s.lv[lv]);
@@ -264,6 +264,11 @@
     cdView($('#mineBtn'), game.s.mineCd, P.mineCd, game.canMine());
     $('#mineBtn').classList.toggle('locked', !mineOpen);
     $('#mineLabel').textContent = game.mode === 'mine' ? `${Math.ceil(game.mineT)}초` : mineOpen ? '광산' : `${P.mineOpen}층`;
+    const chaseOpen = game.s.best >= P.chaseOpen;
+    cdView($('#chaseBtn'), game.s.chaseCd, P.chaseCd, game.canChase());
+    $('#chaseBtn').classList.toggle('locked', !chaseOpen);
+    $('#chaseLabel').textContent = game.mode === 'chase' ? `${Math.ceil(game.chaseT)}초` : chaseOpen ? '추격' : `${P.chaseOpen}층`;
+    $('#abDot').hidden = !(game.s.abEquip.length < game.abSlots && TG.ABILITIES.some((a) => game.s.ab[a.id] && !game.s.abEquip.includes(a.id))) && !(game.s.ruby >= TG.abCost(0) && !Object.keys(game.s.ab).length);
     $('#autoTag').textContent = [game.s.lv.autoCraft ? '자동 제작' : '', game.s.lv.autoMerge ? '자동 합성' : '', game.s.lv.autoSkill && game.s.autoSkillOn ? '자동 스킬' : ''].filter(Boolean).join(' · ');
     $('#shopDot').hidden = !game.s.shop.offers.some((o) => !o.sold && game.s.shards >= game.shopPrice(o.tier));
     if (ui.sheet === 'shop') refreshShop();
@@ -282,10 +287,10 @@
     const f = game.front() || game.mobs[0];
     if (f) {
       const def = TG.SPR.mob[f.kind] || TG.SPR.mob.slime;
-      $('#foeName').textContent = f.ore ? `${def.name || '광석 바위'} ${f.k + 1}번째` : f.boss ? `보스 ${game.s.boss}: ${def.name || f.kind}` : `${f.giant ? '거대 ' : ''}${def.name || f.kind} Lv.${game.s.stage}`;
+      $('#foeName').textContent = f.tank ? `${def.name || '폭주 거북'} ${f.k + 1}번째 장갑` : f.ore ? `${def.name || '광석 바위'} ${f.k + 1}번째` : f.boss ? `보스 ${game.s.boss}: ${def.name || f.kind}` : `${f.giant ? '거대 ' : ''}${def.name || f.kind} Lv.${game.s.stage}`;
       $('#foeHp').textContent = `${TG.fmt(Math.max(0, f.hp))}/${TG.fmt(f.max)}`;
       $('#foeHpBar').style.width = `${Math.max(0, Math.min(100, (f.hp / f.max) * 100))}%`;
-      $('#foeAtk').textContent = f.ore ? '-' : TG.fmt(f.atk);
+      $('#foeAtk').textContent = f.ore || f.tank ? '-' : TG.fmt(f.atk);
       $('#foe').classList.toggle('giant', !!f.giant);
     } else {
       $('#foeName').textContent = game.phase === 'run' ? '다음 스테이지로' : '다음 웨이브';
@@ -301,6 +306,7 @@
       refreshUpgrades();
       refreshPets();
     }
+    if (ui.sheet === 'ab') refreshAbilities();
   }
 
   const SKILL_BTN = [
@@ -308,14 +314,17 @@
     ['rage', '#skRage', null],
     ['shadow', '#skShadow', 'skShadow'],
     ['barrage', '#skBarrage', 'skBarrage'],
+    ['bolt', '#skBolt', 'skBolt'],
+    ['dark', '#skDark', 'skDark'],
   ];
 
   /* ---- 강화 판 ---- */
-  const UP_ICON = { atk: 'atk', hp: 'hp', craft: 'craftLv', climb: 'climb', slots: 'slots', autoCraft: 'autoCraft', autoMerge: 'autoMerge', rAtk: 'atk', rGold: 'coin', skRain: 'skillRain', skRage: 'skillRage', autoSkill: 'autoSkill', monkey: 'monkey', hippo: 'hippo', awaken: 'awaken', bear: 'bear', dragon: 'dragon', skShadow: 'skillShadow', skBarrage: 'skillBarrage', autoShop: 'autoShop' };
+  const UP_ICON = { atk: 'atk', hp: 'hp', craft: 'craftLv', climb: 'climb', slots: 'slots', autoCraft: 'autoCraft', autoMerge: 'autoMerge', rAtk: 'atk', rGold: 'coin', skRain: 'skillRain', skRage: 'skillRage', autoSkill: 'autoSkill', monkey: 'monkey', hippo: 'hippo', awaken: 'awaken', bear: 'bear', dragon: 'dragon', skShadow: 'skillShadow', skBarrage: 'skillBarrage', autoShop: 'autoShop', pig: 'pig', mole: 'mole', skBolt: 'skillBolt', skDark: 'skillDark', carFuel: 'car', carGun: 'chase', carEngine: 'volt' };
   const CUR = {
     gold: { icon: 'coin', cls: '', title: '골드 강화' },
     ruby: { icon: 'ruby', cls: 'ruby', title: '루비 강화 (보스전과 거대 몬스터에게서 얻는다)' },
     shards: { icon: 'shard', cls: 'shard', title: '각성 (합칠 때 얻는 조각으로 올린다. 상점과 같은 조각)' },
+    volt: { icon: 'volt', cls: 'shard', title: '추격차 (추격전에서 얻는 볼트로 올린다)' },
   };
   function buildUpgrades() {
     const body = $('#sheetBody');
@@ -326,7 +335,7 @@
       const cur = u.cur || 'gold';
       if (cur !== section) {
         section = cur;
-        body.append(el('p', { class: 'sec' }, [uiIcon(CUR[cur].icon), CUR[cur].title]));
+        body.append(el('p', { class: 'sec' }, cur === 'volt' ? [uiIcon('volt'), '추격차 (볼트 ', el('b', { id: 'voltNum' }), '개, 추격전에서 얻는다)'] : [uiIcon(CUR[cur].icon), CUR[cur].title]));
       }
       const btn = el('button', { type: 'button', 'data-id': u.id, class: CUR[cur].cls, onclick: () => buy(u.id) });
       body.append(
@@ -341,6 +350,7 @@
   }
   function refreshUpgrades() {
     const game = ui.game;
+    if ($('#voltNum')) $('#voltNum').textContent = TG.fmt(game.s.volt);
     for (const u of TG.UPGRADES) {
       const row = document.querySelector(`[data-row="${u.id}"]`);
       if (!row) continue;
@@ -374,7 +384,7 @@
   }
 
   /* ---- 동료 ---- */
-  const PETS = ['monkey', 'hippo', 'bear', 'dragon'];
+  const PETS = ['monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole'];
   function buildPets() {
     const body = $('#sheetBody');
     const list = el('div', { class: 'pets' });
@@ -593,8 +603,19 @@
   }
 
   /* ---- 임무 (업적) ---- */
+  function questSeg() {
+    const seg = ui.questSeg || 'quest';
+    return el('div', { class: 'seg' }, [
+      el('button', { type: 'button', class: seg === 'quest' ? 'on' : '', text: '임무', onclick: () => { ui.questSeg = 'quest'; buildQuest(); } }),
+      el('button', { type: 'button', class: seg === 'dex' ? 'on' : '', text: '도감', onclick: () => { ui.questSeg = 'dex'; buildQuest(); } }),
+    ]);
+  }
   function buildQuest() {
     const body = $('#sheetBody');
+    if (ui.questSeg === 'dex') {
+      buildDex();
+      return;
+    }
     const list = el('div', {});
     for (const a of TG.ACHIEVE) {
       list.append(
@@ -606,7 +627,7 @@
         ]),
       );
     }
-    body.replaceChildren(el('p', { class: 'note', text: '목표를 채우면 루비를 받는다. 단계가 오를수록 목표도 보상도 커진다.' }), list);
+    body.replaceChildren(questSeg(), el('p', { class: 'note', text: '목표를 채우면 루비를 받는다. 단계가 오를수록 목표도 보상도 커진다.' }), list);
     refreshQuest();
   }
   function refreshQuest() {
@@ -656,7 +677,70 @@
       grid.append(el('div', { class: `it${seen ? '' : ' unseen'}` }, [cv, `${tier}. ${seen ? it.name : '???'}`, el('small', { text: seen ? it.line : '합쳐서 찾아보자' })]));
     });
     const found = game.s.seen.filter(Boolean).length;
-    body.replaceChildren(el('p', { class: 'note', text: `찾은 물건 ${found}/${TG.ITEMS.length}. 같은 물건 2개를 합치면 다음 단계가 나온다.` }), grid);
+    body.replaceChildren(questSeg(), el('p', { class: 'note', text: `찾은 물건 ${found}/${TG.ITEMS.length}. 같은 물건 2개를 합치면 다음 단계가 나온다.` }), grid);
+  }
+
+  /* ---- 특수능력 ---- */
+  function buildAbilities() {
+    const body = $('#sheetBody');
+    const list = el('div', {});
+    for (const a of TG.ABILITIES) {
+      const def = TG.SPR.ui[`ab_${a.id}`];
+      list.append(
+        el('div', { class: 'ab', 'data-ab': a.id }, [
+          def ? spriteCanvas(def) : uiIcon('relic'),
+          el('div', {}, [el('div', { class: 'nm' }, [a.name, el('small')]), el('div', { class: 'ds' })]),
+          el('div', { class: 'btns' }, [el('button', { type: 'button', class: 'buy', onclick: () => abBuy(a.id) }), el('button', { type: 'button', class: 'eq', onclick: () => abToggle(a.id) })]),
+        ]),
+      );
+    }
+    body.replaceChildren(el('p', { class: 'slotinfo', id: 'slotInfo' }), list);
+    refreshAbilities();
+  }
+  function refreshAbilities() {
+    const game = ui.game;
+    if (!$('#slotInfo')) return;
+    const next = P.abSlotsAt.find((x) => game.s.best < x);
+    $('#slotInfo').textContent = `장착 ${game.s.abEquip.length}/${game.abSlots}칸${next !== undefined ? ` · 최고 스테이지 ${next}에서 한 칸 더` : ''}. 던진 물건이 맞을 때 확률로 터진다.`;
+    for (const a of TG.ABILITIES) {
+      const row = document.querySelector(`[data-ab="${a.id}"]`);
+      if (!row) continue;
+      const L = game.s.ab[a.id] || 0;
+      const on = game.s.abEquip.includes(a.id);
+      row.classList.toggle('none', !L);
+      row.classList.toggle('on', on);
+      row.querySelector('small').textContent = L ? `Lv ${L}/${P.abMax}` : '';
+      row.querySelector('.ds').textContent = a.desc(L || 1) + (L ? '' : ' (배우면 Lv1)');
+      const buy = row.querySelector('.buy');
+      const c = TG.abCost(L);
+      buy.disabled = c === null || game.s.ruby < c;
+      const lb = c === null ? '최대' : `${TG.fmt(c)}${L ? '' : ' 배우기'}`;
+      if (buy.dataset.label !== lb) {
+        buy.dataset.label = lb;
+        buy.replaceChildren(c === null ? '' : uiIcon('ruby'), lb);
+      }
+      const eq = row.querySelector('.eq');
+      eq.hidden = !L;
+      eq.textContent = on ? '해제' : '장착';
+      eq.disabled = !on && game.s.abEquip.length >= game.abSlots;
+    }
+  }
+  function abBuy(id) {
+    if (ui.game.abBuy(id)) {
+      sfx.coin();
+      handleEvents();
+      refreshAbilities();
+      updateHud();
+      save();
+    }
+  }
+  function abToggle(id) {
+    const r = ui.game.abToggle(id);
+    if (r === 'full') toast(null, '칸이 모자라다', '다른 능력을 해제하거나 더 멀리 가면 칸이 늘어난다.');
+    else if (r !== 'none') sfx.craft();
+    refreshAbilities();
+    updateHud();
+    save();
   }
 
   /* ---- 설정 ---- */
@@ -694,7 +778,7 @@
   }
 
   /* ---- 판 열고 닫기 ---- */
-  const TITLES = { up: '강화', pet: '동료', shop: '상점', quest: '임무', dex: '도감', set: '설정' };
+  const TITLES = { up: '강화', pet: '동료', ab: '특수능력', shop: '상점', quest: '임무와 도감', set: '설정' };
   function openSheet(kind) {
     if (ui.sheet === kind) {
       closeSheet();
@@ -704,9 +788,9 @@
     $('#sheetTitle').textContent = TITLES[kind];
     if (kind === 'up') buildUpgrades();
     else if (kind === 'pet') buildPets();
+    else if (kind === 'ab') buildAbilities();
     else if (kind === 'quest') buildQuest();
     else if (kind === 'shop') buildShop();
-    else if (kind === 'dex') buildDex();
     else buildSettings();
     $('#sheet').classList.add('open');
     $('#sheet').setAttribute('aria-hidden', 'false');
@@ -775,6 +859,29 @@
           break;
         case 'ore':
           beep(1300, 0.05, 'square', 0.02, -300);
+          break;
+        case 'chase-start':
+          toast(null, '추격전', `폭주 거북이 달아난다! ${P.chaseTime + game.s.lv.carFuel}초 안에 장갑을 부수자.`);
+          sfx.discover();
+          break;
+        case 'chase-end':
+          toast(null, `추격 끝: 볼트 ${e.volt}개${e.ruby ? `, 루비 ${e.ruby}개` : ''}`, `장갑을 ${e.broken}개 부쉈다. 강화 탭의 추격차에서 쓰자.`);
+          sfx.clear();
+          break;
+        case 'volt':
+          beep(1500, 0.05, 'square', 0.02, -400);
+          break;
+        case 'bolt':
+          beep(90, 0.14, 'sawtooth', 0.04, 300);
+          break;
+        case 'coins':
+          beep(1200, 0.08, 'triangle', 0.03, 600);
+          break;
+        case 'dig':
+          beep(220, 0.07, 'square', 0.03, -80);
+          break;
+        case 'proc':
+          if (e.id === 'stun' || e.id === 'execute') beep(260, 0.06, 'square', 0.02, -120);
           break;
         case 'mine-start':
           toast(null, '광산', `${P.mineTime}초 동안 바위를 부수자. 깊이 갈수록 단단하고 철광석이 많다.`);
@@ -898,6 +1005,12 @@
     $('#tabUp').addEventListener('click', () => openSheet('up'));
     $('#tabShop').addEventListener('click', () => openSheet('shop'));
     $('#tabPet').addEventListener('click', () => openSheet('pet'));
+    $('#tabAb').addEventListener('click', () => openSheet('ab'));
+    $('#chaseBtn').addEventListener('click', () => {
+      const game = ui.game;
+      if (game.s.best < P.chaseOpen) toast(null, '추격전은 잠겨 있다', `최고 스테이지 ${P.chaseOpen}에 가면 열린다.`);
+      else if (!game.startChase() && game.s.chaseCd > 0) toast(null, '거북이 숨었다', `${TG.fmtTime(game.s.chaseCd)} 뒤에 다시 쫓을 수 있다.`);
+    });
     for (const [id, btn, lv] of SKILL_BTN) {
       $(btn).addEventListener('click', () => {
         if (lv && !ui.game.s.lv[lv]) toast(null, '아직 못 쓰는 스킬', '강화 탭의 루비 강화에서 배울 수 있다.');
@@ -917,7 +1030,6 @@
     $('#bossBtn').addEventListener('click', () => {
       if (!ui.game.startBoss() && ui.game.s.bossCd > 0) toast(null, '보스 준비 중', `${TG.fmtTime(ui.game.s.bossCd)} 뒤에 다시 도전할 수 있다.`);
     });
-    $('#tabDex').addEventListener('click', () => openSheet('dex'));
     $('#tabSet').addEventListener('click', () => openSheet('set'));
     $('#sheetClose').addEventListener('click', closeSheet);
     $('#stageBox').addEventListener('click', secretTap);
@@ -934,7 +1046,7 @@
     document.addEventListener('visibilitychange', save);
     setInterval(save, 4000);
 
-    for (const [id, name] of [['goldIcon', 'coin'], ['craftIcon', 'craft'], ['upIcon', 'atk'], ['dexIcon', 'dex'], ['setIcon', 'stage'], ['countIcon', 'slots'], ['meAtkIcon', 'atk'], ['rubyIcon', 'ruby'], ['skRainIcon', 'skillRain'], ['skRageIcon', 'skillRage'], ['bossIcon', 'boss'], ['shopIcon', 'shop'], ['offIcon', 'offline'], ['petIcon', 'pets'], ['mineIcon', 'mine'], ['skShadowIcon', 'skillShadow'], ['skBarrageIcon', 'skillBarrage'], ['questIcon', 'quest']]) {
+    for (const [id, name] of [['goldIcon', 'coin'], ['craftIcon', 'craft'], ['upIcon', 'atk'], ['dexIcon', 'dex'], ['setIcon', 'stage'], ['countIcon', 'slots'], ['meAtkIcon', 'atk'], ['rubyIcon', 'ruby'], ['skRainIcon', 'skillRain'], ['skRageIcon', 'skillRage'], ['bossIcon', 'boss'], ['shopIcon', 'shop'], ['offIcon', 'offline'], ['petIcon', 'pets'], ['mineIcon', 'mine'], ['skShadowIcon', 'skillShadow'], ['skBarrageIcon', 'skillBarrage'], ['questIcon', 'quest'], ['skBoltIcon', 'skillBolt'], ['skDarkIcon', 'skillDark'], ['chaseIcon', 'chase'], ['abIcon', 'ability']]) {
       const slot = document.getElementById(id);
       if (slot) slot.replaceWith(Object.assign(uiIcon(name), { id }));
     }

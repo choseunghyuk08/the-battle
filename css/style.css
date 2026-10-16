@@ -181,6 +181,18 @@ button { font-family: inherit; color: inherit; }
 
 /* 아래 탭 */
 .dock { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+.ab { display: grid; grid-template-columns: 34px 1fr auto; gap: 8px; align-items: center; background: var(--panel-2); border: 2px solid var(--line); border-radius: 10px; padding: 7px; margin-bottom: 6px; }
+.ab canvas { width: 32px; height: 32px; image-rendering: pixelated; }
+.ab .nm { font-size: 15px; }
+.ab .nm small { color: var(--gold); margin-left: 4px; font-size: 12px; }
+.ab .ds { font-size: 11px; color: var(--ink-2); }
+.ab .btns { display: grid; gap: 4px; }
+.ab .btns button { appearance: none; border: 0; border-radius: 8px; padding: 6px 8px; min-width: 70px; font: inherit; font-size: 13px; background: #ff7a8a; box-shadow: 0 2px 0 #9a3040; color: #2a0a10; display: flex; align-items: center; justify-content: center; gap: 3px; cursor: pointer; }
+.ab .btns button.eq { background: #7dff8a; box-shadow: 0 2px 0 #2f8a3a; color: #08210c; }
+.ab .btns button:disabled { background: #3a3d63; color: var(--ink-3); box-shadow: none; }
+.ab.on { border-color: #7dff8a; }
+.ab.none canvas { filter: brightness(0) opacity(0.5); }
+.slotinfo { font-size: 13px; color: var(--ink-2); margin: 2px 0 8px; }
 .tab {
   appearance: none;
   background: var(--panel);
@@ -363,8 +375,13 @@ button { font-family: inherit; color: inherit; }
 .tab { font-size: 13px; padding: 5px 2px 4px; gap: 1px; flex-direction: column; }
 .bar { flex-direction: column; }
 .skills { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
+.acts { display: grid; grid-template-columns: 52px 52px 52px minmax(0, 1fr); gap: 5px; align-items: stretch; }
+.acts .skill { width: auto; }
+.skill.chase.ready { border-color: #ffb13a; box-shadow: 0 0 10px #ffb13a55; }
 .skills .skill { width: auto; min-height: 46px; }
 .bar .craft { flex: none; min-height: 46px; }
+.acts .craft { min-width: 0; }
+.acts .craft .face { font-size: 15px; gap: 3px; }
 .seg { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 8px; }
 .seg button { appearance: none; border: 2px solid var(--line); background: var(--panel-2); color: var(--ink-2); border-radius: 8px; padding: 6px; font: inherit; font-size: 15px; cursor: pointer; }
 .seg button.on { border-color: var(--gold); color: var(--ink); }
@@ -427,3 +444,5 @@ button { font-family: inherit; color: inherit; }
 .modal p { margin: 0; color: var(--ink-2); font-size: 15px; line-height: 1.5; }
 .modal p b { color: var(--gold); font-weight: 400; }
 .modal button.primary { appearance: none; border: 0; border-radius: 10px; padding: 10px 28px; background: var(--gold); color: #2a1e06; font-size: 17px; cursor: pointer; box-shadow: 0 3px 0 #9a7a20; }
+.info .side { min-width: 0; overflow: hidden; }
+.side .row1 .hp { white-space: nowrap; flex: none; font-size: 13px; }

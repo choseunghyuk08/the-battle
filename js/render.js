@@ -109,8 +109,10 @@
   }
 
   /* ---- 배경 ---- */
-  const FALLBACK_SKY = { field: ['#7ec8f0', '#cfeeff'], forest: ['#f0a070', '#ffd9a0'], cave: ['#1a1428', '#2c2240'], volcano: ['#4a1414', '#a8401c'], ice: ['#10203a', '#3a7090'], space: ['#05040f', '#1c1440'], mine: ['#120e14', '#2a2026'] };
+  const FALLBACK_SKY = { field: ['#7ec8f0', '#cfeeff'], forest: ['#f0a070', '#ffd9a0'], cave: ['#1a1428', '#2c2240'], volcano: ['#4a1414', '#a8401c'], ice: ['#10203a', '#3a7090'], space: ['#05040f', '#1c1440'], mine: ['#120e14', '#2a2026'], road: ['#f0a060', '#ffd9a0'] };
   const MINE = { id: 'mine', name: '광산' };
+  const ROAD = { id: 'road', name: '추격 도로' };
+  const CAR_H = 9; /* 주인공이 서는 차 바닥 높이 */
   function drawBg(theme) {
     const def = TG.SPR.bg[theme.id];
     if (!def) {
@@ -203,6 +205,7 @@
         const y = GROUND - heightOf(m);
         addFx(e.giant ? 'bighit' : 'hit', e.x - 2, y, 0.25);
         if (e.power) addFx('powerShot', e.x - 2, y, 0.35);
+        if (e.chain) addFx('boltStrike', e.x, GROUND, 0.25);
         addText(TG.fmt(e.dmg), e.x, y - 6, e.power ? '#ffb13a' : e.fire ? '#ff7a3a' : e.banana ? '#ffe45a' : '#ffffff', e.power || e.fire);
         if (e.giant) shake = Math.max(shake, 0.12);
         break;
@@ -238,6 +241,30 @@
       case 'ore':
         addText(`+${e.n}`, e.x, GROUND - 30, '#9fd8ff', true);
         break;
+      case 'bolt':
+        addFx('boltStrike', e.x, GROUND, 0.3);
+        shake = Math.max(shake, 0.12);
+        break;
+      case 'volt':
+        addFx('voltPop', e.x, GROUND - 4, 0.6);
+        addText(`+${e.n}`, e.x, GROUND - 34, '#ffe45a', true);
+        shake = Math.max(shake, 0.15);
+        break;
+      case 'coins':
+        addFx('coinShower', P.pigX, GROUND - P.backRow, 0.8);
+        addText(`+${TG.fmt(e.gold)}`, P.pigX, GROUND - 40, '#ffcf4a', true);
+        break;
+      case 'dig':
+        addFx('dirtPop', P.moleX, GROUND - P.backRow, 0.5);
+        addText(`+${e.n}`, P.moleX, GROUND - 30, '#9fd8ff', true);
+        break;
+      case 'lucky':
+        addText(`+${TG.fmt(e.gold)}`, e.x, GROUND - 38, '#ffcf4a', false);
+        break;
+      case 'proc':
+        if (e.id === 'chain') addFx('boltStrike', e.x, GROUND, 0.25);
+        else if (e.id === 'blast') addFx('fireBurst', e.x, GROUND - 2, 0.4);
+        break;
       case 'heal':
         addFx('heal', P.heroX, GROUND, 1.0);
         addText(`+${TG.fmt(e.amount)}`, P.heroX, GROUND - 44, '#7dff8a', true);
@@ -259,8 +286,9 @@
   function draw(game, dt) {
     clock += dt;
     if (game.hero.act.kind === 'run') scroll += dt * 70;
+    if (game.mode === 'chase' && game.phase === 'fight') scroll += dt * 150;
     if (shake > 0) shake -= dt;
-    const theme = game.mode === 'mine' ? MINE : game.theme();
+    const theme = game.mode === 'mine' ? MINE : game.mode === 'chase' ? ROAD : game.theme();
     ctx.save();
     ctx.clearRect(0, 0, W, H);
     if (shake > 0) ctx.translate(Math.round((Math.random() - 0.5) * 3), Math.round((Math.random() - 0.5) * 2));
@@ -285,9 +313,26 @@
       let r;
       if (m.state === 'attack') r = frame(def, 'attack', m.pal, S, { progress: m.atkT / P.mobAtkDur });
       else if (m.hurt > 0) r = frame(def, 'hurt', m.pal, S, { progress: 1 - m.hurt / 0.16 });
-      else if (m.state === 'walk') r = frame(def, 'walk', m.pal, S, { time: m.t, fps: 11 });
+      else if (m.state === 'walk') r = frame(def, 'walk', m.pal, S, { time: m.t, fps: m.tank ? 16 : 11 });
       else r = frame(def, 'idle', m.pal, S, { time: m.t, fps: 6 });
       put(r.fr, r.c, m.x, GROUND, m.hurt > 0.1);
+      /* 상태 이상 표시 */
+      const st = m.st;
+      if (st) {
+        const top = GROUND - def.h * S;
+        if (st.stun > 0 && !loopFx('stunStars', m.x, top, clock, 10)) {
+          ctx.fillStyle = '#ffe45a';
+          for (let q = 0; q < 3; q++) ctx.fillRect(Math.round(m.x + Math.cos(clock * 6 + q * 2.1) * 6), Math.round(top - 3 + Math.sin(clock * 6 + q * 2.1) * 2), 2, 2);
+        }
+        if (st.slow > 0 && !loopFx('freezeAura', m.x, GROUND, clock, 10)) {
+          ctx.fillStyle = 'rgba(140,210,255,0.28)';
+          ctx.fillRect(Math.round(m.x - 8), Math.round(top), 16, Math.round(def.h * S));
+        }
+        if (st.bleed && !loopFx('bleedDrip', m.x, GROUND, clock, 10)) {
+          ctx.fillStyle = '#d02030';
+          ctx.fillRect(Math.round(m.x + Math.sin(clock * 9) * 4), Math.round(top + ((clock * 30) % 14)), 1, 3);
+        }
+      }
       /* 체력 막대 */
       if (m.hp < m.max) {
         const bw = m.giant ? 30 : 14;
@@ -302,17 +347,23 @@
       }
     }
 
-    /* 동료: 같은 장면을 함께 한다 (이기면 기뻐하고, 달리고, 쓰러지면 주저앉는다). 하마와 원숭이는 주인공 뒤, 곰은 앞, 용은 공중 */
+    /* 어둠장막: 전투 화면 전체에 어두운 안개 */
+    if (game.darkT > 0 && !loopFx('darkVeil', 0, 0, clock, 8)) {
+      ctx.fillStyle = 'rgba(30,10,60,0.35)';
+      ctx.fillRect(0, 0, W, H);
+    }
+
+    /* 동료: 같은 장면을 함께 한다 (이기면 기뻐하고, 달리고, 쓰러지면 주저앉는다). 뒷줄 돼지와 두더지, 앞줄 하마와 원숭이는 주인공 뒤, 곰은 앞, 용은 공중 */
     const drawPet = (name, x, y) => {
       if (!game.s.lv[name]) return;
       const def = TG.SPR.pet[name];
       const pa = game.pets[name].act;
       if (!def) {
-        ctx.fillStyle = { monkey: '#8a5a34', hippo: '#b49ad8', bear: '#6a4428', dragon: '#4caf50' }[name];
+        ctx.fillStyle = { monkey: '#8a5a34', hippo: '#b49ad8', bear: '#6a4428', dragon: '#4caf50', pig: '#e0b030', mole: '#5a3a78' }[name];
         ctx.fillRect(x - 6, y - 16, 12, 16);
         return;
       }
-      const off = { monkey: 0.37, hippo: 0, bear: 0.61, dragon: 0.19 }[name];
+      const off = { monkey: 0.37, hippo: 0, bear: 0.61, dragon: 0.19, pig: 0.23, mole: 0.51 }[name];
       let r;
       if (game.phase === 'win') r = frame(def, 'cheer', 0, 1, { time: clock + off, fps: 10 });
       else if (game.phase === 'run') r = frame(def, 'run', 0, 1, { time: clock + off, fps: 13 });
@@ -321,6 +372,8 @@
       else r = frame(def, 'idle', 0, 1, { time: clock + off, fps: 8 });
       put(r.fr, r.c, x, y, false);
     };
+    drawPet('pig', P.pigX, GROUND - P.backRow);
+    drawPet('mole', P.moleX, GROUND - P.backRow);
     drawPet('hippo', P.hippoX, GROUND);
     drawPet('monkey', P.monkeyX, GROUND);
 
@@ -349,14 +402,26 @@
     const a = game.hero.act;
     const loops = { idle: 6, reload: 9, win: 11, run: 13 };
     const hr = loops[a.kind] ? frame(hero, a.kind, 0, 1, { time: a.t, fps: loops[a.kind] }) : frame(hero, a.kind, 0, 1, { progress: Math.min(0.999, a.t / a.dur) });
+    const chasing = game.mode === 'chase';
+    const hy = chasing ? GROUND - CAR_H : GROUND;
+    if (chasing) {
+      const car = TG.SPR.pet.car;
+      if (car) {
+        const cr = frame(car, game.phase === 'fight' ? 'run' : 'idle', 0, 1, { time: clock, fps: 14 });
+        put(cr.fr, cr.c, P.heroX, GROUND + (Math.floor(clock * 14) % 2 ? 0 : -1), false);
+      } else {
+        ctx.fillStyle = '#d0503a';
+        ctx.fillRect(P.heroX - 20, GROUND - CAR_H, 40, CAR_H);
+      }
+    }
     if (game.shadowT > 0 && game.phase === 'fight') {
       const sx = P.heroX - P.shadowX;
       ctx.globalAlpha = 0.8;
-      ctx.drawImage(shade(hr.fr.canvas), Math.round(sx - hr.c.ax), Math.round(GROUND - hr.c.ay));
+      ctx.drawImage(shade(hr.fr.canvas), Math.round(sx - hr.c.ax), Math.round(hy - hr.c.ay));
       ctx.globalAlpha = 1;
     }
-    put(hr.fr, hr.c, P.heroX, GROUND, a.kind === 'hurt' && a.t < 0.08);
-    if (game.barrage) loopFx('barrage', P.heroX + 8, GROUND - 22, clock, 14);
+    put(hr.fr, hr.c, P.heroX, hy, a.kind === 'hurt' && a.t < 0.08);
+    if (game.barrage) loopFx('barrage', P.heroX + 8, hy - 22, clock, 14);
     drawPet('bear', P.bearX, GROUND);
     drawPet('dragon', P.dragonX, GROUND - P.dragonY);
 
@@ -380,7 +445,7 @@
       const tx = tgt ? tgt.x : P.spawnX;
       const ty = tgt ? GROUND - heightOf(tgt) : GROUND - 20;
       const sx = P.heroX + 8 - (p.shadow ? P.shadowX : 0);
-      const sy = GROUND - 26;
+      const sy = (game.mode === 'chase' ? GROUND - CAR_H : GROUND) - 26;
       const x = sx + (tx - sx) * k;
       const y = sy + (ty - sy) * k - Math.sin(Math.PI * k) * 10;
       const def = itemDef(p.tier);
@@ -463,6 +528,20 @@
   const warmQ = [];
   let warmedFor = '';
   function warmTheme(game) {
+    if (game.mode === 'chase') {
+      if (warmedFor === 'chase') return;
+      warmedFor = 'chase';
+      warmQ.length = 0;
+      const bg = TG.SPR.bg.road;
+      if (bg) for (const c of Object.keys(bg.clips)) warmQ.push(() => TG.clip(bg, c, (bg.palettes || [{}])[0], 1, 'p0'));
+      for (const name of ['tank']) {
+        const def = TG.SPR.mob[name];
+        if (def) for (let k = 0; k < 4; k++) for (const c of Object.keys(def.clips)) warmQ.push(() => TG.clip(def, c, palOf(def, k).pal, 1, palOf(def, k).key));
+      }
+      const car = TG.SPR.pet.car;
+      if (car) for (const c of Object.keys(car.clips)) warmQ.push(() => TG.clip(car, c, (car.palettes || [{}])[0], 1, 'p0'));
+      return;
+    }
     if (game.mode === 'mine') {
       if (warmedFor === 'mine') return;
       warmedFor = 'mine';
@@ -481,7 +560,7 @@
     warmQ.length = 0;
     const bg = TG.SPR.bg[th.id];
     if (bg) for (const c of Object.keys(bg.clips)) warmQ.push(() => TG.clip(bg, c, (bg.palettes || [{}])[0], 1, 'p0'));
-    for (const name of ['monkey', 'hippo', 'bear', 'dragon']) {
+    for (const name of ['monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole']) {
       const def = TG.SPR.pet[name];
       if (def && game.s.lv[name]) for (const c of Object.keys(def.clips)) warmQ.push(() => TG.clip(def, c, (def.palettes || [{}])[0], 1, 'p0'));
     }
