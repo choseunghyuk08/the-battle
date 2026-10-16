@@ -620,6 +620,13 @@
     { name: '쇠 갑옷', up: { k: 'atk', x: 1.2 }, down: { k: 'mobHp', x: 1.2 } },
     { name: '눈알의 시선', up: { k: 'sap', x: 2 }, down: { k: 'taken', x: 1.3 } },
   ];
+  /* 땅 사건: 몇 초마다 일어나는 일. 땅 특성(숫자)과 별개 */
+  TG.LAND_EVENTS = {
+    3: { id: 'lava', name: '용암 분출', every: 11, warn: 1.3, hp: 0.06, text: '11초마다 땅이 터져 주인공이 최대 체력의 6%를 잃어요' },
+    4: { id: 'storm', name: '눈보라', every: 16, last: 5, text: '16초마다 5초 동안 눈보라가 불어 몬스터도, 던지는 손도 느려져요' },
+    5: { id: 'meteor', name: '유성우', every: 14, hit: 0.2, text: '14초마다 유성이 떨어져 앞의 몬스터가 체력의 20%를 잃어요' },
+    7: { id: 'fog', name: '독 안개', every: 13, last: 5, regen: 0.02, text: '13초마다 5초 동안 안개가 껴서 몬스터가 초당 체력 2%를 되찾아요' },
+  };
   TG.landEffectText = (e) => `${TG.LAND_KEYS[e.k]} ${e.x > 1 ? '+' : '-'}${Math.round(Math.abs(e.x - 1) * 100)}%`;
 
   TG.tierAtk = (n) => Math.round(P.atk0 * P.atkGrow ** (n - 1));
@@ -1022,11 +1029,52 @@
     rubyMult() {
       return 1 + this.rv('ring') + P.sRubyStep * this.s.lv.sRuby;
     }
+    /* 땅 사건 시계 (스테이지와 보스전에서만) */
+    tickLandEvent(dt) {
+      const ev = TG.LAND_EVENTS[this.mapIndex()];
+      if (this.stormT > 0) this.stormT -= dt;
+      if (this.fogT > 0) {
+        this.fogT -= dt;
+        for (const m of this.mobs) if (!m.boss && m.hp < m.max) m.hp = Math.min(m.max, m.hp + m.max * ev.regen * dt);
+      }
+      if (this.lavaT > 0) {
+        this.lavaT -= dt;
+        if (this.lavaT <= 0) {
+          this.hero.hp -= this.bearHit(this.maxHp * ev.hp);
+          this.events.push({ type: 'land-ev', id: 'lava-hit' });
+          this.events.push({ type: 'hurt', dmg: 0 });
+        }
+      }
+      if (!ev || this.phase !== 'fight' || !this.mobs.length) return;
+      this.landEvT -= dt;
+      if (this.landEvT > 0) return;
+      this.landEvT = ev.every;
+      if (ev.id === 'lava') {
+        this.lavaT = ev.warn;
+        this.events.push({ type: 'land-ev', id: 'lava-warn' });
+      } else if (ev.id === 'storm') {
+        this.stormT = ev.last;
+        this.events.push({ type: 'land-ev', id: 'storm' });
+      } else if (ev.id === 'fog') {
+        this.fogT = ev.last;
+        this.events.push({ type: 'land-ev', id: 'fog' });
+      } else if (ev.id === 'meteor') {
+        const f = this.front();
+        if (f) {
+          this.events.push({ type: 'land-ev', id: 'meteor', x: f.x });
+          this.hitMob(f, f.max * ev.hit);
+        }
+      }
+    }
     /* 지금 땅 특성의 곱 (스테이지와 보스전에서만 켜진다) */
     landMod(key) {
       if (this.mode !== 'stage' && this.mode !== 'boss') return 1;
       const r = TG.LAND_RULES[this.mapIndex()];
       let x = 1;
+      if (this.stormT > 0) {
+        if (key === 'mobSpd') x *= 0.5;
+        if (key === 'thr') x *= 0.7;
+      }
       if (r.up && r.up.k === key) x *= r.up.x;
       if (r.down && r.down.k === key) x *= r.down.x;
       return x;
@@ -1053,6 +1101,10 @@
       const land = this.mapIndex();
       if (this.lastLand !== undefined && this.lastLand !== land && this.mode === 'stage') this.events.push({ type: 'land-enter', i: land });
       this.lastLand = land;
+      this.landEvT = (TG.LAND_EVENTS[land] ? TG.LAND_EVENTS[land].every : 0) * 0.6;
+      this.lavaT = 0;
+      this.stormT = 0;
+      this.fogT = 0;
       this.hero = { hp: this.maxHp, act: { kind: 'idle', t: 0, dur: 1 } };
       this.wave = 0;
       this.mobs = [];
@@ -2267,6 +2319,7 @@
         }
       }
       if (this.mode === 'boss' || this.mode === 'tower') for (const m of [...this.mobs]) if (m.boss) this.bossTrait(m, dt);
+      if (this.mode === 'stage' || this.mode === 'boss') this.tickLandEvent(dt);
 
       /* 상태 이상: 기절, 빙결 시간이 줄고, 출혈은 틱마다 피해 */
       for (const m of [...this.mobs]) {

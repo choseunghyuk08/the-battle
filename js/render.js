@@ -296,6 +296,20 @@
       case 'ore':
         addText(`+${e.n}`, e.x, GROUND - 30, '#9fd8ff', true);
         break;
+      case 'land-ev':
+        if (e.id === 'lava-warn') {
+          addFx('bossWarn', P.heroX + 4, GROUND - 22, 1.2);
+          addText('땅이 끓어요', P.heroX + 4, GROUND - 40, '#ff8a3a', true);
+        } else if (e.id === 'lava-hit') {
+          addFx('fireBurst', P.heroX + 4, GROUND - 6, 0.5);
+          shake = Math.max(shake, 0.3);
+        } else if (e.id === 'meteor') {
+          addFx('fireBurst', e.x, GROUND - 10, 0.5, 2);
+          addFx('boltStrike', e.x, GROUND, 0.25);
+          shake = Math.max(shake, 0.2);
+        } else if (e.id === 'storm') addText('눈보라', 100, GROUND - 60, '#cfeaff', true);
+        else if (e.id === 'fog') addText('독 안개', 100, GROUND - 60, '#b8f06a', true);
+        break;
       case 'bolt':
         addFx('boltStrike', e.x, GROUND, 0.3);
         shake = Math.max(shake, 0.12);

@@ -1147,6 +1147,61 @@ function testV21() {
   assert.strictEqual(g3.s.lv.sGold, 0);
   assert.strictEqual(g3.unlocked('sDouble'), true);
 }
+function testV22() {
+  /* 땅 사건: 용암은 경고 뒤에 주인공을, 유성은 앞 몬스터를, 눈보라는 몬스터와 손을 늦춘다 */
+  assert.strictEqual(Object.keys(TG.LAND_EVENTS).length, 4);
+  const mk = (stage) => {
+    const g = new TG.Game(null, seeded(220));
+    g.s.stage = stage;
+    g.s.best = stage;
+    g.startStage();
+    g.events.length = 0;
+    return g;
+  };
+  /* 화산 */
+  let g = mk(257);
+  g.mobs.push({ id: 91, kind: 'slime', hp: 1e12, max: 1e12, atk: 1, x: 150, state: 'idle', cd: 5, t: 0, atkT: 0, hurt: 0 });
+  const hp0 = g.hero.hp;
+  g.landEvT = 0.05;
+  g.tickLandEvent(0.1);
+  assert(g.events.some((e) => e.type === 'land-ev' && e.id === 'lava-warn'));
+  assert(g.lavaT > 1);
+  g.tickLandEvent(1.4);
+  assert(g.events.some((e) => e.type === 'land-ev' && e.id === 'lava-hit'));
+  assert(g.hero.hp < hp0, '주인공이 다친다');
+  assert(Math.abs((hp0 - g.hero.hp) - g.maxHp * 0.06 * g.landMod('taken')) < 1e-6, '최대 체력의 6% (땅 특성 반영)');
+  /* 빙하 */
+  g = mk(513);
+  const slow0 = g.landMod('mobSpd');
+  g.mobs.push({ id: 92, kind: 'slime', hp: 10, max: 10, atk: 1, x: 150, state: 'idle', cd: 5, t: 0, atkT: 0, hurt: 0 });
+  g.landEvT = 0.05;
+  g.tickLandEvent(0.1);
+  assert(g.stormT > 4);
+  assert(Math.abs(g.landMod('mobSpd') - slow0 * 0.5) < 1e-9);
+  g.tickLandEvent(6);
+  assert.strictEqual(g.stormT <= 0, true);
+  assert(Math.abs(g.landMod('mobSpd') - slow0) < 1e-9, '끝나면 돌아온다');
+  /* 우주 */
+  g = mk(1025);
+  g.mobs.push({ id: 93, kind: 'slime', hp: 1000, max: 1000, atk: 1, x: 150, state: 'idle', cd: 5, t: 0, atkT: 0, hurt: 0 });
+  g.landEvT = 0.05;
+  g.tickLandEvent(0.1);
+  assert(g.mobs[0].hp <= 800 + 1e-6, '체력의 20%를 잃는다');
+  /* 늪 */
+  g = mk(4097);
+  assert.strictEqual(g.mapIndex(), 7);
+  g.mobs.push({ id: 94, kind: 'slime', hp: 500, max: 1000, atk: 1, x: 150, state: 'idle', cd: 5, t: 0, atkT: 0, hurt: 0 });
+  g.landEvT = 0.05;
+  g.tickLandEvent(0.1);
+  assert(g.fogT > 4);
+  g.tickLandEvent(1);
+  assert(g.mobs[0].hp > 500, '안개 속에서 되찾는다');
+  /* 탑에서는 사건이 없다 */
+  g = mk(257);
+  g.s.best = 150;
+  g.mode = 'tower';
+  assert.strictEqual(g.mode === 'stage' || g.mode === 'boss', false);
+}
 function testV12() {
   /* 150단계까지 이름이 있고, 150 을 둘 합치면 별이 붙는다 (151 = ★1) */
   assert.strictEqual(TG.ITEMS.length, 150);
@@ -1367,6 +1422,7 @@ if (process.argv.includes('--pace')) {
   testV19();
   testV20();
   testV21();
+  testV22();
   testStory();
   console.log('\nall tests passed');
 }

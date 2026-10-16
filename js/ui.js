@@ -885,6 +885,15 @@
   }
   function landRuleRow(i) {
     const r = TG.LAND_RULES[i];
+    const ev = TG.LAND_EVENTS[i];
+    if (ev) {
+      return el('div', { class: 'landrule' }, [
+        el('b', { text: r.name }),
+        el('span', { class: 'lr-up', text: `이점 ${TG.landEffectText(r.up)}` }),
+        el('span', { class: 'lr-down', text: `불리 ${TG.landEffectText(r.down)}` }),
+        el('span', { class: 'lr-ev', text: `사건 · ${ev.name}: ${ev.text}` }),
+      ]);
+    }
     if (!r.up) return el('div', { class: 'landrule' }, [el('b', { text: r.name }), el('span', { text: '특성 없음' })]);
     return el('div', { class: 'landrule' }, [
       el('b', { text: r.name }),
