@@ -124,7 +124,7 @@
   function tierLabel(t) {
     if (!TG.pixelText) return null;
     if (!tierText.has(t)) {
-      const r = TG.pixelText(String(t), '#ffffff', '#17121e');
+      const r = TG.pixelText(t > TG.NAMED ? `+${t - TG.NAMED}` : String(t), '#ffffff', '#17121e');
       tierText.set(t, r.canvas || TG.toCanvas(r));
     }
     return tierText.get(t);
@@ -485,7 +485,7 @@
     const body = $('#sheetBody');
     const list = el('div', { class: 'offers' });
     game.s.shop.offers.forEach((o, k) => {
-      const it = TG.ITEMS[o.tier - 1];
+      const it = TG.itemInfo(o.tier);
       const btn = el('button', { type: 'button', 'data-k': k, onclick: () => shopBuy(k) });
       list.append(el('div', { class: 'offer', 'data-offer': k }, [spriteCanvas(TG.itemDef(o.tier), 'icon'), el('div', {}, [el('div', { class: 'nm' }, [it.name, el('small', { text: `${o.tier}단계` })]), el('div', { class: 'ln', text: it.line })]), btn]));
     });
@@ -790,7 +790,7 @@
       }
       grid.append(el('div', { class: `it${seen ? '' : ' unseen'}` }, [cv, `${tier}. ${seen ? it.name : '???'}`, el('small', { text: seen ? it.line : '합쳐서 찾아봐요' })]));
     });
-    const found = game.s.seen.filter(Boolean).length;
+    const found = game.s.seen.slice(0, TG.NAMED + 1).filter(Boolean).length;
     body.replaceChildren(questSeg(), el('p', { class: 'note', text: `찾은 물건 ${found}/${TG.ITEMS.length}. 같은 물건 둘을 합치면 다음 단계가 나와요.` }), grid);
   }
 
@@ -903,7 +903,7 @@
     ui.engPick = ui.engPick || [];
     const learned = TG.ABILITIES.filter((a) => game.s.ab[a.id]);
     const tiers = [];
-    for (let t = TG.ITEMS.length; t >= 1; t--) if (game.s.seen[t]) tiers.push(t);
+    for (let t = P.tiers; t >= 1; t--) if (game.s.seen[t]) tiers.push(t);
     const list = el('div', {});
     P.engSlotsAt.forEach((open, i) => {
       if (game.s.best < open) {
@@ -911,7 +911,7 @@
         return;
       }
       const pick = (ui.engPick[i] = ui.engPick[i] || { tier: tiers[0] || 1, id: learned.length ? learned[0].id : '' });
-      const tierSel = el('select', { 'aria-label': '물건' }, tiers.map((t) => el('option', { value: String(t), text: `${t}단계 ${TG.ITEMS[t - 1].name}` })));
+      const tierSel = el('select', { 'aria-label': '물건' }, tiers.map((t) => el('option', { value: String(t), text: `${t}단계 ${TG.itemInfo(t).name}` })));
       tierSel.value = String(pick.tier);
       const abSel = el('select', { 'aria-label': '능력' }, learned.map((a) => el('option', { value: a.id, text: a.name })));
       abSel.value = pick.id;
@@ -949,7 +949,7 @@
       const i = Number(row.dataset.slot);
       const e = game.s.eng[i];
       const pick = ui.engPick[i];
-      row.querySelector('small').textContent = e ? `${TG.ITEMS[e.tier - 1].name} · ${TG.ABILITIES.find((a) => a.id === e.id).name}` : '비어 있음';
+      row.querySelector('small').textContent = e ? `${TG.itemInfo(e.tier).name} · ${TG.ABILITIES.find((a) => a.id === e.id).name}` : '비어 있음';
       row.classList.toggle('on', !!e);
       const go = row.querySelector('.buy');
       const cost = P.engCost(pick.tier);
@@ -1203,7 +1203,7 @@
           break;
         case 'new':
           if (e.tier > 1) {
-            const it = TG.ITEMS[e.tier - 1];
+            const it = TG.itemInfo(e.tier);
             toast(e.tier, `새 물건 · ${e.tier}단계 ${it.name}`, it.line);
             sfx.discover();
             const slot = game.s.board.indexOf(e.tier);

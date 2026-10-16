@@ -62,7 +62,7 @@ function testSave() {
   assert.strictEqual(copy.s.stage, 17);
   assert.strictEqual(copy.s.board[3], 7);
   assert.deepStrictEqual(copy.s.pos[3], g.s.pos[3], '위치도 저장된다');
-  const broken = new TG.Game({ v: 1, board: [99, -3, 'x'], stage: -5, gold: 'a' }, seeded(3));
+  const broken = new TG.Game({ v: 1, board: [999, -3, 'x'], stage: -5, gold: 'a' }, seeded(3));
   assert.strictEqual(broken.s.board[0], TG.P.tiers);
   assert.strictEqual(broken.s.board[1], 0);
   assert.strictEqual(broken.s.stage, 1);
@@ -924,6 +924,61 @@ function testV11() {
   console.log('v1.1 ok');
 }
 
+function testV12() {
+  /* 150단계까지 이름이 있고, 150 을 둘 합치면 별이 붙는다 (151 = ★1) */
+  assert.strictEqual(TG.ITEMS.length, 150);
+  assert.strictEqual(TG.ITEMS[149].name, '메아리');
+  assert.strictEqual(TG.itemInfo(151).name, '메아리 ★1');
+  assert.strictEqual(TG.itemInfo(170).name, '메아리 ★20');
+  assert.strictEqual(TG.P.tiers, 170);
+  const g = new TG.Game(null, seeded(120));
+  g.s.board[0] = 150;
+  g.s.board[1] = 150;
+  assert.strictEqual(g.merge(0, 1), true);
+  assert.strictEqual(g.s.board[1], 151);
+  assert(g.s.seen[151]);
+  g.s.board[2] = 170;
+  g.s.board[3] = 170;
+  assert.strictEqual(g.merge(2, 3), false, '별 스무 개가 끝');
+  assert(TG.tierAtk(151) / TG.tierAtk(150) > 1.79 && TG.tierAtk(151) / TG.tierAtk(150) < 1.81, '별 하나마다 1.8배');
+  for (let t = 91; t <= 170; t++) assert(TG.SPR.item[`t${t}`] === undefined || TG.SPR.item[`t${t}`].id === `item.t${t}`, `그림 이름 ${t}`);
+  /* 큰 수 표시 */
+  assert.strictEqual(TG.fmt(1e44), '1재');
+  assert.strictEqual(TG.fmt(2.5e48), '2.5극');
+
+  /* 메아리 (150단계 이상) 는 던지면 모든 몬스터를 꿰뚫는다. 그 아래는 맞힌 하나만 */
+  const run = (tier) => {
+    const e = new TG.Game(null, seeded(121));
+    e.s.stage = 10;
+    e.startStage();
+    e.gapT = 99;
+    e.mobs = [];
+    for (let k = 0; k < 4; k++) {
+      e.spawnMob(false);
+      const m = e.mobs[e.mobs.length - 1];
+      m.x = 90 + k * 12;
+      m.hp = m.max = 1e9;
+    }
+    const first = e.mobs[0];
+    e.proj.push({ tier, t: 0.01, dur: 0.01, target: first, dmg: 1000, spin: 0 });
+    for (let t = 0; t < 0.2; t += 0.05) e.tick(0.05);
+    return e.mobs.filter((m) => m.hp < m.max).length;
+  };
+  assert.strictEqual(run(149), 1, '메아리 아래는 하나만');
+  assert.strictEqual(run(150), 4, '메아리는 전부');
+  assert.strictEqual(run(155), 4, '별이 붙어도 전부');
+  /* 이야기와 칭호 */
+  const s = new TG.Game(null, seeded(122));
+  s.finishIntro();
+  s.events.length = 0;
+  s.see(150);
+  assert(s.events.some((x) => x.type === 'story' && x.id === 'echo1'), '메아리를 처음 만들면 이야기');
+  s.see(160);
+  s.refreshTitles();
+  assert(s.titleOpen('echo') && s.titleOpen('echoStar'));
+  console.log('v1.2 ok');
+}
+
 function testStory() {
   /* 새 게임: 1장이 바로 나오고, 같은 장면은 한 번뿐이다 */
   const g = new TG.Game(null, seeded(61));
@@ -1082,6 +1137,7 @@ if (process.argv.includes('--pace')) {
   testV08();
   testV09();
   testV11();
+  testV12();
   testStory();
   console.log('\nall tests passed');
 }

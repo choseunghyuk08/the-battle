@@ -3,7 +3,9 @@
 
   /* 조정할 수 있는 숫자는 전부 여기 있다. 바꾼 뒤에는 `node tests/sim.js --pace` 로 속도를 본다 */
   const P = (TG.P = {
-    tiers: 90,
+    tiers: 170, // 150단계까지 이름이 있고, 150 (메아리) 을 둘 합치면 별이 붙는다 (151 = 메아리 ★1 ... 170 = ★20)
+    echoTier: 150, // 이 단계부터 던지면 모든 몬스터를 꿰뚫는다
+    echoPierce: 1, // 꿰뚫린 몬스터가 받는 피해 (맞힌 몬스터 피해의 배율)
     maxSlots: 60, // 필드에 둘 수 있는 물건 최대 개수 (보유 개수 강화의 끝)
     slotsStart: 8,
     slotCost0: 60,
@@ -276,7 +278,7 @@
     { id: 'kills', name: '몬스터 사냥', unit: '마리', stat: (g) => g.s.stats.kills, goals: [50, 500, 2000, 10000, 50000, 200000, 1000000] },
     { id: 'stage', name: '멀리 가기', unit: '스테이지', stat: (g) => g.s.best, goals: [10, 25, 50, 100, 150, 200, 300, 400, 500] },
     { id: 'merges', name: '합치기', unit: '번', stat: (g) => g.s.stats.merges, goals: [20, 200, 1000, 5000, 20000, 100000] },
-    { id: 'found', name: '물건 찾기', unit: '단계', stat: (g) => g.s.seen.filter(Boolean).length, goals: [5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 90] },
+    { id: 'found', name: '물건 찾기', unit: '단계', stat: (g) => g.s.seen.slice(0, 151).filter(Boolean).length, goals: [5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 90, 120, 150] },
     { id: 'boss', name: '보스 사냥', unit: '번', stat: (g) => g.s.boss - 1, goals: [1, 5, 10, 20, 40, 80, 150] },
     { id: 'ore', name: '광부', unit: '개', stat: (g) => g.s.stats.ore, goals: [10, 100, 500, 2000, 10000] },
     { id: 'pets', name: '동료 모으기', unit: '점', stat: (g) => Object.values(g.s.stars).reduce((a, b) => a + b, 0) + ['monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole'].filter((k) => g.s.lv[k]).length, goals: [1, 2, 4, 8, 12, 16, 24, 32] },
@@ -449,6 +451,8 @@
     { id: 'sky', name: '구름 위 던지기', cond: '스테이지 16385 (하늘섬)', ok: (g) => g.s.best >= 16385, costume: 15 },
     { id: 'factory', name: '녹슨 손', cond: '스테이지 32769 (고철 공장)', ok: (g) => g.s.best >= 32769, costume: 16 },
     { id: 'abyss', name: '어둠 응시', cond: '스테이지 65537 (심연)', ok: (g) => g.s.best >= 65537, costume: 17 },
+    { id: 'echo', name: '메아리를 던지는 이', cond: '메아리(150단계) 만들기', ok: (g) => g.s.seen[150] },
+    { id: 'echoStar', name: '겹겹이 울리는 이', cond: '메아리 ★10', ok: (g) => g.s.seen[160] },
     { id: 'wall', name: '철벽', cond: '방어전 6단계', ok: (g) => g.s.defendTier >= 6 },
     { id: 'star', name: '번개의 손', cond: '스킬 각성 별 3개', ok: (g) => Object.values(g.s.skStar).reduce((a, b) => a + b, 0) >= 3 },
     { id: 'engrave', name: '새기는 사람', cond: '각인 3칸 모두', ok: (g) => g.s.eng.filter(Boolean).length >= 3 },
@@ -747,6 +751,7 @@
         this.s.seen[t] = true;
         this.events.push({ type: 'new', tier: t });
         if (t === 60) this.story('true_end');
+        if (t === P.echoTier) this.story('echo1');
       }
     }
 
@@ -2129,6 +2134,11 @@
         const m = this.mobs.includes(p.target) ? p.target : this.front();
         if (!m) continue;
         this.hitMob(m, p.dmg, { tier: p.tier, power: p.power, shadow: p.shadow, proc: !p.barrage });
+        /* 메아리 이상은 맞힌 몬스터 뒤의 몬스터도 전부 꿰뚫는다 */
+        if (p.tier >= P.echoTier && this.phase === 'fight') {
+          this.events.push({ type: 'echo', x: m.x });
+          for (const o of [...this.mobs]) if (o !== m && this.mobs.includes(o)) this.hitMob(o, p.dmg * P.echoPierce, { tier: p.tier, pierce: true });
+        }
       }
     }
 
