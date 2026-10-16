@@ -75,11 +75,11 @@
     towerOpen: 100, // 끝없는 탑이 열리는 최고 스테이지
     towerFree: 1, // 하루에 공짜로 오르는 횟수
     towerExtraMedals: 30, // 더 오르려면 메달 이만큼
-    towerBaseK: 0.4, // 1층 몬스터 = 최고 스테이지 x 이 값 단계의 몬스터
-    towerHpGrow: 1.1, // 층마다 체력 배율
+    towerHpC: 0.0002, // 1층 몬스터 체력 = 최고 스테이지 몬스터 체력 x 이 값
+    towerHpGrow: 1.2, // 층마다 체력 배율
     towerBossK: 8, // 탑 보스 체력 = 보통 몬스터 x 이 값
     towerAtkFrac: 0.04, // 1층 몬스터 한 대가 때리는 피해 = 주인공 최대 체력의 이만큼
-    towerAtkGrow: 1.05, // 층마다 공격 배율
+    towerAtkGrow: 1.06, // 층마다 공격 배율
     towerFloorTime: 45, // 한 층을 못 깨고 버틸 수 있는 시간
     towerHeal: 0.2, // 층을 깰 때마다 체력 회복 (최대 체력의 이만큼)
     towerBossEvery: 5, // 이 층마다 보스
@@ -1273,13 +1273,10 @@
       for (let i = 0; i < this.slots; i++) if (this.s.board[i]) v += TG.tierAtk(this.s.board[i]) * this.atkMult;
       return v * (1 + PET.powerChance(this.s.lv.awaken)) * (1 + PET.doubleChance(this.s.lv.awaken));
     }
-    /* 1층 몬스터의 기준 단계: 내 최고 스테이지의 일부 */
-    towerBase() {
-      return Math.max(1, Math.floor(this.s.best * P.towerBaseK));
-    }
-    /* 층 f 보통 몬스터 체력 */
+    /* 층 f 보통 몬스터 체력: 내 최고 스테이지 몬스터 체력의 일부에서 시작해 층마다 커진다.
+       몬스터 체력이 내 힘에 맞춰져 있어서, 얼마나 키웠든 비슷한 층까지 간다 */
     towerHp(k = 1) {
-      return P.mobHp(this.towerBase()) * P.towerHpGrow ** (this.towerF - 1) * k;
+      return P.mobHp(Math.max(1, this.s.best)) * P.towerHpC * P.towerHpGrow ** (this.towerF - 1) * k;
     }
     startTower() {
       if (!this.canTower()) return false;

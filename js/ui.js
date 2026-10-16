@@ -928,7 +928,7 @@
           el('span', { class: 'bossst', text: state }),
           slot,
           ...(p >= 2 ? [landGiftRow(p)] : []),
-          el('div', { class: 'ln', text: `${TG.fmt(from)}~${TG.fmt(to)} 스테이지` }),
+          el('div', { class: 'ln', text: `${from.toLocaleString("ko-KR")}~${to.toLocaleString("ko-KR")} 스테이지` }),
           landRuleRow(i),
           mobs,
         ]),
