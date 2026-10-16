@@ -544,7 +544,7 @@
     }
     const body = $('#sheetBody');
     const grid = el('div', { class: 'relics' });
-    for (const r of TG.RELICS) grid.append(el('div', { class: 'relic', 'data-relic': r.id }, [relicIcon(r.id), el('div', {}, [el('div', { class: 'nm' }, [r.name, el('small')]), el('div', { class: 'ds' }), el('div', { class: 'ln', text: TG.RELIC_LINES[r.id] || '' }), el('button', { type: 'button', class: 'fz', text: '합성', hidden: true, onclick: () => { ui.fuseId = r.id; buildFuse(r.id); } })])]));
+    for (const r of TG.RELICS) grid.append(el('div', { class: 'relic', 'data-relic': r.id }, [relicIcon(r.id), el('div', {}, [el('div', { class: 'nm' }, [r.name, el('small')]), el('div', { class: 'ds' }), el('div', { class: 'ln', text: TG.RELIC_LINES[r.id] || '' }), el('button', { type: 'button', class: 'fz', hidden: true, onclick: () => { ui.fuseId = r.id; buildFuse(r.id); } }, [uiIcon('fuse'), ' 합성'])])]));
     body.replaceChildren(
       segBar(),
       el('p', { class: 'note' }, ['루비로 유물 20종 중 하나를 뽑아요. 같은 것이 또 나오면 레벨이 올라요 (최대 ', String(P.relicMax), '). 다 모은 유물은 안 나와요.']),
@@ -903,7 +903,7 @@
         refreshEngrave();
         save();
       });
-      list.append(el('div', { class: 'eng', 'data-slot': i }, [el('div', { class: 'nm' }, [`각인 ${i + 1}칸`, el('small')]), el('div', { class: 'row2' }, [tierSel, abSel]), el('div', { class: 'btns' }, [go, clear])]));
+      list.append(el('div', { class: 'eng', 'data-slot': i }, [el('div', { class: 'nm' }, [uiIcon('engrave'), ` 각인 ${i + 1}칸`, el('small')]), el('div', { class: 'row2' }, [tierSel, abSel]), el('div', { class: 'btns' }, [go, clear])]));
     });
     body.replaceChildren(abSegBar(), el('p', { class: 'slotinfo', id: 'engInfo' }), list);
     refreshEngrave();
@@ -1045,7 +1045,7 @@
       cv.getContext('2d').drawImage(c.frames[0].canvas, 0, 0);
       chips.append(el('button', { type: 'button', class: 'cs', 'data-cs': i, onclick: () => { if (game.setCostume(i)) { sfx.craft(); save(); refreshTitles(); } } }, [cv, el('small', { text: name })]));
     });
-    body.replaceChildren(questSeg(), el('p', { class: 'note', id: 'titleInfo' }), list, el('p', { class: 'sec', text: '코스튬' }), chips);
+    body.replaceChildren(questSeg(), el('p', { class: 'note', id: 'titleInfo' }), list, el('p', { class: 'sec' }, [uiIcon('costume'), ' 코스튬']), chips);
     refreshTitles();
   }
   function refreshTitles() {
