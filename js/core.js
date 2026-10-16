@@ -12,8 +12,8 @@
     atk0: 20, // 1단계 공격력
     atkGrow: 1.8, // 한 단계 오를 때 배율 (합치면 2개가 1개가 되니 전체 화력은 0.9배지만 칸이 빈다)
 
-    throwGap: 0.3, // 보드의 던질 것을 하나씩 던지는 간격(초). 많으면 volley 안에 다 던지도록 빨라진다
-    volley: 2.0, // 한 바퀴(보드의 물건 전부)를 던지는 데 쓰는 최대 시간
+    throwGap: 0.3, // 필드의 물건을 하나씩 던지는 간격(초). 많으면 volley 안에 다 던지도록 빨라진다
+    volley: 2.0, // 한 바퀴(필드의 물건 전부)를 던지는 데 쓰는 최대 시간
     reload: 1.0, // 다 던지고 쉬는 시간
     flight: 0.2, // 날아가는 시간
 
@@ -174,7 +174,7 @@
 
   /* 유물 (v0.5): 루비로 뽑는다. 같은 것이 또 나오면 레벨이 오른다 (최대 10). v(L) 은 효과 값 */
   TG.RELICS = [
-    { id: 'glove', name: '낡은 장갑', v: (L) => 0.06 * L, desc: (x) => `던지는 공격력 +${pct(x)}` },
+    { id: 'glove', name: '낡은 장갑', v: (L) => 0.06 * L, desc: (x) => `공격력 +${pct(x)}` },
     { id: 'clover', name: '행운 동전', v: (L) => 0.06 * L, desc: (x) => `골드 +${pct(x)}` },
     { id: 'bandage', name: '질긴 붕대', v: (L) => 0.06 * L, desc: (x) => `체력 +${pct(x)}` },
     { id: 'shoes', name: '날쌘 신발', v: (L) => 0.015 * L, desc: (x) => `던지는 속도 +${pct(x)}` },
@@ -188,9 +188,9 @@
     { id: 'scale', name: '용 비늘', v: (L) => 0.1 * L, desc: (x) => `용 불덩이 피해 +${pct(x)}` },
     { id: 'horn', name: '거인 사냥 뿔피리', v: (L) => 0.08 * L, desc: (x) => `거대 몬스터에게 피해 +${pct(x)}` },
     { id: 'flag', name: '보스 사냥 깃발', v: (L) => 0.08 * L, desc: (x) => `보스에게 피해 +${pct(x)}` },
-    { id: 'quill', name: '깃털 펜', v: (L) => 0.01 * L, desc: (x) => `제작할 때 한 단계 위 +${pct(x)}` },
+    { id: 'quill', name: '깃털 펜', v: (L) => 0.01 * L, desc: (x) => `한 단계 위 제작 확률 +${pct(x)}` },
     { id: 'rope', name: '등반 밧줄', v: (L) => 0.01 * L, desc: (x) => `등반 확률 +${pct(x)}` },
-    { id: 'gear', name: '태엽', v: (L) => 0.02 * L, desc: (x) => `자동 제작·합성 간격 -${pct(x)}` },
+    { id: 'gear', name: '태엽', v: (L) => 0.02 * L, desc: (x) => `자동 제작·합치기 간격 -${pct(x)}` },
     { id: 'star', name: '별 조각', v: (L) => 0.1 * L, desc: (x) => `파워샷 배율 +${TG.fmtMult(x)}` },
     { id: 'mirror', name: '쌍둥이 거울', v: (L) => 0.01 * L, desc: (x) => `더블샷 확률 +${pct(x)}` },
     { id: 'crown', name: '작은 왕관', v: (L) => 0.03 * L, desc: (x) => `모든 피해 +${pct(x)}` },
@@ -206,7 +206,7 @@
     { id: 'found', name: '물건 찾기', unit: '단계', stat: (g) => g.s.seen.filter(Boolean).length, goals: [5, 10, 15, 20, 25, 30, 40, 50, 60] },
     { id: 'boss', name: '보스 사냥', unit: '번', stat: (g) => g.s.boss - 1, goals: [1, 5, 10, 20, 40, 80, 150] },
     { id: 'ore', name: '광부', unit: '개', stat: (g) => g.s.stats.ore, goals: [10, 100, 500, 2000, 10000] },
-    { id: 'pets', name: '친구들', unit: '점', stat: (g) => Object.values(g.s.stars).reduce((a, b) => a + b, 0) + ['monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole'].filter((k) => g.s.lv[k]).length, goals: [1, 2, 4, 8, 12, 16, 24, 32] },
+    { id: 'pets', name: '동료 모으기', unit: '점', stat: (g) => Object.values(g.s.stars).reduce((a, b) => a + b, 0) + ['monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole'].filter((k) => g.s.lv[k]).length, goals: [1, 2, 4, 8, 12, 16, 24, 32] },
     { id: 'pulls', name: '보물 사냥꾼', unit: '번', stat: (g) => g.s.stats.pulls, goals: [1, 10, 50, 100, 200] },
   ];
   TG.achRuby = (tier) => ACH_RUBY[Math.min(tier, ACH_RUBY.length - 1)];
@@ -217,7 +217,7 @@
       id: 'knock',
       name: '넉백',
       chance: (L) => 0.12 + 0.01 * L,
-      desc: (L) => `${pct(0.12 + 0.01 * L)}로 ${Math.round(14 * (1 + 0.04 * L))}점 밀어낸다 (거대 절반, 보스 30%)`,
+      desc: (L) => `${pct(0.12 + 0.01 * L)} 확률로 ${Math.round(14 * (1 + 0.04 * L))}점 밀어내요 (거대 절반, 보스 30%)`,
       apply(g, m, d, L) {
         if (m.kbCd > 0) return false;
         m.kbCd = 0.5;
@@ -234,7 +234,7 @@
       id: 'stun',
       name: '기절',
       chance: (L) => 0.07 + 0.006 * L,
-      desc: (L) => `${pct(0.07 + 0.006 * L)}로 ${Math.round((0.8 + 0.05 * L) * 10) / 10}초 기절 (보스 30%)`,
+      desc: (L) => `${pct(0.07 + 0.006 * L)} 확률로 ${Math.round((0.8 + 0.05 * L) * 10) / 10}초 기절 (보스 30%)`,
       apply(g, m, d, L) {
         m.st = m.st || {};
         m.st.stun = Math.max(m.st.stun || 0, (0.8 + 0.05 * L) * (m.boss ? 0.3 : 1));
@@ -245,7 +245,7 @@
       id: 'pierce',
       name: '관통',
       chance: (L) => 0.15 + 0.01 * L,
-      desc: (L) => `${pct(0.15 + 0.01 * L)}로 뒤의 몬스터도 ${pct(0.5 + 0.02 * L)} 피해로 꿰뚫는다`,
+      desc: (L) => `${pct(0.15 + 0.01 * L)} 확률로 뒤의 몬스터까지 ${pct(0.5 + 0.02 * L)} 피해로 꿰뚫어요`,
       apply(g, m, d, L) {
         let next = null;
         for (const o of g.mobs) if (o !== m && o.x > m.x && (!next || o.x < next.x)) next = o;
@@ -258,7 +258,7 @@
       id: 'bleed',
       name: '출혈',
       chance: (L) => 0.15 + 0.01 * L,
-      desc: (L) => `${pct(0.15 + 0.01 * L)}로 3초 동안 ${pct(0.5 + 0.04 * L)} 피해가 서서히 들어간다`,
+      desc: (L) => `${pct(0.15 + 0.01 * L)} 확률로 3초 동안 ${pct(0.5 + 0.04 * L)} 피해가 서서히 들어가요`,
       apply(g, m, d, L) {
         m.st = m.st || {};
         m.st.bleed = { t: 3, dps: (d * (0.5 + 0.04 * L)) / 3 };
@@ -269,7 +269,7 @@
       id: 'freeze',
       name: '빙결',
       chance: (L) => 0.12 + 0.008 * L,
-      desc: (L) => `${pct(0.12 + 0.008 * L)}로 ${Math.round((2.5 + 0.1 * L) * 10) / 10}초 동안 움직임과 공격이 60% 느려진다`,
+      desc: (L) => `${pct(0.12 + 0.008 * L)} 확률로 ${Math.round((2.5 + 0.1 * L) * 10) / 10}초 동안 움직임과 공격이 60% 느려져요`,
       apply(g, m, d, L) {
         m.st = m.st || {};
         m.st.slow = Math.max(m.st.slow || 0, 2.5 + 0.1 * L);
@@ -280,7 +280,7 @@
       id: 'chain',
       name: '연쇄',
       chance: (L) => 0.1 + 0.008 * L,
-      desc: (L) => `${pct(0.1 + 0.008 * L)}로 번개가 가까운 둘에게 ${pct(0.5 + 0.02 * L)} 피해로 튄다`,
+      desc: (L) => `${pct(0.1 + 0.008 * L)} 확률로 번개가 가까운 몬스터 둘에게 ${pct(0.5 + 0.02 * L)} 피해로 튀어요`,
       apply(g, m, d, L) {
         const near = g.mobs.filter((o) => o !== m && Math.abs(o.x - m.x) <= 45).sort((a, b) => Math.abs(a.x - m.x) - Math.abs(b.x - m.x)).slice(0, 2);
         if (!near.length) return false;
@@ -292,7 +292,7 @@
       id: 'blast',
       name: '폭발',
       chance: (L) => 0.1 + 0.008 * L,
-      desc: (L) => `${pct(0.1 + 0.008 * L)}로 터져서 18점 안의 몬스터가 ${pct(0.4 + 0.02 * L)} 피해를 받는다`,
+      desc: (L) => `${pct(0.1 + 0.008 * L)} 확률로 터져서 18점 안의 몬스터가 ${pct(0.4 + 0.02 * L)} 피해를 받아요`,
       apply(g, m, d, L) {
         for (const o of g.mobs.filter((x) => x !== m && Math.abs(x.x - m.x) <= 18)) g.hitMob(o, d * (0.4 + 0.02 * L), { blast: true });
         return true;
@@ -302,7 +302,7 @@
       id: 'vamp',
       name: '흡혈',
       chance: (L) => 0.1 + 0.01 * L,
-      desc: (L) => `${pct(0.1 + 0.01 * L)}로 최대 체력의 ${pct(0.004 + 0.0008 * L)}를 회복한다`,
+      desc: (L) => `${pct(0.1 + 0.01 * L)} 확률로 최대 체력의 ${pct(0.004 + 0.0008 * L)}를 회복해요`,
       apply(g, m, d, L) {
         if (g.hero.hp >= g.maxHp) return false;
         g.hero.hp = Math.min(g.maxHp, g.hero.hp + Math.round(g.maxHp * (0.004 + 0.0008 * L)));
@@ -313,7 +313,7 @@
       id: 'lucky',
       name: '행운',
       chance: (L) => 0.1 + 0.01 * L,
-      desc: (L) => `${pct(0.1 + 0.01 * L)}로 몬스터 한 마리 골드의 ${pct(0.4 + 0.08 * L)}를 더 번다`,
+      desc: (L) => `${pct(0.1 + 0.01 * L)} 확률로 몬스터 한 마리 골드의 ${pct(0.4 + 0.08 * L)}를 더 벌어요`,
       apply(g, m, d, L) {
         const gold = Math.ceil(P.mobGold(g.s.stage) * (0.4 + 0.08 * L) * g.goldMult);
         g.s.gold += gold;
@@ -325,7 +325,7 @@
       id: 'execute',
       name: '처형',
       chance: (L) => 0.08 + 0.006 * L,
-      desc: (L) => `${pct(0.08 + 0.006 * L)}로 체력 ${pct(0.15 + 0.01 * L)} 이하인 몬스터를 바로 처치한다 (보스 제외)`,
+      desc: (L) => `${pct(0.08 + 0.006 * L)} 확률로 체력 ${pct(0.15 + 0.01 * L)} 이하 몬스터를 바로 처치해요 (보스 제외)`,
       apply(g, m, d, L) {
         if (m.boss || m.hp >= m.max * (0.15 + 0.01 * L)) return false;
         m.hp = 0;
@@ -347,7 +347,7 @@
   const AUTO_COST2 = [200, 600, 1800, 5400, 16200];
   const AUTO_GAP = [0, 3, 2.2, 1.6, 1.2, 1];
   TG.UPGRADES = [
-    { id: 'atk', name: '공격력', max: 9999, cost: (L) => Math.ceil(10 * P.upCostGrow ** L), desc: (L) => `던질 것의 공격력 x${TG.fmtMult(P.atkUp ** L)}` },
+    { id: 'atk', name: '공격력', max: 9999, cost: (L) => Math.ceil(10 * P.upCostGrow ** L), desc: (L) => `물건 공격력 x${TG.fmtMult(P.atkUp ** L)}` },
     { id: 'hp', name: '체력', max: 9999, cost: (L) => Math.ceil(10 * P.upCostGrow ** L), desc: (L) => `체력 ${TG.fmt(Math.round(P.hpBase * P.hpUp ** L))}` },
     {
       id: 'craft',
@@ -356,7 +356,7 @@
       cost: (L) => Math.ceil(25 * P.craftCostGrow ** L),
       desc: (L) => {
         const base = 1 + Math.floor(L / 10);
-        return `${base}단계 제작, ${(L % 10) * 10}%로 ${base + 1}단계`;
+        return `${base}단계 제작, ${(L % 10) * 10}% 확률로 ${base + 1}단계`;
       },
     },
     {
@@ -364,32 +364,32 @@
       name: '등반술',
       max: 9999,
       cost: (L) => Math.ceil(40 * P.climbCostGrow ** L),
-      desc: (L) => `클리어 때 ${Math.round(Math.min(0.5, 0.05 + 0.005 * L) * 100)}%로 최대 ${1 + Math.floor(L / 10)}스테이지 건너뜀`,
+      desc: (L) => `클리어하면 ${Math.round(Math.min(0.5, 0.05 + 0.005 * L) * 100)}% 확률로 최대 ${1 + Math.floor(L / 10)}스테이지를 건너뛰어요`,
     },
     { id: 'slots', name: '보유 개수', max: 52, cost: (L) => Math.ceil(P.slotCost0 * P.slotCostGrow ** L), desc: (L) => `필드에 ${P.slotsStart + L}개까지` },
     { id: 'autoCraft', name: '자동 제작', max: AUTO_COST.length, cost: (L) => (L < AUTO_COST.length ? AUTO_COST[L] : null), desc: (L) => (L ? `${AUTO_GAP[L]}초마다 제작` : '꺼짐') },
-    { id: 'autoMerge', name: '자동 합성', max: AUTO_COST2.length, cost: (L) => (L < AUTO_COST2.length ? AUTO_COST2[L] : null), desc: (L) => (L ? `${AUTO_GAP[L]}초마다 합성` : '꺼짐') },
+    { id: 'autoMerge', name: '자동 합치기', max: AUTO_COST2.length, cost: (L) => (L < AUTO_COST2.length ? AUTO_COST2[L] : null), desc: (L) => (L ? `${AUTO_GAP[L]}초마다 합치기` : '꺼짐') },
     /* 루비로 사는 강화 */
     { id: 'rAtk', cur: 'ruby', name: '루비 공격력', max: 999, cost: (L) => Math.ceil(10 * 1.5 ** L), desc: (L) => `모든 공격 x${TG.fmtMult(1.15 ** L)}` },
     { id: 'rGold', cur: 'ruby', name: '루비 골드', max: 999, cost: (L) => Math.ceil(10 * 1.5 ** L), desc: (L) => `얻는 골드 +${L * 15}%` },
-    { id: 'skRain', cur: 'ruby', name: '쏟아지기', max: 50, cost: (L) => Math.ceil(15 * 1.45 ** L), desc: (L) => `최고 물건 ${6 + 2 * L}개가 쏟아진다 (x${TG.fmtMult(1 + 0.25 * L)})` },
-    { id: 'skRage', cur: 'ruby', name: '분노', max: 50, cost: (L) => Math.ceil(15 * 1.45 ** L), desc: (L) => `${P.rageTime + L}초 동안 2배 빠르게, 피해 x${TG.fmtMult(1.5 + 0.1 * L)}` },
-    { id: 'skShadow', cur: 'ruby', name: '그림자 분신', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 100 : Math.ceil(15 * 1.45 ** L)), desc: (L) => (L ? `${Math.round((10 + 0.2 * (L - 1)) * 10) / 10}초 동안 분신이 같이 던진다 (피해 x${TG.fmtMult(0.5 + 0.03 * (L - 1))})` : '루비로 배운다. 분신이 나타나 같이 던진다') },
-    { id: 'skBarrage', cur: 'ruby', name: '난사', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 100 : Math.ceil(15 * 1.45 ** L)), desc: (L) => (L ? `최고 물건 ${10 + 2 * (L - 1)}개를 순식간에 흩뿌린다 (x${TG.fmtMult(0.6 + 0.05 * (L - 1))})` : '루비로 배운다. 최고 물건을 마구 던진다') },
-    { id: 'skBolt', cur: 'ruby', name: '뇌전', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 120 : Math.ceil(15 * 1.45 ** L)), desc: (L) => (L ? `번개 ${5 + Math.floor((L - 1) / 5)}줄기가 몬스터를 내리친다 (x${TG.fmtMult(1.5 + 0.08 * (L - 1))})` : '루비로 배운다. 하늘에서 번개가 내리친다') },
-    { id: 'skDark', cur: 'ruby', name: '어둠장막', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 120 : Math.ceil(15 * 1.45 ** L)), desc: (L) => (L ? `${Math.round((P.darkTime + 0.2 * (L - 1)) * 10) / 10}초 동안 적이 절반 속도가 되고 피해를 ${pct(0.25 + 0.015 * (L - 1))} 더 받는다` : '루비로 배운다. 어둠이 내려 적이 느려진다') },
-    { id: 'pig', cur: 'ruby', tab: 'pet', name: '황금 돼지', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 100 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `골드 +${pct(PET.pigGold(L))}, 몬스터 ${PET.pigEvery(L)}마리마다 동전을 뿜는다 (x${Math.round(PET.pigShower(L) * 10) / 10})` : '루비로 데려온다. 골드를 더 벌게 하고 가끔 동전을 뿜는다') },
-    { id: 'mole', cur: 'ruby', tab: 'pet', name: '두더지 광부', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 120 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `${Math.round(PET.moleGap(L))}초마다 철광석을 캔다. 광산 철광석 +${pct(PET.moleOre(L))}, 광산 시간 +${Math.round(PET.moleTime(L) * 10) / 10}초` : '루비로 데려온다. 가만히 있어도 철광석을 캐 온다') },
+    { id: 'skRain', cur: 'ruby', name: '쏟아지기', max: 50, cost: (L) => Math.ceil(15 * 1.45 ** L), desc: (L) => `최고 물건 ${6 + 2 * L}개가 쏟아져요 (x${TG.fmtMult(1 + 0.25 * L)})` },
+    { id: 'skRage', cur: 'ruby', name: '분노', max: 50, cost: (L) => Math.ceil(15 * 1.45 ** L), desc: (L) => `${P.rageTime + L}초 동안 2배 빠르게 던지고 피해 x${TG.fmtMult(1.5 + 0.1 * L)}` },
+    { id: 'skShadow', cur: 'ruby', name: '그림자 분신', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 100 : Math.ceil(15 * 1.45 ** L)), desc: (L) => (L ? `${Math.round((10 + 0.2 * (L - 1)) * 10) / 10}초 동안 분신이 같이 던져요 (피해 x${TG.fmtMult(0.5 + 0.03 * (L - 1))})` : '루비로 배워요. 분신이 나타나 같이 던져요') },
+    { id: 'skBarrage', cur: 'ruby', name: '난사', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 100 : Math.ceil(15 * 1.45 ** L)), desc: (L) => (L ? `최고 물건 ${10 + 2 * (L - 1)}개를 순식간에 흩뿌려요 (x${TG.fmtMult(0.6 + 0.05 * (L - 1))})` : '루비로 배워요. 최고 물건을 마구 던져요') },
+    { id: 'skBolt', cur: 'ruby', name: '뇌전', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 120 : Math.ceil(15 * 1.45 ** L)), desc: (L) => (L ? `번개 ${5 + Math.floor((L - 1) / 5)}줄기가 몬스터를 내리쳐요 (x${TG.fmtMult(1.5 + 0.08 * (L - 1))})` : '루비로 배워요. 하늘에서 번개가 내리쳐요') },
+    { id: 'skDark', cur: 'ruby', name: '어둠장막', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 120 : Math.ceil(15 * 1.45 ** L)), desc: (L) => (L ? `${Math.round((P.darkTime + 0.2 * (L - 1)) * 10) / 10}초 동안 몬스터가 절반 속도가 되고 피해를 ${pct(0.25 + 0.015 * (L - 1))} 더 받아요` : '루비로 배워요. 어둠이 내려 몬스터가 느려져요') },
+    { id: 'pig', cur: 'ruby', tab: 'pet', name: '황금 돼지', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 100 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `골드 +${pct(PET.pigGold(L))}, 몬스터 ${PET.pigEvery(L)}마리마다 동전을 뿜어요 (x${Math.round(PET.pigShower(L) * 10) / 10})` : '루비로 데려와요. 골드를 더 벌게 하고 가끔 동전을 뿜어요') },
+    { id: 'mole', cur: 'ruby', tab: 'pet', name: '두더지 광부', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 120 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `${Math.round(PET.moleGap(L))}초마다 철광석을 캐요. 광산 철광석 +${pct(PET.moleOre(L))}, 광산 시간 +${Math.round(PET.moleTime(L) * 10) / 10}초` : '루비로 데려와요. 가만히 있어도 철광석을 캐 와요') },
     { id: 'carFuel', cur: 'volt', name: '연료통', max: 20, cost: (L) => (L >= 20 ? null : Math.ceil(6 * 1.3 ** L)), desc: (L) => `추격전 시간 +${L}초 (지금 ${P.chaseTime + L}초)` },
     { id: 'carGun', cur: 'volt', name: '터렛', max: 50, cost: (L) => (L >= 50 ? null : Math.ceil(5 * 1.28 ** L)), desc: (L) => `추격전 피해 +${L * 10}%` },
     { id: 'carEngine', cur: 'volt', name: '엔진', max: 40, cost: (L) => (L >= 40 ? null : Math.ceil(8 * 1.3 ** L)), desc: (L) => `모든 공격력 x${TG.fmtMult(1.02 ** L)}` },
-    { id: 'autoShop', cur: 'ruby', name: '자동 구매', max: 1, cost: (L) => (L < 1 ? 80 : null), desc: (L) => (L ? '조각 상점에서 살 수 있으면 알아서 산다' : '꺼짐') },
-    { id: 'autoSkill', cur: 'ruby', name: '자동 스킬', max: 1, cost: (L) => (L < 1 ? 50 : null), desc: (L) => (L ? '스킬을 알아서 쓴다' : '꺼짐') },
-    { id: 'monkey', cur: 'ruby', tab: 'pet', name: '바나나 원숭이', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 30 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `내가 던질 때 ${pct(PET.monkeyChance(L))}로 바나나를 던진다. 관통, 최고 물건 공격력 x${TG.fmtMult(PET.monkeyMult(L))}` : '루비로 데려온다. 내가 던질 때 가끔 바나나를 같이 던진다 (관통)') },
-    { id: 'hippo', cur: 'ruby', tab: 'pet', name: '간호 하마', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 50 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `${Math.round(PET.hippoGap(L) * 10) / 10}초마다 체력 ${pct(PET.hippoHeal(L))} 회복` : '루비로 데려온다. 몇 초마다 체력을 채워 준다') },
-    { id: 'bear', cur: 'ruby', tab: 'pet', name: '곰 방패병', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 80 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `받는 피해 -${pct(PET.bearCut(L))}, 맞을 때 ${pct(PET.bearKnock(L))}로 방패로 밀쳐낸다` : '루비로 데려온다. 앞에서 막아 받는 피해를 줄이고 몬스터를 밀쳐낸다') },
-    { id: 'dragon', cur: 'ruby', tab: 'pet', name: '아기 용', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 150 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `${PET.dragonEvery(L)}번 던질 때마다 불덩이 (최고 물건 공격력 x${TG.fmtMult(PET.dragonMult(L))}, 옆 몬스터도 맞음)` : '루비로 데려온다. 몇 번 던질 때마다 불덩이를 뿜는다') },
-    { id: 'awaken', cur: 'shards', name: '각성', max: 200, cost: (L) => (L >= 200 ? null : Math.ceil(40 * 1.09 ** L)), desc: (L) => `던질 때 ${pct(PET.powerChance(L))}로 파워샷(2배), ${pct(PET.doubleChance(L))}로 더블샷(한 번 더)` },
+    { id: 'autoShop', cur: 'ruby', name: '자동 구매', max: 1, cost: (L) => (L < 1 ? 80 : null), desc: (L) => (L ? '살 수 있는 물건을 상점에서 알아서 사요' : '꺼짐') },
+    { id: 'autoSkill', cur: 'ruby', name: '자동 스킬', max: 1, cost: (L) => (L < 1 ? 50 : null), desc: (L) => (L ? '스킬을 알아서 써요' : '꺼짐') },
+    { id: 'monkey', cur: 'ruby', tab: 'pet', name: '바나나 원숭이', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 30 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `던질 때 ${pct(PET.monkeyChance(L))} 확률로 바나나를 같이 던져요. 관통, 최고 물건 공격력 x${TG.fmtMult(PET.monkeyMult(L))}` : '루비로 데려와요. 던질 때 가끔 바나나를 같이 던져요 (관통)') },
+    { id: 'hippo', cur: 'ruby', tab: 'pet', name: '간호 하마', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 50 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `${Math.round(PET.hippoGap(L) * 10) / 10}초마다 체력 ${pct(PET.hippoHeal(L))} 회복` : '루비로 데려와요. 몇 초마다 체력을 채워 줘요') },
+    { id: 'bear', cur: 'ruby', tab: 'pet', name: '곰 방패병', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 80 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `받는 피해 -${pct(PET.bearCut(L))}, 맞을 때 ${pct(PET.bearKnock(L))} 확률로 방패로 밀쳐내요` : '루비로 데려와요. 앞에서 막아 피해를 줄이고 몬스터를 밀쳐내요') },
+    { id: 'dragon', cur: 'ruby', tab: 'pet', name: '아기 용', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 150 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `${PET.dragonEvery(L)}번 던질 때마다 불덩이 (최고 물건 공격력 x${TG.fmtMult(PET.dragonMult(L))}, 옆 몬스터도 맞음)` : '루비로 데려와요. 몇 번 던질 때마다 불덩이를 뿜어요') },
+    { id: 'awaken', cur: 'shards', name: '각성', max: 200, cost: (L) => (L >= 200 ? null : Math.ceil(40 * 1.09 ** L)), desc: (L) => `던질 때 ${pct(PET.powerChance(L))} 확률로 파워샷(2배), ${pct(PET.doubleChance(L))} 확률로 더블샷(한 번 더)` },
   ];
   const UPBY = Object.fromEntries(TG.UPGRADES.map((u) => [u.id, u]));
   TG.upgradeCost = (id, L) => {
@@ -520,7 +520,7 @@
       for (const b of TG.STORY) if (b.at && this.s.stage >= b.at) this.story(b.id);
     }
 
-    /* ---- 보드 ---- */
+    /* ---- 필드 ---- */
     get slots() {
       return P.slotsStart + this.s.lv.slots;
     }

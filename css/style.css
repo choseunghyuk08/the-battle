@@ -395,6 +395,8 @@ button { font-family: inherit; color: inherit; }
 .relic .nm { font-size: 13px; }
 .relic .nm small { color: var(--gold); margin-left: 3px; }
 .relic .ds { font-size: 11px; color: var(--ink-2); }
+.relic .ln { font-size: 10px; color: var(--ink-2); opacity: 0.75; margin-top: 1px; }
+.relic.none .ln { visibility: hidden; }
 .relic.max { border-color: var(--gold); }
 .quest { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; align-items: center; background: var(--panel-2); border: 2px solid var(--line); border-radius: 8px; padding: 8px; margin-bottom: 6px; }
 .quest .nm { font-size: 15px; }

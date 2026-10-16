@@ -97,7 +97,7 @@ TG.SPR.bg.<theme> = { id: 'bg.<theme>', name, w: 200, h: 120, ax: 0, ay: 0, tile
 
 - `TG.SPR.fx.<name>` (외곽선 없어도 됨, `outline: null` 가능): `hit` 맞는 순간 터짐 5장, `bighit` 큰 터짐 6장 (거대 몬스터), `coin` 동전 튀어오르며 회전 8장, `poof` 몬스터 사라지는 연기 6장, `merge` 합성 순간 고리와 반짝임 8장, `craft` 새 물건이 퐁 나타남 6장, `discover` 새 단계 발견 빛줄기 10장, `levelup` 위로 솟는 반짝임 8장, `throwfx` 던질 때 손에서 나는 바람 4장. 크기는 각자 알맞게 (보드용 merge/craft/discover 는 24 x 24 쯤).
 - 숫자 글꼴: 데미지와 골드 표시용 픽셀 글꼴. `TG.SPR.ui.font = { glyphs: { '0': ['01110', ...], ... } }` 처럼 각 글자를 줄 문자열 배열로 정의 (1 = 칠함). 글자: 0~9, `.`, `+`, `-`, `x`, 그리고 큰 수 단위 `만 억 조 경 해 자 양 구 간 정` (높이 7점, 숫자 폭 5점, 한글 폭 7점). 그리고 `TG.pixelText(str, color, outlineColor) -> { w, h, data }` 함수를 만든다 (1점 외곽선 포함, data 는 RGBA Uint8ClampedArray. 브라우저면 `canvas` 도 붙인다: `TG.toCanvas`).
-- UI 아이콘 `TG.SPR.ui.<name>` (16 x 16, `clips: { icon: 1 }`): `coin` 골드, `lock` 잠김 칸, `craft` 제작(망치), `autoCraft` 자동 제작(톱니와 손), `autoMerge` 자동 합성(자석), `atk` 공격력(주먹이나 칼), `hp` 체력(하트), `craftLv` 제작술(모루와 불꽃), `climb` 등반술(깃발 꽂힌 산), `slots` 보드 칸(격자), `dex` 도감(책), `stage` 스테이지(깃발).
+- UI 아이콘 `TG.SPR.ui.<name>` (16 x 16, `clips: { icon: 1 }`): `coin` 골드, `lock` 잠김 칸, `craft` 제작(망치), `autoCraft` 자동 제작(톱니와 손), `autoMerge` 자동 합치기(자석), `atk` 공격력(주먹이나 칼), `hp` 체력(하트), `craftLv` 제작술(모루와 불꽃), `climb` 등반술(깃발 꽂힌 산), `slots` 필드 칸(격자), `dex` 도감(책), `stage` 스테이지(깃발).
 
 ## 확인 방법
 

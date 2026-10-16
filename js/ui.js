@@ -263,13 +263,13 @@
     const mineOpen = game.s.best >= P.mineOpen;
     cdView($('#mineBtn'), game.s.mineCd, P.mineCd, game.canMine());
     $('#mineBtn').classList.toggle('locked', !mineOpen);
-    $('#mineLabel').textContent = game.mode === 'mine' ? `${Math.ceil(game.mineT)}초` : mineOpen ? '광산' : `${P.mineOpen}층`;
+    $('#mineLabel').textContent = game.mode === 'mine' ? `${Math.ceil(game.mineT)}초` : mineOpen ? '광산' : `${P.mineOpen}부터`;
     const chaseOpen = game.s.best >= P.chaseOpen;
     cdView($('#chaseBtn'), game.s.chaseCd, P.chaseCd, game.canChase());
     $('#chaseBtn').classList.toggle('locked', !chaseOpen);
-    $('#chaseLabel').textContent = game.mode === 'chase' ? `${Math.ceil(game.chaseT)}초` : chaseOpen ? '추격' : `${P.chaseOpen}층`;
+    $('#chaseLabel').textContent = game.mode === 'chase' ? `${Math.ceil(game.chaseT)}초` : chaseOpen ? '추격' : `${P.chaseOpen}부터`;
     $('#abDot').hidden = !(game.s.abEquip.length < game.abSlots && TG.ABILITIES.some((a) => game.s.ab[a.id] && !game.s.abEquip.includes(a.id))) && !(game.s.ruby >= TG.abCost(0) && !Object.keys(game.s.ab).length);
-    $('#autoTag').textContent = [game.s.lv.autoCraft ? '자동 제작' : '', game.s.lv.autoMerge ? '자동 합성' : '', game.s.lv.autoSkill && game.s.autoSkillOn ? '자동 스킬' : ''].filter(Boolean).join(' · ');
+    $('#autoTag').textContent = [game.s.lv.autoCraft ? '자동 제작' : '', game.s.lv.autoMerge ? '자동 합치기' : '', game.s.lv.autoSkill && game.s.autoSkillOn ? '자동 스킬' : ''].filter(Boolean).join(' · ');
     $('#shopDot').hidden = !game.s.shop.offers.some((o) => !o.sold && game.s.shards >= game.shopPrice(o.tier));
     if (ui.sheet === 'shop') refreshShop();
     const ch = Math.floor(game.s.charges);
@@ -322,9 +322,9 @@
   const UP_ICON = { atk: 'atk', hp: 'hp', craft: 'craftLv', climb: 'climb', slots: 'slots', autoCraft: 'autoCraft', autoMerge: 'autoMerge', rAtk: 'atk', rGold: 'coin', skRain: 'skillRain', skRage: 'skillRage', autoSkill: 'autoSkill', monkey: 'monkey', hippo: 'hippo', awaken: 'awaken', bear: 'bear', dragon: 'dragon', skShadow: 'skillShadow', skBarrage: 'skillBarrage', autoShop: 'autoShop', pig: 'pig', mole: 'mole', skBolt: 'skillBolt', skDark: 'skillDark', carFuel: 'car', carGun: 'chase', carEngine: 'volt' };
   const CUR = {
     gold: { icon: 'coin', cls: '', title: '골드 강화' },
-    ruby: { icon: 'ruby', cls: 'ruby', title: '루비 강화 (보스전과 거대 몬스터에게서 얻는다)' },
-    shards: { icon: 'shard', cls: 'shard', title: '각성 (합칠 때 얻는 조각으로 올린다. 상점과 같은 조각)' },
-    volt: { icon: 'volt', cls: 'shard', title: '추격차 (추격전에서 얻는 볼트로 올린다)' },
+    ruby: { icon: 'ruby', cls: 'ruby', title: '루비 강화 · 보스와 거대 몬스터에게서 얻어요' },
+    shards: { icon: 'shard', cls: 'shard', title: '각성 · 합칠 때 얻는 조각으로 올려요 (상점과 같은 조각)' },
+    volt: { icon: 'volt', cls: 'shard', title: '추격차 · 추격전에서 얻는 볼트로 올려요' },
   };
   function buildUpgrades() {
     const body = $('#sheetBody');
@@ -335,7 +335,7 @@
       const cur = u.cur || 'gold';
       if (cur !== section) {
         section = cur;
-        body.append(el('p', { class: 'sec' }, cur === 'volt' ? [uiIcon('volt'), '추격차 (볼트 ', el('b', { id: 'voltNum' }), '개, 추격전에서 얻는다)'] : [uiIcon(CUR[cur].icon), CUR[cur].title]));
+        body.append(el('p', { class: 'sec' }, cur === 'volt' ? [uiIcon('volt'), '추격차 · 볼트 ', el('b', { id: 'voltNum' }), '개'] : [uiIcon(CUR[cur].icon), CUR[cur].title]));
       }
       const btn = el('button', { type: 'button', 'data-id': u.id, class: CUR[cur].cls, onclick: () => buy(u.id) });
       body.append(
@@ -373,7 +373,7 @@
       sfx.coin();
       if (fresh) {
         const u = TG.UPGRADES.find((x) => x.id === id);
-        toast(null, `${u.name} 합류!`, '이제 주인공 뒤에서 같이 싸운다.');
+        toast(null, `${u.name} 합류!`, '이제 뒤에서 같이 싸워요.');
         sfx.discover();
         if (ui.sheet === 'pet') buildPets();
       }
@@ -404,7 +404,7 @@
         ]),
       );
     }
-    body.replaceChildren(el('p', { class: 'note' }, ['동료는 루비로 데려오고 키운다. 광산에서 캔 철광석으로 진화하면 더 세진다. 철광석 ', el('b', { id: 'oreNum', text: TG.fmt(ui.game.s.ore) }), '개']), list);
+    body.replaceChildren(el('p', { class: 'note' }, ['동료는 루비로 데려오고 키워요. 광산에서 캔 철광석으로 진화하면 더 세져요. 철광석 ', el('b', { id: 'oreNum', text: TG.fmt(ui.game.s.ore) }), '개']), list);
     refreshUpgrades();
     refreshPets();
   }
@@ -475,7 +475,7 @@
     });
     body.replaceChildren(
       segBar(),
-      el('p', { class: 'note' }, ['합칠 때마다 결과 단계만큼 조각을 얻는다. 지금 조각 ', el('b', { id: 'shardNum', text: TG.fmt(game.s.shards) }), '개']),
+      el('p', { class: 'note' }, ['합칠 때마다 결과 단계만큼 조각을 얻어요. 지금 조각 ', el('b', { id: 'shardNum', text: TG.fmt(game.s.shards) }), '개']),
       list,
       el('div', { class: 'row' }, [el('span', { id: 'shopTimer' }), el('button', { type: 'button', id: 'shopReroll', onclick: shopReroll }, [uiIcon('ruby'), `${P.shopRefreshRuby} 새로고침`])]),
     );
@@ -507,7 +507,7 @@
   }
   function shopBuy(k) {
     const r = ui.game.shopBuy(k);
-    if (r === 'full') toast(null, '필드가 꽉 찼다', '합치거나 보유 개수를 늘리자.');
+    if (r === 'full') toast(null, '필드가 가득 찼어요', '합치거나 보유 개수를 늘려 봐요.');
     else if (r === 'ok') sfx.coin();
     handleEvents();
     refreshShop();
@@ -529,10 +529,10 @@
   function buildRelics() {
     const body = $('#sheetBody');
     const grid = el('div', { class: 'relics' });
-    for (const r of TG.RELICS) grid.append(el('div', { class: 'relic', 'data-relic': r.id }, [relicIcon(r.id), el('div', {}, [el('div', { class: 'nm' }, [r.name, el('small')]), el('div', { class: 'ds' })])]));
+    for (const r of TG.RELICS) grid.append(el('div', { class: 'relic', 'data-relic': r.id }, [relicIcon(r.id), el('div', {}, [el('div', { class: 'nm' }, [r.name, el('small')]), el('div', { class: 'ds' }), el('div', { class: 'ln', text: TG.RELIC_LINES[r.id] || '' })])]));
     body.replaceChildren(
       segBar(),
-      el('p', { class: 'note' }, ['루비로 유물 20종 중 하나를 뽑는다. 같은 것이 또 나오면 레벨이 오른다 (최대 ', String(P.relicMax), '). 다 모은 유물은 안 나온다.']),
+      el('p', { class: 'note' }, ['루비로 유물 20종 중 하나를 뽑아요. 같은 것이 또 나오면 레벨이 올라요 (최대 ', String(P.relicMax), '). 다 모은 유물은 안 나와요.']),
       el('div', { class: 'pull' }, [
         el('button', { type: 'button', id: 'pull1', onclick: () => pull(1) }, [uiIcon('ruby'), `${P.relicCost} 한 번`]),
         el('button', { type: 'button', id: 'pull10', onclick: () => pull(10) }, [uiIcon('ruby'), `${P.relicCost10} 열 번`]),
@@ -561,7 +561,7 @@
     const game = ui.game;
     const res = game.relicPull(n);
     if (!res.ok) {
-      toast(null, res.why === 'max' ? '유물을 다 모았다' : '루비가 모자라다', res.why === 'max' ? '모든 유물이 최대 레벨이다.' : '보스전과 업적에서 루비를 모으자.');
+      toast(null, res.why === 'max' ? '유물을 다 모았어요' : '루비가 모자라요', res.why === 'max' ? '모든 유물이 최대 레벨이에요.' : '보스와 임무에서 루비를 모아 봐요.');
       return;
     }
     handleEvents();
@@ -595,7 +595,7 @@
       sfx.discover();
       for (const g2 of res.got) {
         const r = TG.RELICS.find((rr) => rr.id === g2.id);
-        got.append(el('div', { class: `g${g2.lv === 1 ? ' new' : ''}` }, [relicIcon(g2.id), r.name, el('b', { text: g2.lv === 1 ? '새로!' : `Lv ${g2.lv}` })]));
+        got.append(el('div', { class: `g${g2.lv === 1 ? ' new' : ''}` }, [relicIcon(g2.id), r.name, el('b', { text: g2.lv === 1 ? '새 유물' : `Lv ${g2.lv}` })]));
       }
       $('#gachaOk').hidden = false;
     };
@@ -632,7 +632,7 @@
         ]),
       );
     }
-    body.replaceChildren(questSeg(), el('p', { class: 'note', text: '목표를 채우면 루비를 받는다. 단계가 오를수록 목표도 보상도 커진다.' }), list);
+    body.replaceChildren(questSeg(), el('p', { class: 'note', text: '목표를 채우면 루비를 받아요. 단계가 오를수록 목표도 보상도 커져요.' }), list);
     refreshQuest();
   }
   function refreshQuest() {
@@ -643,7 +643,7 @@
       const st = game.achState(a.id);
       row.classList.toggle('ready', st.ready);
       row.querySelector('small').textContent = `${st.done}/${a.goals.length}단계`;
-      row.querySelector('.pg').textContent = st.goal === undefined ? '다 했다!' : `${TG.fmt(Math.min(st.have, st.goal))} / ${TG.fmt(st.goal)} ${a.unit}`;
+      row.querySelector('.pg').textContent = st.goal === undefined ? '모두 완료' : `${TG.fmt(Math.min(st.have, st.goal))} / ${TG.fmt(st.goal)} ${a.unit}`;
       row.querySelector('.bar2 i').style.width = `${st.goal === undefined ? 100 : Math.min(100, (st.have / st.goal) * 100)}%`;
       const btn = row.querySelector('button');
       btn.disabled = !st.ready;
@@ -754,10 +754,10 @@
         x.fillStyle = '#0c0d1c';
         x.fillRect(0, 0, cv.width, cv.height);
       }
-      grid.append(el('div', { class: `it${seen ? '' : ' unseen'}` }, [cv, `${tier}. ${seen ? it.name : '???'}`, el('small', { text: seen ? it.line : '합쳐서 찾아보자' })]));
+      grid.append(el('div', { class: `it${seen ? '' : ' unseen'}` }, [cv, `${tier}. ${seen ? it.name : '???'}`, el('small', { text: seen ? it.line : '합쳐서 찾아봐요' })]));
     });
     const found = game.s.seen.filter(Boolean).length;
-    body.replaceChildren(questSeg(), el('p', { class: 'note', text: `찾은 물건 ${found}/${TG.ITEMS.length}. 같은 물건 2개를 합치면 다음 단계가 나온다.` }), grid);
+    body.replaceChildren(questSeg(), el('p', { class: 'note', text: `찾은 물건 ${found}/${TG.ITEMS.length}. 같은 물건 둘을 합치면 다음 단계가 나와요.` }), grid);
   }
 
   /* ---- 특수능력 ---- */
@@ -781,7 +781,7 @@
     const game = ui.game;
     if (!$('#slotInfo')) return;
     const next = P.abSlotsAt.find((x) => game.s.best < x);
-    $('#slotInfo').textContent = `장착 ${game.s.abEquip.length}/${game.abSlots}칸${next !== undefined ? ` · 최고 스테이지 ${next}에서 한 칸 더` : ''}. 던진 물건이 맞을 때 확률로 터진다.`;
+    $('#slotInfo').textContent = `장착 ${game.s.abEquip.length}/${game.abSlots}칸${next !== undefined ? ` · 최고 스테이지 ${next}에 가면 한 칸 더` : ''}. 던진 물건이 맞을 때 확률로 터져요.`;
     for (const a of TG.ABILITIES) {
       const row = document.querySelector(`[data-ab="${a.id}"]`);
       if (!row) continue;
@@ -816,7 +816,7 @@
   }
   function abToggle(id) {
     const r = ui.game.abToggle(id);
-    if (r === 'full') toast(null, '칸이 모자라다', '다른 능력을 해제하거나 더 멀리 가면 칸이 늘어난다.');
+    if (r === 'full') toast(null, '칸이 모자라요', '다른 능력을 해제하거나 더 멀리 가면 칸이 늘어요.');
     else if (r !== 'none') sfx.craft();
     refreshAbilities();
     updateHud();
@@ -832,9 +832,9 @@
       el('div', { class: 'row' }, ['소리', el('button', { type: 'button', text: ui.muted ? '켜기' : '끄기', onclick: () => { ui.muted = !ui.muted; save(); buildSettings(); } })]),
       game.s.lv.autoShop ? el('div', { class: 'row' }, ['자동 구매', el('button', { type: 'button', text: game.s.autoShopOn ? '끄기' : '켜기', onclick: () => { game.s.autoShopOn = !game.s.autoShopOn; save(); buildSettings(); } })]) : null,
       game.s.lv.autoSkill ? el('div', { class: 'row' }, ['자동 스킬', el('button', { type: 'button', text: game.s.autoSkillOn ? '끄기' : '켜기', onclick: () => { game.s.autoSkillOn = !game.s.autoSkillOn; save(); buildSettings(); } })]) : null,
-      el('div', { class: 'row' }, [`최고 스테이지 ${game.s.best} · 쓰러짐 ${game.s.stats.deaths}회 · 합성 ${TG.fmt(game.s.stats.merges)}회`]),
+      el('div', { class: 'row' }, [`최고 스테이지 ${game.s.best} · 쓰러짐 ${game.s.stats.deaths}회 · 합치기 ${TG.fmt(game.s.stats.merges)}회`]),
       el('div', { class: 'row' }, ['처음부터 다시', el('button', { type: 'button', class: 'danger', text: ui.resetArm ? '정말 지우기' : '세이브 지우기', onclick: resetSave })]),
-      el('p', { class: 'note', text: '진행은 이 브라우저에 자동 저장된다. 보드에서 같은 물건을 끌어다 겹치면 합쳐진다. 칸이 꽉 차면 새로 만든 물건이 가장 낮은 칸으로 들어간다.' }),
+      el('p', { class: 'note', text: '진행은 이 브라우저에 자동으로 저장돼요. 필드에서 같은 물건을 끌어다 겹치면 합쳐져요. 필드가 가득 차면 새 물건은 가장 낮은 단계로 들어가요.' }),
     );
   }
   function resetSave() {
@@ -859,7 +859,7 @@
   }
 
   /* ---- 판 열고 닫기 ---- */
-  const TITLES = { up: '강화', pet: '동료', ab: '특수능력', shop: '상점', quest: '임무·도감·이야기', set: '설정' };
+  const TITLES = { up: '강화', pet: '동료', ab: '능력', shop: '상점', quest: '임무·도감·이야기', set: '설정' };
   function openSheet(kind) {
     if (ui.sheet === kind) {
       closeSheet();
@@ -911,7 +911,7 @@
         case 'new':
           if (e.tier > 1) {
             const it = TG.ITEMS[e.tier - 1];
-            toast(e.tier, `새 물건! ${e.tier}단계 ${it.name}`, it.line);
+            toast(e.tier, `새 물건 · ${e.tier}단계 ${it.name}`, it.line);
             sfx.discover();
             const slot = game.s.board.indexOf(e.tier);
             if (slot >= 0) addFieldFx('discover', slot);
@@ -942,11 +942,11 @@
           beep(1300, 0.05, 'square', 0.02, -300);
           break;
         case 'chase-start':
-          toast(null, '추격전', `폭주 거북이 달아난다! ${P.chaseTime + game.s.lv.carFuel}초 안에 장갑을 부수자.`);
+          toast(null, '추격전', `폭주 거북이 달아나요. ${P.chaseTime + game.s.lv.carFuel}초 안에 장갑을 부숴요.`);
           sfx.discover();
           break;
         case 'chase-end':
-          toast(null, `추격 끝: 볼트 ${e.volt}개${e.ruby ? `, 루비 ${e.ruby}개` : ''}`, `장갑을 ${e.broken}개 부쉈다. 강화 탭의 추격차에서 쓰자.`);
+          toast(null, `추격 끝 · 볼트 +${e.volt}${e.ruby ? `, 루비 +${e.ruby}` : ''}`, `장갑 ${e.broken}개를 부쉈어요. 강화 탭의 추격차에 써요.`);
           sfx.clear();
           break;
         case 'volt':
@@ -965,16 +965,16 @@
           if (e.id === 'stun' || e.id === 'execute') beep(260, 0.06, 'square', 0.02, -120);
           break;
         case 'mine-start':
-          toast(null, '광산', `${P.mineTime}초 동안 바위를 부수자. 깊이 갈수록 단단하고 철광석이 많다.`);
+          toast(null, '광산', `${P.mineTime}초 동안 바위를 부숴요. 깊이 갈수록 단단하고 철광석이 많아요.`);
           sfx.discover();
           break;
         case 'mine-end':
-          toast(null, `광산 끝: 철광석 ${e.ore}개`, `바위 ${e.broken}개를 부쉈다. 동료 탭에서 진화에 쓰자.`);
+          toast(null, `광산 끝 · 철광석 +${e.ore}`, `바위 ${e.broken}개를 부쉈어요. 동료 탭에서 진화에 써요.`);
           sfx.clear();
           break;
         case 'evolve': {
           const u = TG.UPGRADES.find((x) => x.id === e.id);
-          toast(null, `${u.name} 진화! ${'★'.repeat(e.star)}`, '동료가 더 세졌다.');
+          toast(null, `${u.name} 진화 ${'★'.repeat(e.star)}`, '더 세졌어요.');
           sfx.discover();
           break;
         }
@@ -983,16 +983,16 @@
           break;
         case 'boss-start': {
           const def = TG.SPR.mob[e.kind] || TG.SPR.mob.slime;
-          toast(null, `보스전 ${e.boss}: ${def.name}`, `${P.bossTime}초 안에 쓰러뜨리자.`);
+          toast(null, `보스전 ${e.boss}: ${def.name}`, `${P.bossTime}초 안에 쓰러뜨려요.`);
           sfx.discover();
           break;
         }
         case 'boss-win':
-          toast(null, `보스 ${e.boss} 격파!`, `루비 ${e.ruby}개를 얻었다.`);
+          toast(null, `보스 ${e.boss} 격파`, `루비 +${e.ruby}`);
           sfx.clear();
           break;
         case 'boss-lose':
-          toast(null, '보스를 놓쳤다', '조금 더 키운 뒤 다시 도전하자.');
+          toast(null, '보스를 놓쳤어요', '조금 더 키운 뒤 다시 도전해요.');
           break;
         case 'skill':
           sfx.discover();
@@ -1001,17 +1001,17 @@
           playStory(e.id);
           break;
         case 'claim':
-          toast(null, `루비 ${e.ruby}개!`, '임무 보상을 받았다.');
+          toast(null, `루비 +${e.ruby}`, '임무 보상이에요.');
           break;
         case 'shop':
           if (ui.sheet === 'shop') buildShop();
           break;
         case 'clear':
           sfx.clear();
-          if (e.skipped) toast(null, `등반술! ${e.skipped}스테이지 건너뜀`, `스테이지 ${e.next}로 간다.`);
+          if (e.skipped) toast(null, `등반술 · ${e.skipped}스테이지 건너뜀`, `스테이지 ${e.next}로 가요.`);
           break;
         case 'die':
-          toast(null, '쓰러졌다', `스테이지 ${e.stage}에서 다시.`);
+          toast(null, '쓰러졌어요', `스테이지 ${e.stage}에서 다시 시작해요.`);
           break;
         default:
       }
@@ -1064,7 +1064,7 @@
     if (ui.away > 60) {
       const gold = ui.game.offlineGold(ui.away);
       if (gold > 0) {
-        $('#offText').replaceChildren(`${TG.fmtTime(Math.min(ui.away, P.offlineMax))} 동안 `, el('b', { text: `골드 ${TG.fmt(gold)}` }), '를 벌었다.', ui.away > P.offlineMax ? el('br') : '', ui.away > P.offlineMax ? '(최대 8시간까지 쌓인다)' : '');
+        $('#offText').replaceChildren(`${TG.fmtTime(Math.min(ui.away, P.offlineMax))} 동안 `, el('b', { text: `골드 ${TG.fmt(gold)}` }), ' 벌었어요.', ui.away > P.offlineMax ? el('br') : '', ui.away > P.offlineMax ? '(최대 8시간까지 쌓여요)' : '');
         $('#offline').hidden = false;
         $('#offOk').addEventListener('click', () => {
           ui.game.s.gold += gold;
@@ -1095,12 +1095,12 @@
     $('#tabAb').addEventListener('click', () => openSheet('ab'));
     $('#chaseBtn').addEventListener('click', () => {
       const game = ui.game;
-      if (game.s.best < P.chaseOpen) toast(null, '추격전은 잠겨 있다', `최고 스테이지 ${P.chaseOpen}에 가면 열린다.`);
-      else if (!game.startChase() && game.s.chaseCd > 0) toast(null, '거북이 숨었다', `${TG.fmtTime(game.s.chaseCd)} 뒤에 다시 쫓을 수 있다.`);
+      if (game.s.best < P.chaseOpen) toast(null, '추격전은 잠겨 있어요', `최고 스테이지 ${P.chaseOpen}에 가면 열려요.`);
+      else if (!game.startChase() && game.s.chaseCd > 0) toast(null, '거북이 숨었어요', `${TG.fmtTime(game.s.chaseCd)} 뒤에 다시 쫓아요.`);
     });
     for (const [id, btn, lv] of SKILL_BTN) {
       $(btn).addEventListener('click', () => {
-        if (lv && !ui.game.s.lv[lv]) toast(null, '아직 못 쓰는 스킬', '강화 탭의 루비 강화에서 배울 수 있다.');
+        if (lv && !ui.game.s.lv[lv]) toast(null, '아직 못 쓰는 스킬', '강화 탭의 루비 강화에서 배워요.');
         else ui.game.useSkill(id);
       });
     }
@@ -1111,11 +1111,11 @@
     });
     $('#mineBtn').addEventListener('click', () => {
       const game = ui.game;
-      if (game.s.best < P.mineOpen) toast(null, '광산은 잠겨 있다', `최고 스테이지 ${P.mineOpen}에 가면 열린다.`);
-      else if (!game.startMine() && game.s.mineCd > 0) toast(null, '광산 정비 중', `${TG.fmtTime(game.s.mineCd)} 뒤에 다시 들어갈 수 있다.`);
+      if (game.s.best < P.mineOpen) toast(null, '광산은 잠겨 있어요', `최고 스테이지 ${P.mineOpen}에 가면 열려요.`);
+      else if (!game.startMine() && game.s.mineCd > 0) toast(null, '광산 정비 중', `${TG.fmtTime(game.s.mineCd)} 뒤에 다시 들어가요.`);
     });
     $('#bossBtn').addEventListener('click', () => {
-      if (!ui.game.startBoss() && ui.game.s.bossCd > 0) toast(null, '보스 준비 중', `${TG.fmtTime(ui.game.s.bossCd)} 뒤에 다시 도전할 수 있다.`);
+      if (!ui.game.startBoss() && ui.game.s.bossCd > 0) toast(null, '보스 준비 중', `${TG.fmtTime(ui.game.s.bossCd)} 뒤에 다시 도전해요.`);
     });
     $('#tabSet').addEventListener('click', () => openSheet('set'));
     $('#sheetClose').addEventListener('click', closeSheet);
