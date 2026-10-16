@@ -31,7 +31,13 @@
       </div>
     </div>
 
-    <section class="battle" aria-label="전투 화면"><canvas id="battle"></canvas></section>
+    <section class="battle" aria-label="전투 화면"><canvas id="battle"></canvas>
+      <div class="dialog" id="dialog" hidden>
+        <canvas id="dlgFace" width="16" height="16"></canvas>
+        <div class="dtxt"><div class="dname"><b id="dlgName"></b><small id="dlgTitle"></small></div><p id="dlgText"></p></div>
+        <span class="dnext" id="dlgNext">▶</span>
+      </div>
+    </section>
 
     <div class="bar">
       <div class="skills">
@@ -76,6 +82,11 @@
         <div class="got" id="gachaGot"></div>
         <button type="button" class="primary" id="gachaOk">확인</button>
       </div>
+    </div>
+
+    <div class="comic" id="comic" hidden aria-label="프롤로그 만화">
+      <div class="comic-top"><b>프롤로그</b><button type="button" id="comicSkip">건너뛰기</button></div>
+      <div class="comic-scroll" id="comicScroll"></div>
     </div>
 
     <div class="modal" id="offline" hidden>
@@ -123,6 +134,7 @@
   <script src="js/spr_ui2.js"></script>
   <script src="js/spr_bg.js"></script>
   <script src="js/spr_fx.js"></script>
+  <script data-dom src="js/comic.js"></script>
   <script data-dom src="js/render.js"></script>
   <script data-dom src="js/ui.js"></script>
   <script data-dom src="js/main.js"></script>

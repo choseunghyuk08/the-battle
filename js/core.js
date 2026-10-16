@@ -493,7 +493,7 @@
 
     /* ---- 이야기: 장면은 한 번만 나온다 ---- */
     story(id) {
-      if (!TG.STORY_BY[id] || this.s.story.seen[id]) return false;
+      if (!TG.STORY_BY[id] || this.s.story.seen[id] || !this.s.story.seen.intro) return false; /* 프롤로그를 보기 전에는 아무것도 안 나온다 */
       this.s.story.seen[id] = true;
       this.events.push({ type: 'story', id });
       return true;
@@ -509,6 +509,12 @@
       if (this.s.stats.volt > 0) seen.chase1 = true;
       if (this.s.stats.pulls > 0) seen.relic1 = true;
       if (this.s.seen[60]) seen.true_end = true;
+    }
+    /* 프롤로그 만화를 다 읽었거나 건너뛰었다: 지금 스테이지의 장면이 이어서 나온다 */
+    finishIntro() {
+      if (this.s.story.seen.intro) return;
+      this.s.story.seen.intro = true;
+      this.storyStage();
     }
     storyStage() {
       for (const b of TG.STORY) if (b.at && this.s.stage >= b.at) this.story(b.id);

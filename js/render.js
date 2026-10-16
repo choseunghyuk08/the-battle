@@ -403,24 +403,32 @@
     const loops = { idle: 6, reload: 9, win: 11, run: 13 };
     const hr = loops[a.kind] ? frame(hero, a.kind, 0, 1, { time: a.t, fps: loops[a.kind] }) : frame(hero, a.kind, 0, 1, { progress: Math.min(0.999, a.t / a.dur) });
     const chasing = game.mode === 'chase';
-    const hy = chasing ? GROUND - CAR_H : GROUND;
+    let hy = chasing ? GROUND - CAR_H : GROUND;
+    let hx = P.heroX;
     if (chasing) {
       const car = TG.SPR.pet.car;
       if (car) {
-        const cr = frame(car, game.phase === 'fight' ? 'run' : 'idle', 0, 1, { time: clock, fps: 14 });
-        put(cr.fr, cr.c, P.heroX, GROUND + (Math.floor(clock * 14) % 2 ? 0 : -1), false);
+        const clipName = game.phase === 'fight' ? 'run' : 'idle';
+        const cr = frame(car, clipName, 0, 1, { time: clock, fps: 14 });
+        put(cr.fr, cr.c, P.heroX, GROUND, false);
+        /* 주인공은 차 그림이 알려 주는 발판 위에 선다 (차체가 튀면 같이 튄다) */
+        if (car.deck) {
+          const d = car.deck(clipName, cr.c.frames.indexOf(cr.fr), cr.c.n);
+          hx = P.heroX + d.x;
+          hy = GROUND + d.y;
+        }
       } else {
         ctx.fillStyle = '#d0503a';
         ctx.fillRect(P.heroX - 20, GROUND - CAR_H, 40, CAR_H);
       }
     }
     if (game.shadowT > 0 && game.phase === 'fight') {
-      const sx = P.heroX - P.shadowX;
+      const sx = hx - P.shadowX;
       ctx.globalAlpha = 0.8;
       ctx.drawImage(shade(hr.fr.canvas), Math.round(sx - hr.c.ax), Math.round(hy - hr.c.ay));
       ctx.globalAlpha = 1;
     }
-    put(hr.fr, hr.c, P.heroX, hy, a.kind === 'hurt' && a.t < 0.08);
+    put(hr.fr, hr.c, hx, hy, a.kind === 'hurt' && a.t < 0.08);
     if (game.barrage) loopFx('barrage', P.heroX + 8, hy - 22, clock, 14);
     drawPet('bear', P.bearX, GROUND);
     drawPet('dragon', P.dragonX, GROUND - P.dragonY);

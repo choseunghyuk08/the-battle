@@ -4,7 +4,7 @@
   const $ = (s) => document.querySelector(s);
 
   const SAVE_KEY = 'mudeun-deonjyeo-v1';
-  const ui = { game: null, drag: null, sheet: null, muted: false };
+  const ui = { game: null, drag: null, sheet: null, muted: false, storyOn: true, comicOpen: false };
 
   /* ---- 그림을 DOM 에 넣기 ---- */
   function spriteCanvas(def, clip = null, frameIdx = 0) {
@@ -608,12 +608,17 @@
     return el('div', { class: 'seg' }, [
       el('button', { type: 'button', class: seg === 'quest' ? 'on' : '', text: '임무', onclick: () => { ui.questSeg = 'quest'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'dex' ? 'on' : '', text: '도감', onclick: () => { ui.questSeg = 'dex'; buildQuest(); } }),
+      el('button', { type: 'button', class: seg === 'story' ? 'on' : '', text: '이야기', onclick: () => { ui.questSeg = 'story'; buildQuest(); } }),
     ]);
   }
   function buildQuest() {
     const body = $('#sheetBody');
     if (ui.questSeg === 'dex') {
       buildDex();
+      return;
+    }
+    if (ui.questSeg === 'story') {
+      buildStoryList();
       return;
     }
     const list = el('div', {});
@@ -657,6 +662,81 @@
       updateHud();
       save();
     }
+  }
+
+  /* ---- 이야기: 대사창과 다시 보기 ---- */
+  const story = { queue: [], cur: null, i: 0, t: 0, dur: 3 };
+  ui.story = story; /* 시험용 */
+  function showLine() {
+    const [who, text] = story.cur.lines[story.i];
+    const w = TG.STORY_WHO[who];
+    $('#dlgName').textContent = w.name;
+    $('#dlgTitle').textContent = story.i === 0 ? story.cur.title : '';
+    $('#dlgText').textContent = text;
+    const face = $('#dlgFace');
+    const fx = face.getContext('2d');
+    fx.clearRect(0, 0, 16, 16);
+    const def = w.icon && TG.SPR.ui[w.icon];
+    if (def) {
+      const c = TG.clip(def, Object.keys(def.clips)[0], (def.palettes || [{}])[0], 1, 'p0');
+      fx.drawImage(c.frames[0].canvas, 0, 0);
+    }
+    $('#dialog').classList.toggle('noface', !def);
+    story.t = 0;
+    story.dur = Math.max(2.6, text.length * 0.1 + 1.6);
+    $('#dialog').hidden = false;
+  }
+  function nextLine() {
+    if (!story.cur) return;
+    story.i++;
+    if (story.i >= story.cur.lines.length) {
+      story.cur = null;
+      $('#dialog').hidden = true;
+    } else showLine();
+  }
+  function storyTick(dt) {
+    if (ui.comicOpen) return;
+    if (!story.cur) {
+      if (!story.queue.length) return;
+      story.cur = TG.STORY_BY[story.queue.shift()];
+      story.i = 0;
+      showLine();
+      return;
+    }
+    story.t += dt;
+    if (story.t >= story.dur) nextLine();
+  }
+  function playStory(id, force = false) {
+    if (!ui.storyOn && !force) return;
+    story.queue.push(id);
+  }
+  function buildStoryList() {
+    const body = $('#sheetBody');
+    const game = ui.game;
+    const list = el('div', {});
+    for (const b of TG.STORY) {
+      const seen = !!game.s.story.seen[b.id];
+      list.append(
+        el('div', { class: `sto${seen ? '' : ' none'}` }, [
+          el('div', { class: 'nm', text: seen ? b.title : '???' }),
+          el('div', { class: 'ln', text: seen ? b.lines[0][1] : '아직 만나지 못한 장면' }),
+          el('button', { type: 'button', text: '다시 보기', onclick: () => { closeSheet(); story.cur = null; story.queue.length = 0; playStory(b.id, true); } }),
+        ]),
+      );
+    }
+    body.replaceChildren(
+      questSeg(),
+      el('div', { class: 'sto' }, [el('div', { class: 'nm', text: '프롤로그 만화' }), el('div', { class: 'ln', text: '세계가 왜 고요해졌는지' }), el('button', { type: 'button', text: '다시 보기', onclick: () => { closeSheet(); openComic(); } })]),
+      list,
+    );
+  }
+  function openComic() {
+    ui.comicOpen = true;
+    TG.comic.show(() => {
+      ui.comicOpen = false;
+      ui.game.finishIntro();
+      save();
+    });
   }
 
   /* ---- 도감 ---- */
@@ -748,6 +828,7 @@
     const game = ui.game;
     const body = $('#sheetBody');
     body.replaceChildren(
+      el('div', { class: 'row' }, ['이야기 대사', el('button', { type: 'button', text: ui.storyOn ? '끄기' : '켜기', onclick: () => { ui.storyOn = !ui.storyOn; save(); buildSettings(); } })]),
       el('div', { class: 'row' }, ['소리', el('button', { type: 'button', text: ui.muted ? '켜기' : '끄기', onclick: () => { ui.muted = !ui.muted; save(); buildSettings(); } })]),
       game.s.lv.autoShop ? el('div', { class: 'row' }, ['자동 구매', el('button', { type: 'button', text: game.s.autoShopOn ? '끄기' : '켜기', onclick: () => { game.s.autoShopOn = !game.s.autoShopOn; save(); buildSettings(); } })]) : null,
       game.s.lv.autoSkill ? el('div', { class: 'row' }, ['자동 스킬', el('button', { type: 'button', text: game.s.autoSkillOn ? '끄기' : '켜기', onclick: () => { game.s.autoSkillOn = !game.s.autoSkillOn; save(); buildSettings(); } })]) : null,
@@ -778,7 +859,7 @@
   }
 
   /* ---- 판 열고 닫기 ---- */
-  const TITLES = { up: '강화', pet: '동료', ab: '특수능력', shop: '상점', quest: '임무와 도감', set: '설정' };
+  const TITLES = { up: '강화', pet: '동료', ab: '특수능력', shop: '상점', quest: '임무·도감·이야기', set: '설정' };
   function openSheet(kind) {
     if (ui.sheet === kind) {
       closeSheet();
@@ -916,6 +997,9 @@
         case 'skill':
           sfx.discover();
           break;
+        case 'story':
+          playStory(e.id);
+          break;
         case 'claim':
           toast(null, `루비 ${e.ruby}개!`, '임무 보상을 받았다.');
           break;
@@ -942,6 +1026,7 @@
       if (!raw) return null;
       const data = JSON.parse(raw);
       ui.muted = !!data.muted;
+      ui.storyOn = data.story !== false;
       ui.away = Math.max(0, (Date.now() - (Number(data.at) || Date.now())) / 1000);
       return data.game;
     } catch {
@@ -950,7 +1035,7 @@
   }
   function save() {
     try {
-      g.localStorage.setItem(SAVE_KEY, JSON.stringify({ game: ui.game.snapshot(), muted: ui.muted, at: Date.now() }));
+      g.localStorage.setItem(SAVE_KEY, JSON.stringify({ game: ui.game.snapshot(), muted: ui.muted, story: ui.storyOn, at: Date.now() }));
     } catch {
       /* 저장 못 하는 환경에서도 게임은 돈다 */
     }
@@ -990,6 +1075,8 @@
       }
     }
     TG.render.init($('#battle'));
+    $('#dialog').addEventListener('click', nextLine);
+    if (!ui.game.s.story.seen.intro) openComic();
     field.cv = $('#fieldCv');
     field.ctx = field.cv.getContext('2d');
     sizeField();
@@ -1068,6 +1155,7 @@
       TG.render.warmTheme(ui.game);
       TG.render.warmStep();
       TG.render.draw(ui.game, dt);
+      storyTick(dt);
       if (ui.sheet === 'pet') animPets(dt);
       shineClock += dt;
       hudT += dt;

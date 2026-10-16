@@ -492,6 +492,8 @@ function testStory() {
   /* 새 게임: 1장이 바로 나오고, 같은 장면은 한 번뿐이다 */
   const g = new TG.Game(null, seeded(61));
   const ids = () => g.events.filter((e) => e.type === 'story').map((e) => e.id);
+  assert.deepStrictEqual(ids(), [], '프롤로그를 보기 전에는 대사가 안 나온다');
+  g.finishIntro();
   assert.deepStrictEqual(ids(), ['ch1']);
   g.events.length = 0;
   g.s.stage = 11;
