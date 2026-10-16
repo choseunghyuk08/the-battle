@@ -128,14 +128,6 @@
     (1 - t) * (1 - t) * p0[0] + 2 * (1 - t) * t * p1[0] + t * t * p2[0],
     (1 - t) * (1 - t) * p0[1] + 2 * (1 - t) * t * p1[1] + t * t * p2[1],
   ];
-  /* 곡선을 따라 굵기가 변하는 띠 */
-  const ribbon = (b, f, w0, w1, col, o, n = 14) => {
-    for (let k = 0; k < n; k++) {
-      const p = f(k / n);
-      const q = f((k + 1) / n);
-      b.line(p[0], p[1], q[0], q[1], lerp(w0, w1, k / n), col, o, lerp(w0, w1, (k + 1) / n));
-    }
-  };
   /* 훑고 지나가는 반짝임 띠: body(sb) 로 물건만 따로 그린 다음, 방향 (dx, dy) 위치 s0 의 띠 안에 든 물건 점만 밝게 다시 찍는다 */
   const hex3 = (r, gg, bl) => `#${[r, gg, bl].map((v) => Math.round(v).toString(16).padStart(2, '0')).join('')}`;
   const sweep = (b, body, dx, dy, s0, wd, pw, tint = WHITE) => {
@@ -311,86 +303,75 @@
     spark(b, 15.2, 4, twk(live, ph, 0), '#fff6c8', 0.8);
   }
 
-  /* ---- 143 빨랫줄 바람: 줄 하나에 집게 둘로 걸린 흰 천이 바람에 한쪽으로 펄럭인다. 천에는 주름이 지고, 바람 곡선 서너 줄이 끝을 말며 흐른다.
-     shine: 천 아랫단이 물결치고 주름이 따라 흔들리고, 바람 곡선이 줄을 따라 흐른다 ---- */
+  /* ---- 143 빨랫줄 바람: 곧게 걸린 줄 하나에 집게 둘로 매달린 흰 천이 바람에 한쪽(오른쪽)으로 펄럭인다.
+     줄에 붙은 위쪽은 반듯하고 아래로 갈수록 오른쪽으로 크게 휘며, 아랫단은 물결 모양이다. 천 뒤쪽 (왼쪽 아래) 에서 바람 곡선이 불어온다.
+     shine: 아랫단 물결이 오른쪽으로 흘러가고 천이 한 박자씩 더 휘고, 바람 곡선이 줄을 따라 흐른다 ---- */
   function laundryWind(b, ph, live) {
     const P = live ? ph : 0.2;
     const th = P * TAU;
     aura(b, ph, live, 2 / 8, '#c8f4ff', '#a8ffe8', ['#e8fff4', '#c8f4ff', '#ffffff']);
-    /* 바람 곡선: 오른쪽으로 흐르다 끝에서 동그랗게 말린다 */
+    /* 바람 곡선: 왼쪽에서 오른쪽으로 흐르고, 끝이 동그랗게 말린다 */
     const gust = (x0, x1, y0, amp, off, c, a, curl) => {
       let prev = null;
       for (let k = 0; k <= 24; k++) {
         const t = k / 24;
         const x = lerp(x0, x1, t);
-        const y = y0 + Math.sin(t * 5.2 - th + off) * amp * (0.5 + 0.5 * t);
+        const y = y0 + Math.sin(t * 4.4 - th + off) * amp * (0.4 + 0.6 * t);
         const dash = 0.5 + 0.5 * Math.cos((t - P) * TAU + off);
         const al = a * Math.min(1, t * 5, (1 - t) * 4 + 0.35) * (0.6 + 0.4 * dash);
-        if (prev && (!live || dash > 0.18)) {
-          b.line(prev[0], prev[1], x, y, 1, c, { shade: false, alpha: al });
-        }
+        if (prev && (!live || dash > 0.18)) b.line(prev[0], prev[1], x, y, 1, c, { shade: false, alpha: al });
         prev = [x, y];
       }
       if (curl) arcDots(b, prev[0], prev[1] - curl, curl, curl, 90, -170, c, a * 0.95, 0.3);
     };
-    /* 줄: 양쪽 끝에 매이고 가운데가 처진다. 천 위에 얹혀 보인다 */
-    const f = bezier([2.6, 4.6], [10, 7.2], [17.4, 4.8]);
-    const U0 = 0.24;
-    const U1 = 0.78;
-    /* 천: 줄에 매달려 오른쪽으로 날린다. 오른쪽일수록 높이 들리고 많이 기운다 */
-    const NK = 8;
-    const top = [];
-    const bot = [];
-    for (let k = 0; k <= NK; k++) {
-      const s = k / NK;
-      const q = f(lerp(U0, U1, s));
-      const H = 8.4 - 4.0 * s ** 1.1 + 1.2 * Math.sin(s * 6.5 - th) * (0.4 + 0.6 * s);
-      const lean = 0.2 + 2.6 * s ** 1.3 + (live ? 0.5 * Math.sin(th - s * 2.2) * s : 0);
-      top.push([q[0], q[1] + 0.2]);
-      bot.push([q[0] + lean, q[1] + 0.2 + H]);
-    }
-    const cloth = top.concat(bot.slice().reverse());
+    gust(2.4, 5.4, 8.4, 0.5, 1.6, '#4cc8ff', 1, 0);
+    gust(2.4, 7.6, 11.6, 0.7, 3.1, '#7adcff', 1, 0);
+    gust(2.8, 13.2, 15.2, 0.8, 4.4, '#4cc8ff', 1, 1.3);
+    /* 천: 줄에 걸린 윗단은 곧고, 세로 올마다 아래로 갈수록 오른쪽으로 휜다 (휨은 높이의 1.7제곱). 아랫단 길이가 물결친다 */
+    const RY = 4.7;
+    const lean = 4.2 + (live ? 0.45 * Math.sin(th) : 0);
+    const strand = (s, h) => {
+      const L = 7.4 + 1.15 * Math.sin(s * TAU * 2 - th);
+      const x = 4.0 + 8.6 * s + lean * h ** 1.8 + (live ? 0.4 * Math.sin(h * 5 - th) * h : 0);
+      return [x, RY + 0.6 + L * h];
+    };
+    const NS = 26;
+    const NH = 8;
     b.part(() => {
-      field(b, 1, 1, 19, 19, (x, y) => {
-        let inside = false;
-        for (let i = 0, j = cloth.length - 1; i < cloth.length; j = i++) {
-          const a = cloth[i];
-          const c = cloth[j];
-          if (a[1] > y !== c[1] > y && x < ((c[0] - a[0]) * (y - a[1])) / (c[1] - a[1]) + a[0]) inside = !inside;
+      for (let i = 0; i <= NS; i++) {
+        const s = i / NS;
+        /* 주름: 올 따라 흰 등과 푸르스름한 골이 번갈아 */
+        const fold = Math.sin(s * TAU * 1.5 + 0.6 - th * 0.5);
+        const col = fold > 0.55 ? '#ffffff' : fold < -0.72 ? '#8aa4d8' : fold < -0.2 ? '#c8d6f2' : '#eef3ff';
+        for (let k = 0; k < NH; k++) {
+          const p = strand(s, k / NH);
+          const q = strand(s, (k + 1) / NH);
+          b.line(p[0], p[1], q[0], q[1], 1.6, col, { shade: false });
         }
-        if (!inside) return null;
-        /* 주름: 비스듬히 휘어 내리는 세로 물결 (골은 푸르스름, 등은 하얗다) */
-        const fold = Math.sin(x * 1.6 + y * 0.28 - th + Math.sin(y * 0.5 + th) * 0.5);
-        if (fold < -0.62) return '#8aa4d8';
-        if (fold < -0.15) return '#cddcf4';
-        if (fold > 0.7) return '#ffffff';
-        return '#eef3ff';
-      });
+      }
     }, true);
-    /* 줄 (천 위) */
-    ribbon(b, f, 1.7, 1.7, INK, { shade: false }, 16);
-    ribbon(b, f, 1, 1, '#f0c878', { shade: false }, 16);
-    for (let k = 1; k < 16; k += 2) {
-      const p = f(k / 16);
-      dot(b, p[0], p[1] + 0.2, '#a87a38', 0.9);
+    /* 아랫단: 가장자리를 따라 아주 옅은 푸른 선 */
+    for (let i = 1; i < NS; i += 2) {
+      const p = strand(i / NS, 0.97);
+      dot(b, p[0], p[1], '#aebfe6', 0.85);
     }
-    for (const [hx, hy] of [[2.6, 4.6], [17.4, 4.8]]) {
-      b.disc(hx, hy, 1.1, '#a87a38', { shade: false });
-      dot(b, hx - 0.4, hy - 0.4, '#f0c878', 1);
+    /* 줄: 곧게 가로지른다 (천 위) */
+    b.line(2.6, RY, 17.4, RY, 1.7, INK, { shade: false });
+    b.line(2.6, RY, 17.4, RY, 1, '#f0c878', { shade: false });
+    for (let x = 3.6; x < 17; x += 2) dot(b, x, RY, '#a87a38', 0.9);
+    for (const hx of [2.6, 17.4]) {
+      b.disc(hx, RY, 1.2, '#a87a38', { shade: false });
+      dot(b, hx - 0.4, RY - 0.4, '#f0c878', 1);
     }
     /* 집게 둘 */
-    for (const kk of [1, 7]) {
-      const q = f(lerp(U0, U1, kk / NK));
-      b.rect(q[0] - 1.0, q[1] - 1.7, 2.0, 4.4, '#d49a48', { shade: false });
-      b.rect(q[0] - 1.0, q[1] - 1.7, 0.8, 4.4, '#f0c070', { shade: false });
-      b.rect(q[0] - 1.0, q[1] - 2.1, 2.0, 0.9, '#6a4a28', { shade: false });
-      b.rect(q[0] - 0.1, q[1] + 0.9, 0.5, 1.8, '#6a4a28', { shade: false });
-      b.rect(q[0] - 1.0, q[1] + 2.7, 2.0, 0.5, INK, { shade: false });
+    for (const s of [0.12, 0.88]) {
+      const q = strand(s, 0);
+      b.rect(q[0] - 1.0, q[1] - 2.0, 2.0, 4.0, '#d49a48', { shade: false });
+      b.rect(q[0] - 1.0, q[1] - 2.0, 0.8, 4.0, '#f0c070', { shade: false });
+      b.rect(q[0] - 1.0, q[1] - 2.4, 2.0, 0.9, '#6a4a28', { shade: false });
+      b.rect(q[0] - 0.1, q[1] + 0.6, 0.5, 1.4, '#6a4a28', { shade: false });
+      b.rect(q[0] - 1.0, q[1] + 2.0, 2.0, 0.5, INK, { shade: false });
     }
-    /* 바람 곡선 (천 위가 아니라 천이 비운 자리로) */
-    gust(3.2, 14.4, 15.2, 0.8, 1.6, '#4cc8ff', 1, 1.4);
-    gust(5.2, 16.2, 17.1, 0.6, 3.1, '#7adcff', 1, 0);
-    gust(9.6, 17.0, 12.8, 0.9, 4.4, '#4cc8ff', 1, 1.2);
     spark(b, 16.2, 15.2, twk(live, ph, 1), '#e8fff8', 0.75);
   }
 
@@ -632,60 +613,90 @@
     spark(b, 3.6, 15.2, twk(live, ph, 0), '#ffe9a0', 0.8);
   }
 
-  /* ---- 148 마지막 한 번의 숨: 처음 던진 손이 쉬며 내쉰 숨. 따뜻한 흰색과 분홍의 둥근 입김 덩이들이 왼쪽 아래에서 오른쪽 위로
-     점점 커지며 길게 퍼지고, 덩이마다 별가루가 박혀 있다. 맨 끝 덩이는 별가루로 흩어진다.
-     shine: 입김 덩이들이 한 칸씩 밀려 나가며 커지고, 새 덩이가 왼쪽에서 피어난다 (한 바퀴 돌면 처음과 똑같이 이어진다) ---- */
+  /* ---- 148 마지막 한 번의 숨: 처음 던진 손이 쉬며 내쉰 따뜻한 입김. 입에서 막 나온 작고 진한 덩이가 왼쪽 아래에서 시작해
+     오른쪽 위로 가며 커지고 투명해지는 몽글한 덩이 네 개로 퍼진다. 덩이끼리는 이어붙지 않고 살짝 떨어져 있으며, 맨 끝은 별가루로 흩어진다.
+     shine: 덩이들이 한 칸씩 밀려 나가며 커지고 옅어지고, 새 덩이가 왼쪽 아래에서 피어난다 (한 바퀴 돌면 처음과 똑같이 이어진다) ---- */
   const BREATH_DUST = ['#fff0b0', '#bff4ff', '#ffffff', '#ffc4e4', '#ffe9a0'];
   /* 입김 덩이 하나의 둥근 덩어리 배치 (반지름 r 에 곱하는 값: x, y, 크기) */
-  const PUFF = [[0, 0.1, 0.78], [-0.62, 0.22, 0.58], [0.64, 0.12, 0.6], [-0.18, -0.52, 0.6], [0.34, -0.4, 0.5], [0.05, 0.5, 0.55]];
+  const PUFF = [[0, 0.05, 0.8], [-0.55, 0.3, 0.52], [0.58, 0.2, 0.55], [-0.12, -0.5, 0.56], [0.36, -0.38, 0.46]];
   function lastBreath(b, ph, live) {
     const P = live ? ph : 0.35;
     aura(b, ph, live, 7 / 8, '#ffe0f0', '#a0f0ff', ['#ffffff', '#ffe9a0', '#d8c8ff', '#bff4ff']);
-    /* 입김이 지나는 길: 왼쪽 아래에서 오른쪽 위로 휘어 오른다 */
-    const at = (s) => [3.4 + 11.4 * s, 13.2 - 6.4 * s + 1.0 * Math.sin(s * TAU)];
-    const NP = 4;
+    /* 입김이 지나는 길: 왼쪽 아래에서 오른쪽 위로 살짝 휘어 오른다. 덩이가 커질수록 간격도 넓어서 서로 닿지 않는다 */
+    const NP = 3;
+    const SX0 = 3.4;
+    const SY0 = 15.4;
+    const SX1 = 16.2;
+    const SY1 = 4.2;
+    const rOf = (s) => 1.15 + 2.1 * s;
+    const arc = (s) => (3.03 * s + 2.31 * s * s) / 5.34;
+    const at = (s) => {
+      const t = arc(s);
+      return [lerp(SX0, SX1, t) + 0.7 * Math.sin(t * Math.PI), lerp(SY0, SY1, t) + 0.7 * Math.sin(t * Math.PI)];
+    };
     const list = [];
-    for (let k = 0; k < NP; k++) {
-      const s = (k + P) / NP;
-      list.push({ s });
-    }
+    for (let k = 0; k < NP; k++) list.push((k + P) / NP);
     /* 오래된 (큰) 덩이부터 그려서 새 덩이가 앞에 온다 */
-    list.sort((p, q) => q.s - p.s);
-    for (const it of list) {
-      const s = it.s;
+    list.sort((p, q) => q - p);
+    for (const s of list) {
       const c = at(s);
-      const r = 0.55 + 2.8 * s ** 0.8;
+      const r = rOf(s);
       /* 맨 끝: 덩이가 풀려 별가루만 남는다 */
       if (s > 0.9) {
         const f = (s - 0.9) / 0.1;
-        for (let j = 0; j < 5; j++) {
-          const a = j * 1.3 + 0.4;
-          dot(b, c[0] + Math.cos(a) * r * (0.5 + f * 0.6), c[1] + Math.sin(a) * r * (0.45 + f * 0.5) - f * 0.8, BREATH_DUST[j % 5], (1 - f) * 0.9);
+        for (let j = 0; j < 6; j++) {
+          const a = j * 1.1 + 0.4;
+          dot(b, c[0] + Math.cos(a) * r * (0.5 + f * 0.7), c[1] + Math.sin(a) * r * (0.45 + f * 0.6) - f * 0.8, BREATH_DUST[j % 5], (1 - f) * 0.9);
         }
         continue;
       }
-      b.part(() => {
-        for (const [ox, oy, rr] of PUFF) b.disc(c[0] + ox * r + 0.5, c[1] + oy * r + 0.6, rr * r, '#ffa8d0', { shade: false });
-        for (const [ox, oy, rr] of PUFF) b.disc(c[0] + ox * r, c[1] + oy * r, rr * r, '#fff0f4', { shade: false });
-        for (const [ox, oy, rr] of PUFF) b.disc(c[0] + ox * r - 0.3, c[1] + oy * r - 0.4, rr * r * 0.62, WHITE, { shade: false });
-      }, true);
+      /* 처음엔 작고 진하고 (따뜻한 살구색), 갈수록 커지고 하얗고 투명해진다 */
+      const near = clamp((0.55 - s) / 0.55, 0, 1);
+      const base = mix('#fff8f0', '#ffd6bc', near);
+      const shade = mix('#f0d4ec', '#f59a82', near);
+      const bits = PUFF.map(([ox, oy, rr]) => [c[0] + ox * r, c[1] + oy * r, rr * r]);
+      /* 덩이 안쪽 점마다 색 (왼쪽 위가 밝고 오른쪽 아래가 살구색) 과 덩이 안인지 */
+      const probe = (x, y) => {
+        let best = null;
+        for (const [bx, by, br] of bits) {
+          const d = Math.hypot(x - bx, y - by) / br;
+          if (d <= 1 && (!best || d < best[0])) best = [d, bx, by, br];
+        }
+        if (!best) return null;
+        const lam = (-(x - best[1]) * 0.55 - (y - best[2]) * 0.65) / best[3] + 0.18 - 0.35 * best[0];
+        return lam > 0.42 ? WHITE : lam > -0.12 ? base : shade;
+      };
+      /* 가까운 덩이는 진한 테두리에 속이 꽉 차 있고, 멀수록 테두리가 하얘지고 속이 비친다 (한 덩이가 밀려 나가는 동안 끊김 없이 바뀐다) */
+      const fade = clamp((s - 0.4) / 0.5, 0, 1);
+      const rimW = clamp((s - 0.3) / 0.35, 0, 1);
+      const rim = mix(INK, '#a07ad0', rimW);
+      field(b, c[0] - r * 1.6, c[1] - r * 1.6, c[0] + r * 1.6, c[1] + r * 1.6, (x, y) => {
+        const col = probe(x, y);
+        if (col) return [col, 1 - 0.18 * fade];
+        if (probe(x - 1, y) || probe(x + 1, y) || probe(x, y - 1) || probe(x, y + 1)) return [rim, 1 - 0.15 * rimW];
+        return null;
+      });
+      const dens = 1 - 0.2 * fade;
       /* 안에 박힌 별가루 (덩이가 밀려 나가도 같은 자리에 박혀 있어서 한 바퀴 돌면 처음과 이어진다) */
-      const nd = r < 1.6 ? 1 : r < 2.6 ? 3 : 5;
+      const nd = r < 1.6 ? 1 : r < 2.4 ? 2 : 4;
       for (let j = 0; j < nd; j++) {
         const a = j * 2.3 + 0.5;
         const q = 0.28 + 0.34 * ((j * 7) % 5) / 4;
         const tw = 0.6 + 0.4 * Math.cos(P * TAU * 2 + j * 1.9);
-        dot(b, c[0] + Math.cos(a) * r * q * 1.25, c[1] + Math.sin(a) * r * q, BREATH_DUST[j % 5], tw);
+        dot(b, c[0] + Math.cos(a) * r * q * 1.25, c[1] + Math.sin(a) * r * q, BREATH_DUST[j % 5], tw * dens);
       }
       /* 큰 덩이는 십자 별 하나 */
-      if (s > 0.55) spark(b, c[0] + 0.5, c[1] - 0.4, twk(live, ph, 0) > 0 ? 1 : 0, '#fffbe0', 0.95);
+      if (s > 0.5) spark(b, c[0] + 0.5, c[1] - 0.4, twk(live, ph, 0) > 0 ? 1 : 0, '#fffbe0', 0.95);
     }
-    /* 입김 앞에 흩날리는 별가루 */
-    for (let j = 0; j < 4; j++) {
-      const t = live ? (P + j / 4) % 1 : 0.2 + j * 0.2;
-      const q = at(clamp(0.1 + t * 0.9, 0, 1));
-      dot(b, q[0] + 1.2 + j * 0.3, q[1] + 3 - t * 0.8 + ((j % 2) ? 1.2 : -0.4), BREATH_DUST[j], Math.sin(t * Math.PI) * 0.8);
+    /* 맨 끝에서 흩어져 날리는 별가루 */
+    for (let j = 0; j < 5; j++) {
+      const t = live ? (P + j / 5) % 1 : 0.1 + j * 0.2;
+      const q = at(0.8 + 0.2 * t);
+      dot(b, q[0] + 1.3 + (j % 3) * 0.9 - t * 0.3, q[1] - 0.6 + ((j * 5) % 4) * 0.9 - 1.8 * t, BREATH_DUST[j % 5], Math.sin(t * Math.PI) * 0.85);
     }
+    /* 입김 끝에서 흩어지는 별가루 (십자 둘) */
+    spark(b, 16, 5.6 + (live ? 0.6 * Math.sin(P * TAU) : 0), twk(live, ph, 0) > 0 ? 1 : 0, '#fff6c8', 0.95);
+    spark(b, 14.2, 3.4, twk(live, ph, 3) > 0 ? 1 : 0, '#d8f8ff', 0.9);
     spark(b, 4, 4.4, twk(live, ph, 4), '#ffe9a0', 0.7);
     spark(b, 15.8, 16, twk(live, ph, 1), '#d8f8ff', 0.8);
   }

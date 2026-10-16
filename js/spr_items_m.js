@@ -342,36 +342,40 @@
   /* ---- 124 구름 채찍: 나무 손잡이에서 굵은 푸른 채찍이 크게 S 로 휘어 올라가고, 끝에 작은 구름이 달렸다. 구름에서 번개 한 줄기가 내리친다.
      shine: S 곡선이 물결처럼 흐르고, 끝 구름이 따라 흔들리고, 번개가 번쩍 ---- */
   function cloudWhip(b, ph, live) {
-    const th = (live ? Math.sin(ph * TAU) * 0.75 : 0.0);
     const fi = live ? Math.round(ph * 6) % 6 : 0;
-    const P0 = [6.8, 12.6];
-    const P1 = [14.6, 5.2];
-    const dx = P1[0] - P0[0];
-    const dy = P1[1] - P0[1];
-    const len = Math.hypot(dx, dy);
-    const nx = -dy / len;
-    const ny = dx / len;
-    /* 채찍 중심선: 대각선 위에서 위아래로 한 번씩 크게 굽는다 (양 끝은 거의 고정) */
+    /* 채찍 중심선: 손잡이에서 오른쪽으로 나갔다가 위로 돌아 다시 오른쪽으로 가는 큼직한 S (지나는 점을 부드럽게 잇는다).
+       shine 에서는 가운데 두 점이 번갈아 좌우로 밀려 물결치듯 흐른다 */
+    const BASE = [[8.4, 12.1], [10.4, 12.7], [12.2, 11.8], [12.4, 10], [10.8, 8.9], [9.4, 7.9], [9.8, 6.4], [11.6, 5.6], [13.4, 5.6]];
+    /* 물결: 곡선 위로 흔들림이 한 마디씩 뒤따라 지나간다 (양 끝은 고정) */
+    const WP = BASE.map(([x, y], i) => {
+      if (!live || i === 0 || i >= BASE.length - 2) return [x, y];
+      const w = Math.sin(ph * TAU - i * 0.85);
+      return [x + 0.6 * w, y + 0.35 * Math.cos(ph * TAU - i * 0.85)];
+    });
+    const E = [WP[0], ...WP, WP[WP.length - 1]];
+    const cr = (p0, p1, p2, p3, u) => [0, 1].map((i) => 0.5 * (2 * p1[i] + (-p0[i] + p2[i]) * u + (2 * p0[i] - 5 * p1[i] + 4 * p2[i] - p3[i]) * u * u + (-p0[i] + 3 * p1[i] - 3 * p2[i] + p3[i]) * u * u * u));
     const pos = (t) => {
-      const off = 3.6 * Math.sin(t * TAU - th) * Math.sin(Math.PI * t) ** 0.8;
-      return [P0[0] + dx * t + nx * off, P0[1] + dy * t + ny * off];
+      const q = clamp(t, 0, 1) * (WP.length - 1);
+      const s = Math.min(WP.length - 2, Math.floor(q));
+      return cr(E[s], E[s + 1], E[s + 2], E[s + 3], q - s);
     };
+    const P0 = WP[0];
     aura(b, ph, live, 3 / 9, '#9ab8ff', '#e8f0ff', ['#ffffff', '#c8dcff', '#bff0ff'], 0.6);
     /* 손잡이 */
-    const ang = Math.atan2(dy, dx) / DEG;
+    const ang = -45;
     frame(b, P0[0], P0[1], ang, () => {
       b.part(() => {
-        b.rect(-3.8, -1.3, 4.5, 2.6, '#8a5a30', { hi: 0.3, lo: -0.3 });
-        for (const u of [-2.9, -1.9, -0.9]) b.rect(u, -1.4, 0.55, 2.8, '#4a2c12', { shade: false });
-        b.disc(-4.0, 0, 1.5, '#ffd870');
+        b.rect(-5.4, -1.3, 6.1, 2.6, '#8a5a30', { hi: 0.3, lo: -0.3 });
+        for (const u of [-4.3, -3.2, -2.1, -1.0]) b.rect(u, -1.4, 0.55, 2.8, '#4a2c12', { shade: false });
+        b.disc(-5.7, 0, 1.4, '#ffd870');
         b.rect(0.5, -1.9, 1.2, 3.8, '#dfe8ff', { shade: false });
       }, true);
     });
     /* 채찍: 굵은 끈. 끝으로 갈수록 가늘고, 꼬임 마디가 지나간다 */
     const N = 30;
-    const T0 = 0.06;
+    const T0 = 0.02;
     const tt = (k) => T0 + (1 - T0) * (k / N);
-    const wd = (k) => 2.2 - 0.7 * (k / N);
+    const wd = () => 1.9;
     b.part(() => {
       for (let k = 0; k < N; k++) {
         const p = pos(tt(k));
@@ -399,7 +403,7 @@
     dot(b, CX - 1.4, CY - 1.3, WHITE, 0.95);
     /* 번개 한 줄기 (구름 밑에서 내리침) */
     const zap = live ? fi === 2 || fi === 3 : true;
-    const BX = CX + 0.4;
+    const BX = CX + 1.0;
     const BY = CY + 2.4;
     b.part(() => {
       b.poly([[BX + 0.4, BY], [BX + 2.6, BY], [BX + 1.6, BY + 2.1], [BX + 3.0, BY + 2.1], [BX - 0.3, BY + 6.0], [BX + 0.3, BY + 3.3], [BX - 0.9, BY + 3.3]], zap ? '#fff0a0' : '#ffd23a', { hi: 0.35, lo: -0.2 });

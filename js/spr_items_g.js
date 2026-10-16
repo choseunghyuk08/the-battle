@@ -729,96 +729,104 @@
     motes(b, 8, t0);
   }
 
-  /* ---- 70 늪 그물: 이끼 낀 자루와 테, 늘어진 그물 주머니, 걸려 올라온 신발 한 짝. 보라 초록 늪빛이 번지고
-     반딧불이 맴돌며 물방울이 떨어진다. 61~70 중 가장 환하다 ---- */
+  /* ---- 70 늪 그물: 위쪽 매듭 한 점에서 모여 아래로 불룩해지는 그물 주머니가 노란 고무장화 한 짝을 감싸 건져 올린다.
+     그물코는 얇은 한 줄이고, 장화 위에서는 짙은 초록으로 또렷하다. 매듭에는 짧은 나무 자루가 달렸다.
+     보라 초록 늪빛이 번지고 반딧불이 맴돌며 물방울이 떨어진다. 61~70 중 가장 환하다 ---- */
   function swampNet(b, ph, live) {
     const t0 = live ? ph : 0.35;
     const pulse = live ? 0.5 + 0.5 * Math.cos(ph * TAU) : 0.7;
     oldLight(b, 9, t0, '#9a60ff', '#7aff9a');
-    glow(b, 12, 10, 6.4, '#a8ff80', 0.06 + 0.04 * pulse);
-    const HX = 11.2;
-    const HY = 4.6;
-    const RX = 5.4;
-    const RY = 2.1;
+    glow(b, 11, 11, 6.4, '#a8ff80', 0.06 + 0.04 * pulse);
+    /* 주머니: 매듭 (KX, KY) 에서 모여 아래 (BY) 로 갈수록 불룩해졌다가 다시 모인다. 세로 올 다섯 가닥과 가로 올 다섯 줄 */
+    const KX = 10.8;
+    const KY = 4.9;
+    const BY = 17.2;
+    const WMAX = 6.3;
+    const sway = (t) => (live ? 0.45 * Math.sin(t0 * TAU - t * 3.2) * Math.sin(Math.PI * t) : 0);
+    const half = (t) => WMAX * Math.sin(Math.PI * t) ** 0.85;
     /* 장화: 그물에 걸린 노란 고무 장화 한 짝 (발목 긴 목, 코가 오른쪽). 초록 그물과 색이 확 갈린다 */
-    const SHOE = [[9, 7.2], [12.6, 7.2], [12.7, 11.6], [14.4, 11.9], [15.8, 12.9], [16.1, 14.2], [15.9, 15.2], [8.2, 15.2], [8.2, 13.8], [8.8, 12.8]];
+    const SHOE = [[7.6, 7.4], [11.2, 7.4], [11.3, 11.6], [13, 11.9], [14.4, 12.9], [14.7, 14.1], [14.5, 15.1], [6.8, 15.1], [6.8, 13.8], [7.4, 12.8]];
     const shoeAt = (x, y) => {
       if (!inPoly(SHOE, x, y)) return null;
-      if (y < 8.1) return y < 7.6 ? '#5a2c10' : '#ffe888';
-      if (y >= 14.2) return '#5a3418';
-      if (y < 9.5 && y >= 8.7 && x < 12.7) return '#e0402e';
-      if (x > 14.2 && y > 12.4) return y < 13.4 && x > 14.6 ? '#fff0a0' : '#ffd24a';
-      if (x > 11.4 && y < 11.6) return '#d08a14';
-      if (x < 10.2) return '#ffd24a';
+      if (y < 8.3) return y < 7.9 ? '#5a2c10' : '#ffe888';
+      if (y >= 14.1) return '#5a3418';
+      if (y < 9.7 && y >= 8.9 && x < 11.3) return '#e0402e';
+      if (x > 12.8 && y > 12.4) return y < 13.4 && x > 13.2 ? '#fff0a0' : '#ffd24a';
+      if (x > 10 && y < 11.6) return '#d08a14';
+      if (x < 8.8) return '#ffd24a';
       return '#f6b828';
     };
-    /* 그물 주머니: 장화를 넉넉히 감싸고, 테 아래로 깔때기처럼 모인다 */
-    const bagAt = (x, y) => {
-      let dmin = 9;
-      for (let k = 0; k < SHOE.length; k++) {
-        const p = SHOE[k];
-        const q = SHOE[(k + 1) % SHOE.length];
-        dmin = Math.min(dmin, segD(x, y, p[0], p[1], q[0], q[1])[0]);
-      }
-      if (dmin <= 1.9 || inPoly(SHOE, x, y)) return true;
-      const t = (y - HY) / 3.6;
-      return t >= 0 && t <= 1 && Math.abs(x - 10.8) <= lerp(RX - 0.3, 3.9, t);
-    };
-    const meshAt = (x, y) => {
-      const g1 = (x + y + 20) % 3.2;
-      const g2 = (x - y + 20) % 3.2;
-      return g1 < 0.8 || g2 < 0.8 ? (g1 < 0.8 && g2 < 0.8 ? 2 : 1) : 0;
+    /* 그물코: 주머니 안을 두 방향 대각선이 5칸 간격으로 가로지르는 마름모 그물. 가장자리 한 줄은 이어진 테두리 올이다 */
+    const NETN = 6;
+    const netAt = (x, y) => {
+      const t = (y + 0.5 - KY) / (BY - KY);
+      if (t < 0.02 || t > 0.99) return 0;
+      const hw = half(t);
+      const dx = x + 0.5 - KX - sway(t);
+      if (Math.abs(dx) > hw) return 0;
+      const rim = Math.abs(dx) >= hw - 1.05;
+      const A = (((x + y) % NETN) + NETN) % NETN === 3;
+      const B = (((x - y) % NETN) + NETN) % NETN === 4;
+      if (A && B) return 3;
+      if (rim) return 2;
+      return A || B ? 1 : 0;
     };
     const body = (bb) => {
-      /* 자루: 이끼 낀 나무 */
+      /* 주머니: 속이 비치지 않게 짙은 늪물빛 바탕에 외곽선을 두르고, 그 위에 밝은 그물 올을 건다 */
       bb.part(() => {
-        bb.line(3.3, 16.6, 7.2, 6.2, 1.7, '#6a4a2c', { shade: false });
-        bb.line(3.0, 16.4, 6.9, 6.0, 0.6, '#a8804e', { shade: false });
-        bb.disc(3.2, 16.6, 1.15, '#4a3220', { shade: false });
-        bb.disc(4.7, 12.8, 0.85, '#58b050', { shade: false });
-        bb.disc(5.8, 9.6, 0.7, '#7ad060', { shade: false });
-      }, true);
-      /* 테와 그물 주머니 (한 덩어리로 묶어 사이에 외곽선이 끼지 않게) */
-      bb.part(() => {
-        field(bb, 1, 1, 19, 19, (x, y) => {
-          const e = Math.hypot((x - HX) / (RX + 0.4), (y - HY) / (RY + 0.4));
-          /* 테: 타원 고리 */
-          if (e <= 1 && e >= 0.68) {
-            const l = -(x - HX) * 0.5 - (y - HY) * 1.4;
-            return l > 1.2 ? '#f0cc88' : l < -1.2 ? '#6a4626' : '#b88a52';
+        field(bb, 1, 3, 19, 19, (x, y) => {
+          const t = (y - KY) / (BY - KY);
+          if (t <= 0.02 || t >= 0.99) return null;
+          const dx = x - KX - sway(t);
+          if (Math.abs(dx) > half(t)) return null;
+          return dx < -1.4 ? '#2e6a58' : '#245244';
+        }, 2);
+        for (let y = 3; y <= 17; y++) {
+          for (let x = 2; x <= 17; x++) {
+            const n = netAt(x, y);
+            if (n) bb.rect(x, y, 1, 1, n === 3 ? '#ffffe0' : n === 2 ? '#d8f8a8' : '#a8e078', { shade: false });
           }
-          if (e < 0.68) return '#244034';
-          if (!bagAt(x, y)) return null;
-          const m = meshAt(x, y);
-          if (m) return m === 2 ? '#ffffe0' : x - HX + (y - HY) * 0.3 < 0 ? '#e6ffb8' : '#b0e080';
-          return '#3a6e4e';
-        });
+        }
       }, true);
-      /* 장화 (그물 앞): 따로 외곽선. 그물 올이 엷게 지나간다 */
+      /* 짧은 나무 자루: 매듭에서 오른쪽 위로 */
       bb.part(() => {
-        field(bb, 1, 1, 19, 19, (x, y) => {
-          const sc = shoeAt(x, y);
-          if (!sc) return null;
-          const m = meshAt(x, y);
-          return m ? mix(sc, m === 2 ? '#f6ffd0' : '#c8e8a0', m === 2 ? 0.7 : 0.4) : sc;
-        });
+        bb.line(KX, KY - 0.2, 15.9, 2.9, 1.8, '#8a5a2c', { shade: false });
+        bb.line(KX + 0.4, KY - 0.8, 15.6, 2.4, 0.6, '#c8a064', { shade: false });
+      }, true);
+      /* 장화 (그물 안): 한 덩어리로 외곽선 */
+      bb.part(() => {
+        field(bb, 1, 1, 19, 19, (x, y) => shoeAt(x, y), 2);
+      }, true);
+      /* 그물 올: 한 점 굵기. 바깥에서는 밝은 연두, 장화 위에서는 짙은 초록 (마디는 완전히 불투명, 나머지는 장화 빛이 살짝 비친다) */
+      for (let y = 3; y <= 17; y++) {
+        for (let x = 2; x <= 17; x++) {
+          const n = netAt(x, y);
+          if (!n) continue;
+          const sc = shoeAt(x + 0.5, y + 0.5);
+          if (sc) bb.rect(x, y, 1, 1, n >= 2 ? '#16421f' : mix(sc, '#1c4a2c', 0.7), { shade: false });
+        }
+      }
+      /* 매듭 */
+      bb.part(() => {
+        bb.disc(KX + 0.2, KY + 0.2, 1.3, '#d4a860', { shade: false });
+        bb.rect(KX - 0.6, KY - 0.6, 1, 1, '#f6e0a4', { shade: false });
       }, true);
     };
     body(b);
     if (live) sweep(b, body, 0.707, -0.707, lerp(-9, 9, ph), 1.6, 0.45, '#eaffd0');
     /* 늘어진 풀 */
-    dot(b, 8, 7.8, '#7ad060', 0.95);
-    dot(b, 7.6, 8.8, '#58b050', 0.95);
+    dot(b, 6.4, 8.8, '#7ad060', 0.95);
+    dot(b, 6, 9.8, '#58b050', 0.95);
     /* 물방울: 그물 바닥에서 떨어진다 */
     for (let j = 0; j < 2; j++) {
       const s = live ? (ph + j * 0.5) % 1 : 0.2 + j * 0.5;
-      dot(b, 11.4 + j * 1.6, 15.8 + s * s * 2.4, '#9ae8ff', Math.sin(Math.min(1, s * 1.2) * Math.PI) * 0.9 + 0.1);
+      dot(b, 10.2 + j * 1.8, 17 + s * s * 1.6, '#9ae8ff', Math.sin(Math.min(1, s * 1.2) * Math.PI) * 0.9 + 0.1);
     }
     /* 반딧불 */
     for (let k = 0; k < 3; k++) {
       const a = (t0 + k / 3) * TAU + k;
-      const fx = 10 + Math.cos(a) * (7 + (k % 2) * 0.6);
-      const fy = 10 + Math.sin(a * 1.0) * 6.4;
+      const fx = 10 + Math.cos(a) * (7.4 + (k % 2) * 0.6);
+      const fy = 10 + Math.sin(a * 1.0) * 6.6;
       const tw = 0.5 + 0.5 * Math.cos(t0 * TAU * 2 + k * 1.7);
       glow(b, clamp(fx, 2, 18), clamp(fy, 2, 18), 1.3, '#d8ff70', 0.1 + 0.08 * tw);
       dot(b, fx, fy, '#f4ffa8', 0.55 + 0.45 * tw);
