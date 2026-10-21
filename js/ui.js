@@ -906,9 +906,9 @@
     const stop = running ? el('button', { type: 'button', class: 'towerstop', text: '그만두기', onclick: () => { game.towerEnd(); handleEvents(); updateHud(); save(); buildTower(); } }) : null;
     $('#sheetBody').replaceChildren(
       questSeg(),
-      el('p', { class: 'note', text: '끝없는 탑에서는 층마다 몬스터가 세져요. 5층마다 보스가 서요. 쓰러지거나 한 층을 45초 안에 못 깨면 끝나요.' }),
       tripCard(),
       el('p', { class: 'sec' }, [uiIcon('boss'), ' 끝없는 탑']),
+      el('p', { class: 'note', text: '층마다 몬스터가 세져요. 5층마다 보스가 서요. 쓰러지거나 한 층을 45초 안에 못 깨면 끝나요.' }),
       el('div', { class: 'sto tower' }, [
         el('div', { class: 'nm', text: `최고 ${t.best}층` }),
         el('div', { class: 'ln', text: running ? `지금 ${game.towerF}층` : `오늘 남은 도전 ${free}번 · 지금까지 ${t.runs}번 올랐어요` }),
