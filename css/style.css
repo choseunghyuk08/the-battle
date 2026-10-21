@@ -374,7 +374,7 @@ button { font-family: inherit; color: inherit; }
 .fieldtag .auto { color: var(--good); font-size: 11px; }
 .tab { font-size: 13px; padding: 5px 2px 4px; gap: 1px; flex-direction: column; }
 .bar { flex-direction: column; }
-.skills { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
+.skills { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 3px; }
 .acts { display: grid; grid-template-columns: repeat(4, 46px) minmax(0, 1fr); gap: 5px; align-items: stretch; }
 .acts .skill { width: auto; }
 .skill.chase.ready { border-color: #ffb13a; box-shadow: 0 0 10px #ffb13a55; }
@@ -590,3 +590,8 @@ button.back { appearance: none; width: 100%; border: 2px solid var(--line); back
 /* 상단 줄: 재화 칩을 줄여 스테이지 칸을 넓힌다 */
 .hud .gold { padding: 4px 8px; gap: 4px; font-size: 14px; }
 .hud .stage { flex: 1 1 auto; }
+.sto.trip { grid-template-columns: 1fr; }
+.sto.trip .ln { grid-column: 1; }
+.trip-row { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; align-items: center; border-top: 1px solid var(--line); padding-top: 6px; }
+.trip-row small { grid-column: 1; color: var(--ink-3); font-size: 11px; }
+.trip-row button { grid-row: 1 / span 2; grid-column: 2; }

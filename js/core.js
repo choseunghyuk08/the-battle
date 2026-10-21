@@ -61,6 +61,12 @@
     mergeGold: 0.5, // 합칠 때마다 이 스테이지 몬스터 한 마리 골드의 이만큼
     goldGrow: 1.046,
     /* 사파이어 트리: 한 단계(레벨)마다 오르는 양 */
+    /* 원정과 원정 유물 (v2.6) */
+    tripOpen: 100, // 원정이 열리는 최고 스테이지
+    meteorCd: 55,
+    timeCd: 70,
+    timeStopSec: 4, // 시간 정지: 몬스터가 멈추는 시간 (레벨마다 +0.1)
+    timeThrowK: 1.5, // 시간 정지 동안 던지는 속도 배율
     sDoubleStep: 0.005, // 더블샷 확률
     sGiantStep: 0.04, // 거대·보스 피해
     sGuardStep: 0.015, // 받는 피해 감소 (최대 50%)
@@ -309,7 +315,24 @@
     { id: 'star', name: '별 조각', v: (L) => 0.1 * L, desc: (x) => `파워샷 배율 +${TG.fmtMult(x)}` },
     { id: 'mirror', name: '쌍둥이 거울', v: (L) => 0.01 * L, desc: (x) => `더블샷 확률 +${pct(x)}` },
     { id: 'crown', name: '작은 왕관', v: (L) => 0.03 * L, desc: (x) => `모든 피해 +${pct(x)}` },
+    /* 원정 유물: 뽑기에는 안 나오고 원정에서만 얻는다 */
+    { id: 'compass', trip: true, name: '길잡이 나침반', v: (L) => Math.min(0.6, 0.05 * L), desc: (x) => `땅 사건으로 받는 피해 -${pct(x)}` },
+    { id: 'lamp', trip: true, name: '탑지기 등잔', v: (L) => 0.08 * L, desc: (x) => `끝없는 탑 루비 +${pct(x)}` },
+    { id: 'bell', trip: true, name: '파수 종', v: (L) => 0.5 * L, desc: (x) => `보스전 제한 시간 +${TG.fmtMult(x)}초` },
+    { id: 'mushroom', trip: true, name: '푸른 버섯', v: (L) => 0.05 * L, desc: (x) => `사파이어가 나올 확률 +${pct(x)}` },
+    { id: 'ticket', trip: true, name: '탑 입장권', v: (L) => 2 * L, desc: (x) => `끝없는 탑 한 번 더 도전 메달 -${x}개` },
+    { id: 'charm', trip: true, name: '방패 부적', v: (L) => 0.1 * L, desc: (x) => `방어전 메달 +${pct(x)}` },
+    { id: 'sprout', trip: true, name: '낮잠 새싹', v: (L) => 0.1 * L, desc: (x) => `자리를 비운 동안 번 골드 +${pct(x)}` },
+    { id: 'prism', trip: true, name: '세트 프리즘', v: (L) => 0.05 * L, desc: (x) => `도감 세트 보너스 +${pct(x)}` },
+    { id: 'map', trip: true, name: '원정 지도', v: (L) => Math.min(0.5, 0.04 * L), desc: (x) => `원정 시간 -${pct(x)}` },
   ];
+  TG.TRIPS = [
+    { id: 'near', name: '가까운 탐험', sec: 1800, goldK: 40, ruby: 30, medals: 2, sapphire: 0, shards: 20, relic: 0.1 },
+    { id: 'far', name: '먼 탐험', sec: 7200, goldK: 200, ruby: 150, medals: 8, sapphire: 6, shards: 100, relic: 0.4 },
+    { id: 'grand', name: '큰 원정', sec: 28800, goldK: 800, ruby: 700, medals: 30, sapphire: 30, shards: 500, relic: 1 },
+  ];
+  /* 지금 시각 (밀리초). 시험에서는 바꿔 끼운다 */
+  TG.nowMs = () => Date.now();
   const RELIC_BY = Object.fromEntries(TG.RELICS.map((r) => [r.id, r]));
 
   /* 업적 (v0.5): 단계마다 루비를 받는다 */
@@ -550,6 +573,8 @@
     { id: 'skShadow', cur: 'ruby', name: '그림자 분신', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 100 : Math.ceil(15 * 1.45 ** L)), desc: (L) => (L ? `${Math.round((10 + 0.2 * (L - 1)) * 10) / 10}초 동안 분신이 같이 던져요 (피해 x${TG.fmtMult(0.5 + 0.03 * (L - 1))})` : '루비로 배워요. 분신이 나타나 같이 던져요') },
     { id: 'skBarrage', cur: 'ruby', name: '난사', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 100 : Math.ceil(15 * 1.45 ** L)), desc: (L) => (L ? `최고 물건 ${10 + 2 * (L - 1)}개를 순식간에 흩뿌려요 (x${TG.fmtMult(0.6 + 0.05 * (L - 1))})` : '루비로 배워요. 최고 물건을 마구 던져요') },
     { id: 'skBolt', cur: 'ruby', name: '뇌전', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 120 : Math.ceil(15 * 1.45 ** L)), desc: (L) => (L ? `번개 ${5 + Math.floor((L - 1) / 5)}줄기가 몬스터를 내리쳐요 (x${TG.fmtMult(1.5 + 0.08 * (L - 1))})` : '루비로 배워요. 하늘에서 번개가 내리쳐요') },
+    { id: 'skMeteor', cur: 'ruby', name: '유성 소환', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 300 : Math.ceil(25 * 1.45 ** L)), desc: (L) => (L ? `유성 ${4 + Math.floor((L - 1) / 6)}개가 차례로 몬스터를 때려요 (x${TG.fmtMult(2 + 0.1 * (L - 1))})` : '루비로 배워요. 하늘에서 유성이 떨어져요') },
+    { id: 'skTime', cur: 'ruby', name: '시간 정지', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 400 : Math.ceil(30 * 1.45 ** L)), desc: (L) => (L ? `${TG.fmtMult(P.timeStopSec + 0.1 * (L - 1))}초 동안 몬스터가 멈추고 던지는 속도가 ${TG.fmtMult(P.timeThrowK)}배예요 (보스는 느려져요)` : '루비로 배워요. 잠깐 시간이 멈춰요') },
     { id: 'skDark', cur: 'ruby', name: '어둠장막', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 120 : Math.ceil(15 * 1.45 ** L)), desc: (L) => (L ? `${Math.round((P.darkTime + 0.2 * (L - 1)) * 10) / 10}초 동안 몬스터가 절반 속도가 되고 피해를 ${pct(0.25 + 0.015 * (L - 1))} 더 받아요` : '루비로 배워요. 어둠이 내려 몬스터가 느려져요') },
     { id: 'pig', cur: 'ruby', tab: 'pet', name: '황금 돼지', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 100 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `골드 +${pct(PET.pigGold(L))}, 몬스터 ${PET.pigEvery(L)}마리마다 동전을 뿜어요 (x${Math.round(PET.pigShower(L) * 10) / 10})` : '루비로 데려와요. 골드를 더 벌게 하고 가끔 동전을 뿜어요') },
     { id: 'mole', cur: 'ruby', tab: 'pet', name: '두더지 광부', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 120 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `${Math.round(PET.moleGap(L))}초마다 철광석을 캐요. 광산 철광석 +${pct(PET.moleOre(L))}, 광산 시간 +${Math.round(PET.moleTime(L) * 10) / 10}초` : '루비로 데려와요. 가만히 있어도 철광석을 캐 와요') },
@@ -661,13 +686,13 @@
     best: 1,
     board: new Array(P.maxSlots).fill(0),
     pos: [], // 물건마다 필드 안 위치 [x, y] (0..1). 화면만 쓴다
-    lv: { atk: 0, hp: 0, craft: 0, climb: 0, slots: 0, autoCraft: 0, autoMerge: 0, rAtk: 0, rGold: 0, fAtk: 0, fHp: 0, sDouble: 0, sGiant: 0, sGuard: 0, sRegen: 0, sGold: 0, sRuby: 0, sSap: 0, sSpeed: 0, sCraft: 0, sSkill: 0, skRain: 0, skRage: 0, autoSkill: 0, monkey: 0, hippo: 0, awaken: 0, bear: 0, dragon: 0, skShadow: 0, skBarrage: 0, autoShop: 0, pig: 0, mole: 0, skBolt: 0, skDark: 0, carFuel: 0, carGun: 0, carEngine: 0 },
+    lv: { atk: 0, hp: 0, craft: 0, climb: 0, slots: 0, autoCraft: 0, autoMerge: 0, rAtk: 0, rGold: 0, fAtk: 0, fHp: 0, sDouble: 0, sGiant: 0, sGuard: 0, sRegen: 0, sGold: 0, sRuby: 0, sSap: 0, sSpeed: 0, sCraft: 0, sSkill: 0, skRain: 0, skRage: 0, autoSkill: 0, monkey: 0, hippo: 0, awaken: 0, bear: 0, dragon: 0, skShadow: 0, skBarrage: 0, autoShop: 0, pig: 0, mole: 0, skBolt: 0, skDark: 0, skMeteor: 0, skTime: 0, carFuel: 0, carGun: 0, carEngine: 0 },
     story: { seen: {} }, // 본 이야기 장면
     volt: 0, // 볼트 (추격전에서 얻고 차를 키운다)
     chaseCd: 0,
     ab: {}, // 특수능력 id -> 레벨
     eng: [], // 각인: [{ tier, id }] 칸마다 (비면 null)
-    skStar: { rain: 0, rage: 0, shadow: 0, barrage: 0, bolt: 0, dark: 0 }, // 스킬 각성 별
+    skStar: { rain: 0, rage: 0, shadow: 0, barrage: 0, bolt: 0, dark: 0, meteor: 0, time: 0 }, // 스킬 각성 별
     relicStar: {}, // 유물 합성 별
     title: 'base', // 고른 칭호
     costume: 0, // 고른 코스튬
@@ -676,6 +701,7 @@
     defendTier: 0, // 방어전을 이긴 가장 높은 단계
     medals: 0, // 방어 메달 (방어전에서 얻고 코스튬을 산다)
     costumeBought: {}, // 메달로 산 코스튬
+    trip: { tier: -1, start: 0, runs: 0 }, // 원정: 떠난 종류(-1이면 없음), 떠난 시각(ms), 다녀온 횟수
     tower: { best: 0, day: 0, used: 0, runs: 0 }, // 끝없는 탑: 최고 층, 오늘 오른 횟수
     lands: {}, // 페이즈 번호 -> 첫 도착 선물을 받았는지
     abEquip: [], // 장착한 특수능력
@@ -690,7 +716,7 @@
     shards: 0,
     boss: 1, // 다음에 싸울 보스 번호
     bossCd: 0,
-    skillCd: { rain: 0, rage: 0, shadow: 0, barrage: 0, bolt: 0, dark: 0 },
+    skillCd: { rain: 0, rage: 0, shadow: 0, barrage: 0, bolt: 0, dark: 0, meteor: 0, time: 0 },
     autoSkillOn: true,
     shop: { offers: [], t: 0 },
     charges: P.craftMax,
@@ -744,6 +770,8 @@
         this.s.title = TG.TITLES.some((t) => t.id === save.title) ? save.title : 'base';
         this.s.costume = Math.max(0, Math.min(TG.COSTUMES.length - 1, Math.floor(Number(save.costume) || 0)));
         this.s.costumeBought = Object.fromEntries(Object.keys(TG.COSTUME_SHOP).filter((k) => (save.costumeBought || {})[k]).map((k) => [k, true]));
+        this.s.trip = { tier: Math.max(-1, Math.min(TG.TRIPS.length - 1, Math.floor(Number((save.trip || {}).tier)))) , start: Math.max(0, Number((save.trip || {}).start) || 0), runs: Math.max(0, Math.floor(Number((save.trip || {}).runs) || 0)) };
+        if (!Number.isFinite(this.s.trip.tier)) this.s.trip.tier = -1;
         this.s.tower = { best: Math.max(0, Math.floor(Number((save.tower || {}).best) || 0)), day: Math.max(0, Math.floor(Number((save.tower || {}).day) || 0)), used: Math.max(0, Math.floor(Number((save.tower || {}).used) || 0)), runs: Math.max(0, Math.floor(Number((save.tower || {}).runs) || 0)) };
         this.s.lands = Object.fromEntries(Object.keys(save.lands || {}).filter((k) => (save.lands || {})[k] && +k >= 2 && +k <= TG.THEMES.length).map((k) => [k, true]));
         const shop = save.shop && Array.isArray(save.shop.offers) ? save.shop : { offers: [], t: 0 };
@@ -873,7 +901,7 @@
       TG.ITEM_SETS.forEach((st, i) => {
         if (st.kind === kind && this.setDone[i]) n++;
       });
-      return n * P.setBonus;
+      return n * P.setBonus * (1 + this.rv('prism'));
     }
     get setAll() {
       return this.setDone.every(Boolean);
@@ -1079,7 +1107,7 @@
     landEvApply(ev) {
       const f = this.front();
       const hurtHero = (frac) => {
-        this.hero.hp -= this.bearHit(this.maxHp * frac);
+        this.hero.hp -= this.bearHit(this.maxHp * frac * (1 - this.rv('compass')));
         this.events.push({ type: 'hurt', dmg: 0 });
       };
       this.events.push({ type: 'land-ev', id: ev.id, x: f ? f.x : 120 });
@@ -1205,6 +1233,8 @@
       this.petQ = [];
       this.barrage = null;
       this.bolt = null;
+      this.meteor = null;
+      this.timeT = 0;
       if (this.mode === 'mine') {
         this.wave = P.waves;
         this.mineT = P.mineTime + (this.s.lv.mole ? PET.moleTime(this.s.lv.mole) : 0);
@@ -1242,7 +1272,7 @@
       }
       if (this.mode === 'boss') {
         this.wave = P.waves;
-        this.bossT = P.bossTime;
+        this.bossT = P.bossTime + this.rv('bell');
         this.spawnBoss();
         return;
       }
@@ -1384,16 +1414,88 @@
       this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind, pal: this.variant(), x, hp, max: hp, atk: tw ? this.towerAtk(0.7) : P.mobAtk(n), giant: false, minion: true, state: 'walk', t: this.rng(), atkT: 0, cd: 0, hurt: 0 });
     }
 
+    /* ---- 원정: 떠나 두면 시간이 지난 뒤 보상을 가져온다 (자리를 비워도 흐른다) ---- */
+    tripOpen() {
+      return this.s.best >= P.tripOpen;
+    }
+    tripSec(tier) {
+      return Math.round(TG.TRIPS[tier].sec * (1 - Math.min(0.5, this.rv('map'))));
+    }
+    tripActive() {
+      return this.s.trip.tier >= 0;
+    }
+    /* 남은 시간(초). 돌아왔으면 0 */
+    tripLeft() {
+      if (!this.tripActive()) return 0;
+      return Math.max(0, this.tripSec(this.s.trip.tier) - (TG.nowMs() - this.s.trip.start) / 1000);
+    }
+    tripReady() {
+      return this.tripActive() && this.tripLeft() <= 0;
+    }
+    startTrip(tier) {
+      if (!this.tripOpen() || this.tripActive() || !TG.TRIPS[tier]) return false;
+      this.s.trip.tier = tier;
+      this.s.trip.start = TG.nowMs();
+      this.events.push({ type: 'trip-start', tier });
+      return true;
+    }
+    /* 보상 미리 보기 (골드는 지금 최고 스테이지 기준) */
+    tripReward(tier) {
+      const t = TG.TRIPS[tier];
+      return {
+        gold: Math.ceil(P.mobGold(Math.max(1, this.s.best)) * t.goldK),
+        ruby: Math.round(t.ruby * this.rubyMult()),
+        shards: Math.round(t.shards * (1 + this.rv('pouch'))),
+        medals: t.medals,
+        sapphire: t.sapphire,
+      };
+    }
+    claimTrip() {
+      if (!this.tripReady()) return null;
+      const tier = this.s.trip.tier;
+      const t = TG.TRIPS[tier];
+      const r = this.tripReward(tier);
+      this.s.gold += r.gold;
+      this.s.ruby += r.ruby;
+      this.s.shards += r.shards;
+      this.s.medals += r.medals;
+      this.s.sapphire += r.sapphire;
+      this.s.stats.sapphire += r.sapphire;
+      /* 신비한 유물: 먼저 한 번, 큰 원정은 한 번 더 노려 본다 */
+      const got = [];
+      const tries = tier === 2 ? 2 : 1;
+      for (let k = 0; k < tries; k++) {
+        if (this.rng() >= (k === 0 ? t.relic : 0.3)) continue;
+        const pool = TG.RELICS.filter((x) => x.trip && (this.s.relics[x.id] || 0) < P.relicMax);
+        if (!pool.length) {
+          this.s.ruby += Math.round(r.ruby * 0.5);
+          r.ruby += Math.round(r.ruby * 0.5);
+          continue;
+        }
+        const x = pool[Math.floor(this.rng() * pool.length)];
+        this.s.relics[x.id] = (this.s.relics[x.id] || 0) + 1;
+        got.push({ id: x.id, lv: this.s.relics[x.id] });
+      }
+      this.s.trip.tier = -1;
+      this.s.trip.runs++;
+      this.refreshSets();
+      this.events.push({ type: 'trip-end', tier, ...r, got });
+      return { ...r, got };
+    }
+
     /* ---- 끝없는 탑: 층마다 몬스터가 세지는 한 판짜리 도전. 죽거나 한 층을 못 깨면 끝난다 ---- */
     towerUsedToday() {
       const t = this.s.tower;
       return t.day === TG.today() ? t.used : 0;
     }
+    towerExtraCost() {
+      return Math.max(10, P.towerExtraMedals - this.rv('ticket'));
+    }
     towerFreeLeft() {
       return Math.max(0, P.towerFree - this.towerUsedToday());
     }
     canTower() {
-      return this.mode === 'stage' && this.phase === 'fight' && this.s.best >= P.towerOpen && (this.towerFreeLeft() > 0 || this.s.medals >= P.towerExtraMedals);
+      return this.mode === 'stage' && this.phase === 'fight' && this.s.best >= P.towerOpen && (this.towerFreeLeft() > 0 || this.s.medals >= this.towerExtraCost());
     }
     /* 탑 몬스터의 한 대 피해: 주인공 체력에 비례한다 (몇 대 맞으면 쓰러지는지가 층으로 정해진다) */
     towerAtk(k = 1) {
@@ -1417,7 +1519,7 @@
         t.day = TG.today();
         t.used = 0;
       }
-      if (this.towerFreeLeft() <= 0) this.s.medals -= P.towerExtraMedals;
+      if (this.towerFreeLeft() <= 0) this.s.medals -= this.towerExtraCost();
       t.used++;
       t.runs++;
       this.mode = 'tower';
@@ -1477,7 +1579,7 @@
       const f = this.towerClear;
       const t = this.s.tower;
       const gain = Math.max(0, f - t.best);
-      const ruby = Math.round(f * P.towerRubyPerFloor * this.rubyMult());
+      const ruby = Math.round(f * P.towerRubyPerFloor * this.rubyMult() * (1 + this.rv('lamp')));
       const sapphire = Math.floor(gain * P.towerSapPerRecord) + Math.floor(f / P.towerSapPer);
       const medals = Math.floor(f / P.towerBossEvery);
       t.best = Math.max(t.best, f);
@@ -1530,7 +1632,7 @@
       this.s.ruby += ruby;
       this.s.gold += gold;
       this.s.defendCd = win ? P.defendCd : P.defendFailCd;
-      const medals = (win ? P.medalPerTier * this.defendLvl : 0) + Math.floor(kills / P.medalPerKills);
+      const medals = Math.floor(((win ? P.medalPerTier * this.defendLvl : 0) + Math.floor(kills / P.medalPerKills)) * (1 + this.rv('charm')));
       this.s.medals += medals;
       if (win) {
         this.s.stats.defends++;
@@ -1710,7 +1812,7 @@
       return st >= P.skStarLv.length ? null : { lv: P.skStarLv[st], cost: P.skStarCost[st] };
     }
     skLevel(id) {
-      return this.s.lv[{ rain: 'skRain', rage: 'skRage', shadow: 'skShadow', barrage: 'skBarrage', bolt: 'skBolt', dark: 'skDark' }[id]] || 0;
+      return this.s.lv[{ rain: 'skRain', rage: 'skRage', shadow: 'skShadow', barrage: 'skBarrage', bolt: 'skBolt', dark: 'skDark', meteor: 'skMeteor', time: 'skTime' }[id]] || 0;
     }
     awakenSkill(id) {
       const need = this.skNeed(id);
@@ -1758,12 +1860,12 @@
     /* ---- 유물 뽑기 ---- */
     relicPull(n = 1) {
       const cost = n >= 10 ? P.relicCost10 : P.relicCost * n;
-      if (!TG.RELICS.some((r) => (this.s.relics[r.id] || 0) < P.relicMax)) return { ok: false, why: 'max' };
+      if (!TG.RELICS.some((r) => !r.trip && (this.s.relics[r.id] || 0) < P.relicMax)) return { ok: false, why: 'max' };
       if (this.s.ruby < cost) return { ok: false, why: 'poor' };
       this.s.ruby -= cost;
       const got = [];
       for (let k = 0; k < n; k++) {
-        const pool = TG.RELICS.filter((r) => (this.s.relics[r.id] || 0) < P.relicMax);
+        const pool = TG.RELICS.filter((r) => !r.trip && (this.s.relics[r.id] || 0) < P.relicMax);
         if (!pool.length) {
           this.s.ruby += Math.floor(cost / n); /* 다 모았으면 남은 만큼 돌려준다 */
           continue;
@@ -1795,7 +1897,7 @@
       return st.ruby;
     }
     get claimable() {
-      return TG.ACHIEVE.filter((a) => this.achState(a.id).ready).length + this.landsReady();
+      return TG.ACHIEVE.filter((a) => this.achState(a.id).ready).length + this.landsReady() + (this.tripReady() ? 1 : 0);
     }
 
     /* ---- 땅 첫 도착 선물: 2~12페이즈에 처음 닿으면 한 번만 ---- */
@@ -1828,12 +1930,12 @@
       return 1 + 0.35 * this.skStar(id);
     }
     skillReady(id) {
-      const need = { shadow: 'skShadow', barrage: 'skBarrage', bolt: 'skBolt', dark: 'skDark' }[id];
+      const need = { shadow: 'skShadow', barrage: 'skBarrage', bolt: 'skBolt', dark: 'skDark', meteor: 'skMeteor', time: 'skTime' }[id];
       if (need && !this.s.lv[need]) return false;
       return this.phase === 'fight' && this.s.skillCd[id] <= 0 && this.mobs.length > 0;
     }
     skillCdOf(id) {
-      return { rain: P.rainCd, rage: P.rageCd, shadow: P.shadowCd, barrage: P.barrageCd, bolt: P.boltCd, dark: P.darkCd }[id] * (1 - this.rv('sand')) * (1 - P.skStarCd * this.skStar(id)) * (1 - P.sSkillStep * this.s.lv.sSkill);
+      return { rain: P.rainCd, rage: P.rageCd, shadow: P.shadowCd, barrage: P.barrageCd, bolt: P.boltCd, dark: P.darkCd, meteor: P.meteorCd, time: P.timeCd }[id] * (1 - this.rv('sand')) * (1 - P.skStarCd * this.skStar(id)) * (1 - P.sSkillStep * this.s.lv.sSkill);
     }
     useSkill(id) {
       if (!this.skillReady(id)) return false;
@@ -1858,6 +1960,20 @@
         const n = 5 + Math.floor((L - 1) / 5);
         this.bolt = { left: n, t: 0, gap: 0.9 / n, dmg: TG.tierAtk(top) * this.atkMult * (1.5 + 0.08 * (L - 1)) * this.starMult('bolt') };
         this.s.skillCd.bolt = this.skillCdOf('bolt');
+      } else if (id === 'meteor') {
+        const L = this.s.lv.skMeteor;
+        const n = 4 + Math.floor((L - 1) / 6);
+        this.meteor = { left: n, t: 0.35, gap: 1.1 / n, dmg: TG.tierAtk(top) * this.atkMult * (2 + 0.1 * (L - 1)) * this.starMult('meteor') };
+        this.s.skillCd.meteor = this.skillCdOf('meteor');
+      } else if (id === 'time') {
+        const L = this.s.lv.skTime;
+        this.timeT = P.timeStopSec + 0.1 * (L - 1) + 0.5 * this.skStar('time');
+        for (const m of this.mobs) {
+          m.st = m.st || {};
+          if (m.boss) m.st.slow = Math.max(m.st.slow || 0, this.timeT);
+          else m.st.stun = Math.max(m.st.stun || 0, this.timeT);
+        }
+        this.s.skillCd.time = this.skillCdOf('time');
       } else if (id === 'dark') {
         this.darkT = P.darkTime + 0.2 * (this.s.lv.skDark - 1) + this.skStar('dark');
         this.s.skillCd.dark = this.skillCdOf('dark');
@@ -1874,6 +1990,24 @@
     tickSkills(dt) {
       for (const k of TG.SKILLS) if (this.s.skillCd[k] > 0) this.s.skillCd[k] = Math.max(0, this.s.skillCd[k] - dt);
       if (this.rageT > 0) this.rageT -= dt;
+      if (this.timeT > 0) {
+        this.timeT -= dt;
+        if (this.timeT <= 0) this.events.push({ type: 'time-end' });
+      }
+      if (this.meteor) {
+        this.meteor.t -= dt;
+        while (this.meteor && this.meteor.t <= 0 && this.mobs.length) {
+          const f = this.front();
+          const m = f && this.rng() < 0.6 ? f : this.mobs[Math.floor(this.rng() * this.mobs.length)];
+          this.events.push({ type: 'meteor-skill', x: m.x });
+          this.hitMob(m, this.meteor.dmg, { meteor: true });
+          if (!this.meteor) break;
+          this.meteor.left--;
+          this.meteor.t += this.meteor.gap;
+          if (this.meteor.left <= 0) this.meteor = null;
+        }
+        if (this.meteor && !this.mobs.length) this.meteor = null;
+      }
       if (this.darkT > 0) {
         this.darkT -= dt;
         if (this.darkT <= 0) this.events.push({ type: 'dark-end' });
@@ -1977,7 +2111,7 @@
     offlineGold(sec) {
       const t = Math.min(P.offlineMax, Math.max(0, sec));
       const perStage = P.mobGold(this.s.stage) * (P.waves * P.mobsPerWave + P.giantGold) * this.goldMult;
-      return Math.floor((perStage / 32) * t * P.offlineRate);
+      return Math.floor((perStage / 32) * t * P.offlineRate * (1 + this.rv('sprout')));
     }
 
     nextWave() {
@@ -2242,7 +2376,7 @@
       const gold = Math.ceil(P.mobGold(n) * (m.giant ? P.giantGold : 1) * this.goldMult);
       this.s.gold += gold;
       this.s.stats.kills++;
-      if (this.rng() < P.sapDrop * (m.giant ? P.sapGiantK : 1) * this.landMod('sap') * (1 + P.sSapStep * this.s.lv.sSap)) {
+      if (this.rng() < P.sapDrop * (m.giant ? P.sapGiantK : 1) * this.landMod('sap') * (1 + P.sSapStep * this.s.lv.sSap + this.rv('mushroom'))) {
         this.s.sapphire++;
         this.s.stats.sapphire++;
         this.events.push({ type: 'sapphire', x: m.x });
@@ -2535,7 +2669,7 @@
           if (this.reloadT <= 0) {
             this.queue = this.boardTiers();
             const rage = this.raging ? 0.5 : 1;
-            const fast = (rage * (1 - this.rv('shoes')) * (this.mode === 'chase' ? P.chaseSpeed : 1)) / (this.landMod('thr') * (1 + P.sSpeedStep * this.s.lv.sSpeed));
+            const fast = (rage * (1 - this.rv('shoes')) * (this.mode === 'chase' ? P.chaseSpeed : 1)) / (this.landMod('thr') * (1 + P.sSpeedStep * this.s.lv.sSpeed) * (this.timeT > 0 ? P.timeThrowK : 1));
             this.gap = Math.min(P.throwGap * fast, (P.volley * fast) / Math.max(1, this.queue.length));
             this.throwT = 0;
           }
@@ -2609,6 +2743,6 @@
   };
 
   TG.Game = Game;
-  TG.SKILLS = ['rain', 'rage', 'shadow', 'barrage', 'bolt', 'dark'];
+  TG.SKILLS = ['rain', 'rage', 'shadow', 'barrage', 'bolt', 'dark', 'meteor', 'time'];
   TG.roundFix = roundFix;
 })(globalThis);

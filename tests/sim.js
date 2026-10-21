@@ -313,7 +313,8 @@ function testV05() {
   const atk0 = g.atkMult;
   g.s.ruby = 1e6;
   for (let k = 0; k < 30; k++) g.relicPull(10);
-  assert(TG.RELICS.every((r) => g.s.relics[r.id] === TG.P.relicMax), '300번이면 다 모인다');
+  assert(TG.RELICS.filter((r) => !r.trip).every((r) => g.s.relics[r.id] === TG.P.relicMax), '300번이면 다 모인다');
+  assert(TG.RELICS.filter((r) => r.trip).every((r) => !g.s.relics[r.id]), '원정 유물은 뽑기에 안 나온다');
   assert.strictEqual(g.relicPull(1).why, 'max');
   assert(g.atkMult > atk0 * 1.5, '장갑과 왕관');
   const re = new TG.Game(JSON.parse(JSON.stringify(g.snapshot())), seeded(1));
@@ -1260,6 +1261,106 @@ function testV25() {
   assert.strictEqual(have('tree'), true);
   assert(new Set(TG.TITLES.map((t) => t.id)).size === TG.TITLES.length, '칭호 이름 겹침 없음');
 }
+function testV26() {
+  /* 원정: 열리는 조건, 시간이 지나야 받고, 보상과 신비한 유물 */
+  const realNow = TG.nowMs;
+  let now = 1e12;
+  TG.nowMs = () => now;
+  const g = new TG.Game(null, seeded(260));
+  assert.strictEqual(g.tripOpen(), false);
+  assert.strictEqual(g.startTrip(0), false, '100 전에는 잠김');
+  g.s.best = 200;
+  assert.strictEqual(g.startTrip(9), false, '없는 종류');
+  assert.strictEqual(g.startTrip(1), true);
+  assert.strictEqual(g.startTrip(0), false, '한 번에 하나');
+  assert.strictEqual(g.tripReady(), false);
+  assert.strictEqual(g.claimTrip(), null, '아직 안 왔다');
+  assert(Math.abs(g.tripLeft() - TG.TRIPS[1].sec) < 1);
+  now += TG.TRIPS[1].sec * 1000 - 5000;
+  assert.strictEqual(g.tripReady(), false);
+  now += 6000;
+  assert.strictEqual(g.tripReady(), true);
+  assert(g.claimable >= 1, '임무 점');
+  const ruby0 = g.s.ruby;
+  const med0 = g.s.medals;
+  const res = g.claimTrip();
+  assert(res && res.ruby > 0 && res.gold > 0);
+  assert.strictEqual(g.s.ruby - ruby0 >= res.ruby, true);
+  assert.strictEqual(g.s.medals - med0, TG.TRIPS[1].medals);
+  assert.strictEqual(g.tripActive(), false);
+  assert.strictEqual(g.s.trip.runs, 1);
+  assert.strictEqual(g.claimTrip(), null, '두 번 못 받는다');
+  /* 지도는 시간을 줄인다 (최대 절반) */
+  g.s.relics.map = 100;
+  assert.strictEqual(g.tripSec(0), Math.round(TG.TRIPS[0].sec * 0.5));
+  g.s.relics.map = 0;
+  /* 큰 원정은 유물이 나올 때까지 모아 보면 원정 유물만 나온다 */
+  const h = new TG.Game(null, seeded(261));
+  h.s.best = 200;
+  for (let k = 0; k < 80; k++) {
+    h.startTrip(2);
+    now += TG.TRIPS[2].sec * 1000 + 1;
+    h.claimTrip();
+  }
+  const tripRelics = TG.RELICS.filter((r) => r.trip);
+  assert(tripRelics.length === 9);
+  assert(tripRelics.every((r) => h.s.relics[r.id] === TG.P.relicMax), '원정으로 유물이 다 모인다');
+  assert(TG.RELICS.filter((r) => !r.trip).every((r) => !h.s.relics[r.id]), '뽑기 유물은 안 나온다');
+  /* 효과 */
+  const k = new TG.Game(null, seeded(262));
+  k.s.best = 200;
+  k.s.relics.ticket = 5;
+  assert.strictEqual(k.towerExtraCost(), 20);
+  k.s.relics.ticket = 10;
+  assert.strictEqual(k.towerExtraCost(), 10, '최소 10');
+  k.s.relics.bell = 4;
+  k.mode = 'boss';
+  k.startStage();
+  assert.strictEqual(k.bossT, TG.P.bossTime + 2);
+  k.mode = 'stage';
+  const off0 = k.offlineGold(600);
+  k.s.relics.sprout = 10;
+  assert(k.offlineGold(600) > off0 * 1.9, '낮잠 새싹');
+  k.s.seen.fill(true);
+  k.refreshSets();
+  const sp0 = k.setPct('atk');
+  k.s.relics.prism = 10;
+  assert(Math.abs(k.setPct('atk') - sp0 * 1.5) < 1e-9, '프리즘 +50%');
+  k.s.relics.compass = 100;
+  assert(Math.abs(k.rv('compass') - 0.6) < 1e-9, '나침반 최대 60%');
+  TG.nowMs = realNow;
+  /* 스킬: 유성 소환과 시간 정지 */
+  const s = new TG.Game(null, seeded(263));
+  s.s.best = 100;
+  s.s.stage = 30;
+  s.startStage();
+  s.s.board[0] = 20;
+  assert.strictEqual(s.skillReady('meteor'), false, '배우기 전');
+  assert.strictEqual(s.skillReady('time'), false);
+  s.s.ruby = 1e5;
+  assert(s.buy('skMeteor') && s.buy('skTime'));
+  for (let q = 0; q < 3; q++) s.mobs.push({ id: 700 + q, kind: 'slime', hp: 1e15, max: 1e15, atk: 1, x: 120 + q * 10, state: 'idle', cd: 9, t: 0, atkT: 0, hurt: 0 });
+  assert.strictEqual(s.skillReady('meteor'), true);
+  s.useSkill('meteor');
+  assert(s.meteor && s.meteor.left >= 4);
+  let hits = 0;
+  for (let q = 0; q < 200; q++) {
+    s.tickSkills(0.05);
+    hits += s.events.filter((e) => e.type === 'meteor-skill').length;
+    s.events.length = 0;
+  }
+  assert(hits >= 4, '유성이 떨어진다');
+  assert(s.s.skillCd.meteor > 0);
+  s.useSkill('time');
+  assert(s.timeT >= TG.P.timeStopSec);
+  assert(s.mobs.every((m) => m.st && m.st.stun >= TG.P.timeStopSec - 0.01), '몬스터가 멈춘다');
+  assert(s.landMod('mobSpd') === 1);
+  assert.strictEqual(TG.SKILLS.length, 8);
+  /* 저장 */
+  const s2 = new TG.Game(JSON.parse(JSON.stringify(s.snapshot())), seeded(264));
+  assert.strictEqual(s2.s.lv.skTime, 1);
+  assert('meteor' in s2.s.skStar && 'time' in s2.s.skillCd);
+}
 function testV12() {
   /* 150단계까지 이름이 있고, 150 을 둘 합치면 별이 붙는다 (151 = ★1) */
   assert.strictEqual(TG.ITEMS.length, 150);
@@ -1482,6 +1583,7 @@ if (process.argv.includes('--pace')) {
   testV21();
   testV22();
   testV25();
+  testV26();
   testStory();
   console.log('\nall tests passed');
 }

@@ -241,6 +241,18 @@
   }
 
   /* 땅 사건: 곧 일어날 일 알리기(경고)와 지금 걸린 상태의 화면 덮개 */
+  /* 시간 정지가 걸려 있는 동안 화면이 푸르게 얼어붙는다 (어느 모드에서나) */
+  function timeOverlay(game) {
+    if (!(game.timeT > 0)) return;
+    ctx.fillStyle = 'rgba(150,200,255,0.13)';
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = 'rgba(220,240,255,0.85)';
+    for (let i = 0; i < 10; i++) {
+      const x = (i * 53 + 17) % W;
+      const y = (((i * 31 + clock * 6) % H) + H) % H;
+      ctx.fillRect(Math.round(x), Math.round(y), 1, 1);
+    }
+  }
   function eventOverlay(game) {
     if (game.mode !== 'stage' && game.mode !== 'boss') return;
     const ev = TG.LAND_EVENTS[game.mapIndex()];
@@ -588,6 +600,18 @@
       case 'tower-floor':
         if (e.f % P.towerBossEvery === 0) addBanner(`탑 ${e.f}층`, '보스', '#ff9ac8');
         break;
+      case 'meteor-skill': {
+        for (let q = 0; q < 14; q++) {
+          const k = q / 13;
+          spawnPart({ x: e.x - 70 + 70 * k, y: -20 + (GROUND - 12) * k, life: 0.12 + 0.2 * (1 - k), color: q % 3 === 0 ? '#ffffff' : q % 3 === 1 ? '#ffd04a' : '#ff7a3a', size: 2 - (q > 9 ? 0 : 1), a: 0.9 });
+        }
+        addFx('fireBurst', e.x, GROUND - 6, 0.5, 2);
+        burst(e.x, GROUND - 6, 14, { speed: 90, up: 40, g: 160, life: 0.6, colors: ['#ff7a3a', '#ffd04a', '#ffffff', '#c8bfa8'], bounce: 0.3, size: 2 });
+        spawnPart({ x: e.x, y: GROUND - 1, life: 0.4, shape: 'ring', size: 3, grow: 22, color: '#ffb13a', a: 0.8 });
+        shake = Math.max(shake, 0.22);
+        hitStop = Math.max(hitStop, 0.03);
+        break;
+      }
       case 'bolt':
         addFx('boltStrike', e.x, GROUND, 0.3);
         shake = Math.max(shake, 0.12);
@@ -651,6 +675,13 @@
           flashColor = '255,240,200';
         } else if (e.id === 'dark') {
           burst(W / 2, GROUND - 30, 24, { speed: 30, g: -6, life: 1.0, colors: ['#5a2a8a', '#2a1048', '#8a5aff'], drag: 1, size: 2, a: 0.7, spread: 120 });
+        } else if (e.id === 'time') {
+          spawnPart({ x: W / 2, y: GROUND - 30, life: 0.7, shape: 'ring', size: 4, grow: 80, color: '#9fd8ff', a: 0.8 });
+          burst(W / 2, GROUND - 30, 22, { speed: 60, life: 0.9, colors: ['#cfeaff', '#9fd8ff', '#ffffff'], drag: 2, spread: 140 });
+          flash = Math.max(flash, 0.16);
+          flashColor = '170,215,255';
+        } else if (e.id === 'meteor') {
+          burst(P.heroX + 8, GROUND - 24, 8, { speed: 50, arc: [-1.2, -0.2], life: 0.4, colors: ['#ffd04a', '#ff7a3a'], drag: 2 });
         } else if (e.id === 'barrage') {
           burst(cx + 10, GROUND - 24, 10, { speed: 80, arc: [-0.5, 0.3], life: 0.25, colors: ['#ffffff', '#ffe9a0'], shape: 'streak', drag: 2 });
         }
@@ -1027,6 +1058,7 @@
         ctx.globalAlpha = 1;
       }
     }
+    timeOverlay(game);
     eventOverlay(game);
 
     /* 떠오르는 글자 */

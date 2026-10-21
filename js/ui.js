@@ -292,7 +292,7 @@
       btn.classList.toggle('ready', ready);
     };
     for (const [id, btn, lv] of SKILL_BTN) {
-      const on = id === 'rage' ? game.raging : id === 'shadow' ? game.shadowT > 0 : id === 'barrage' ? !!game.barrage : id === 'dark' ? game.darkT > 0 : id === 'bolt' ? !!game.bolt : false;
+      const on = id === 'rage' ? game.raging : id === 'shadow' ? game.shadowT > 0 : id === 'barrage' ? !!game.barrage : id === 'dark' ? game.darkT > 0 : id === 'bolt' ? !!game.bolt : id === 'meteor' ? !!game.meteor : id === 'time' ? game.timeT > 0 : false;
       cdView($(btn), on ? 0 : game.s.skillCd[id], game.skillCdOf(id), game.skillReady(id));
       $(btn).classList.toggle('on', on);
       $(btn).classList.toggle('locked', !!lv && !game.s.lv[lv]);
@@ -366,10 +366,12 @@
     ['barrage', '#skBarrage', 'skBarrage'],
     ['bolt', '#skBolt', 'skBolt'],
     ['dark', '#skDark', 'skDark'],
+    ['meteor', '#skMeteor', 'skMeteor'],
+    ['time', '#skTime', 'skTime'],
   ];
 
   /* ---- 강화 판 ---- */
-  const UP_ICON = { atk: 'atk', hp: 'hp', craft: 'craftLv', climb: 'climb', slots: 'slots', autoCraft: 'autoCraft', autoMerge: 'autoMerge', rAtk: 'atk', rGold: 'coin', skRain: 'skillRain', skRage: 'skillRage', autoSkill: 'autoSkill', monkey: 'monkey', hippo: 'hippo', awaken: 'awaken', bear: 'bear', dragon: 'dragon', skShadow: 'skillShadow', skBarrage: 'skillBarrage', autoShop: 'autoShop', pig: 'pig', mole: 'mole', skBolt: 'skillBolt', skDark: 'skillDark', carFuel: 'car', carGun: 'chase', carEngine: 'volt', fAtk: 'atk', fHp: 'hp', sDouble: 'awaken', sGiant: 'boss', sGuard: 'hp', sRegen: 'hp', sGold: 'coin', sRuby: 'ruby', sSap: 'sapphire', sSpeed: 'skillRage', sCraft: 'craftLv', sSkill: 'skillBolt' };
+  const UP_ICON = { atk: 'atk', hp: 'hp', craft: 'craftLv', climb: 'climb', slots: 'slots', autoCraft: 'autoCraft', autoMerge: 'autoMerge', rAtk: 'atk', rGold: 'coin', skRain: 'skillRain', skRage: 'skillRage', autoSkill: 'autoSkill', monkey: 'monkey', hippo: 'hippo', awaken: 'awaken', bear: 'bear', dragon: 'dragon', skShadow: 'skillShadow', skBarrage: 'skillBarrage', autoShop: 'autoShop', pig: 'pig', mole: 'mole', skBolt: 'skillBolt', skDark: 'skillDark', skMeteor: 'skillMeteor', skTime: 'skillTime', carFuel: 'car', carGun: 'chase', carEngine: 'volt', fAtk: 'atk', fHp: 'hp', sDouble: 'awaken', sGiant: 'boss', sGuard: 'hp', sRegen: 'hp', sGold: 'coin', sRuby: 'ruby', sSap: 'sapphire', sSpeed: 'skillRage', sCraft: 'craftLv', sSkill: 'skillBolt' };
   const CUR = {
     gold: { icon: 'coin', cls: '', title: '골드 강화' },
     ruby: { icon: 'ruby', cls: 'ruby', title: '루비 강화 · 보스와 거대 몬스터에게서 얻어요' },
@@ -597,7 +599,7 @@
     for (const r of TG.RELICS) grid.append(el('div', { class: 'relic', 'data-relic': r.id }, [relicIcon(r.id), el('div', {}, [el('div', { class: 'nm' }, [r.name, el('small')]), el('div', { class: 'ds' }), el('div', { class: 'ln', text: TG.RELIC_LINES[r.id] || '' }), el('button', { type: 'button', class: 'fz', hidden: true, onclick: () => { ui.fuseId = r.id; buildFuse(r.id); } }, [uiIcon('fuse'), ' 합성'])])]));
     body.replaceChildren(
       segBar(),
-      el('p', { class: 'note' }, ['루비로 유물 20종 중 하나를 뽑아요. 같은 것이 또 나오면 레벨이 올라요 (최대 ', String(P.relicMax), '). 다 모은 유물은 안 나와요.']),
+      el('p', { class: 'note' }, [`루비로 유물 ${TG.RELICS.filter((r) => !r.trip).length}종 중 하나를 뽑아요. 같은 것이 또 나오면 레벨이 올라요 (최대 ${P.relicMax}). 다 모은 유물은 안 나와요. 아래쪽 신비한 유물은 원정에서만 얻어요.`]),
       el('div', { class: 'pull' }, [
         el('button', { type: 'button', id: 'pull1', onclick: () => pull(1) }, [uiIcon('ruby'), `${P.relicCost} 한 번`]),
         el('button', { type: 'button', id: 'pull10', onclick: () => pull(10) }, [uiIcon('ruby'), `${P.relicCost10} 열 번`]),
@@ -619,7 +621,7 @@
       row.classList.toggle('max', L >= P.relicMax);
       const star = game.s.relicStar[r.id] || 0;
       row.querySelector('small').textContent = L ? (L >= P.relicMax ? `최대${star ? ` ${'★'.repeat(star)}` : ''}` : `Lv ${L}`) : '';
-      row.querySelector('.ds').textContent = L ? r.desc(game.rv(r.id)) : `?? (Lv1: ${r.desc(r.v(1))})`;
+      row.querySelector('.ds').textContent = L ? r.desc(game.rv(r.id)) : r.trip ? `원정에서 얻어요 (Lv1: ${r.desc(r.v(1))})` : `?? (Lv1: ${r.desc(r.v(1))})`;
       const fz = row.querySelector('.fz');
       fz.hidden = !(L >= P.relicMax && star < P.relicStarMax);
       fz.disabled = game.s.ruby < P.relicFuseCost[star];
@@ -678,7 +680,7 @@
       el('button', { type: 'button', class: seg === 'quest' ? 'on' : '', text: '임무', onclick: () => { ui.questSeg = 'quest'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'dex' ? 'on' : '', text: '물건', onclick: () => { ui.questSeg = 'dex'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'boss' ? 'on' : '', text: '보스', onclick: () => { ui.questSeg = 'boss'; buildQuest(); } }),
-      el('button', { type: 'button', class: seg === 'tower' ? 'on' : '', text: '탑', onclick: () => { ui.questSeg = 'tower'; buildQuest(); } }),
+      el('button', { type: 'button', class: seg === 'tower' ? 'on' : '', text: '도전', onclick: () => { ui.questSeg = 'tower'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'land' ? 'on' : '', text: '땅', onclick: () => { ui.questSeg = 'land'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'title' ? 'on' : '', text: '칭호', onclick: () => { ui.questSeg = 'title'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'story' ? 'on' : '', text: '이야기', onclick: () => { ui.questSeg = 'story'; buildQuest(); } }),
@@ -899,12 +901,14 @@
     const free = game.towerFreeLeft();
     const running = game.mode === 'tower';
     const can = game.canTower();
-    const label = running ? '오르는 중' : !open ? `최고 스테이지 ${P.towerOpen}부터` : free > 0 ? '오늘의 도전' : `메달 ${P.towerExtraMedals}개로 한 번 더`;
+    const label = running ? '오르는 중' : !open ? `최고 스테이지 ${P.towerOpen}부터` : free > 0 ? '오늘의 도전' : `메달 ${game.towerExtraCost()}개로 한 번 더`;
     const go = el('button', { type: 'button', class: 'towergo', text: label, ...(can ? {} : { disabled: '' }), onclick: () => startTowerUi() });
     const stop = running ? el('button', { type: 'button', class: 'towerstop', text: '그만두기', onclick: () => { game.towerEnd(); handleEvents(); updateHud(); save(); buildTower(); } }) : null;
     $('#sheetBody').replaceChildren(
       questSeg(),
       el('p', { class: 'note', text: '끝없는 탑에서는 층마다 몬스터가 세져요. 5층마다 보스가 서요. 쓰러지거나 한 층을 45초 안에 못 깨면 끝나요.' }),
+      tripCard(),
+      el('p', { class: 'sec' }, [uiIcon('boss'), ' 끝없는 탑']),
       el('div', { class: 'sto tower' }, [
         el('div', { class: 'nm', text: `최고 ${t.best}층` }),
         el('div', { class: 'ln', text: running ? `지금 ${game.towerF}층` : `오늘 남은 도전 ${free}번 · 지금까지 ${t.runs}번 올랐어요` }),
@@ -913,6 +917,48 @@
         stop,
       ]),
     );
+  }
+  /* ---- 원정: 떠나 두면 시간이 지난 뒤 보상이 와요 ---- */
+  function tripCard() {
+    const game = ui.game;
+    const t = game.s.trip;
+    const open = game.tripOpen();
+    const box = el('div', { class: 'sto trip' });
+    box.append(el('div', { class: 'nm', text: `원정${t.runs ? ` · 다녀온 횟수 ${t.runs}` : ''}` }));
+    if (!open) {
+      box.append(el('div', { class: 'ln', text: `최고 스테이지 ${P.tripOpen}부터 열려요.` }));
+    } else if (game.tripActive()) {
+      const left = game.tripLeft();
+      const tr = TG.TRIPS[t.tier];
+      box.append(el('div', { class: 'ln', text: left > 0 ? `${tr.name} 중 · 남은 시간 ${TG.fmtTime(left)}` : `${tr.name}에서 돌아왔어요.` }));
+      box.append(el('button', { type: 'button', class: 'towergo', text: left > 0 ? '가는 중' : '보상 받기', ...(left > 0 ? { disabled: '' } : {}), onclick: () => claimTripUi() }));
+    } else {
+      box.append(el('div', { class: 'ln', text: '보내 두면 자리를 비워도 시간이 흘러요. 신비한 유물이 나올 때가 있어요.' }));
+      TG.TRIPS.forEach((tr, i) => {
+        const r = game.tripReward(i);
+        box.append(
+          el('div', { class: 'ln trip-row' }, [
+            el('span', { text: `${tr.name} · ${TG.fmtTime(game.tripSec(i))}` }),
+            el('small', { text: `골드 ${TG.fmt(r.gold)} · 루비 ${r.ruby}${r.sapphire ? ` · 사파이어 ${r.sapphire}` : ''} · 메달 ${r.medals} · 유물 ${Math.round(tr.relic * 100)}%` }),
+            el('button', { type: 'button', text: '떠나기', onclick: () => startTripUi(i) }),
+          ]),
+        );
+      });
+    }
+    return box;
+  }
+  function startTripUi(i) {
+    if (!ui.game.startTrip(i)) return;
+    handleEvents();
+    save();
+    buildTower();
+  }
+  function claimTripUi() {
+    if (!ui.game.claimTrip()) return;
+    handleEvents();
+    updateHud();
+    save();
+    buildTower();
   }
   function startTowerUi() {
     const game = ui.game;
@@ -1084,9 +1130,9 @@
   }
 
   /* ---- v0.7: 각인, 스킬 각성, 유물 합성, 칭호와 코스튬 ---- */
-  const SKILL_NAME = { rain: '쏟아지기', rage: '분노', shadow: '그림자 분신', barrage: '난사', bolt: '뇌전', dark: '어둠장막' };
-  const SKILL_ICON = { rain: 'skillRain', rage: 'skillRage', shadow: 'skillShadow', barrage: 'skillBarrage', bolt: 'skillBolt', dark: 'skillDark' };
-  const STAR_NOTE = { rain: '피해 +35%', rage: '지속 +2초, 배율 +0.2', shadow: '피해 +35%, 지속 +2초', barrage: '피해 +35%', bolt: '피해 +35%', dark: '지속 +1초, 받는 피해 +5%' };
+  const SKILL_NAME = { rain: '쏟아지기', rage: '분노', shadow: '그림자 분신', barrage: '난사', bolt: '뇌전', dark: '어둠장막', meteor: '유성 소환', time: '시간 정지' };
+  const SKILL_ICON = { rain: 'skillRain', rage: 'skillRage', shadow: 'skillShadow', barrage: 'skillBarrage', bolt: 'skillBolt', dark: 'skillDark', meteor: 'skillMeteor', time: 'skillTime' };
+  const STAR_NOTE = { rain: '피해 +35%', rage: '지속 +2초, 배율 +0.2', shadow: '피해 +35%, 지속 +2초', barrage: '피해 +35%', bolt: '피해 +35%', dark: '지속 +1초, 받는 피해 +5%', meteor: '피해 +35%', time: '정지 +0.5초' };
 
   function abSegBar() {
     const seg = ui.abSeg || 'ab';
@@ -1537,6 +1583,15 @@
           toast(null, `코스튬 · ${TG.COSTUMES[e.i]}`, '칭호 탭에서 골라 입어요.');
           sfx.discover();
           break;
+        case 'trip-start':
+          toast(null, `${TG.TRIPS[e.tier].name} 출발`, '시간이 지나면 보상을 받으러 와요.');
+          break;
+        case 'trip-end': {
+          const names = e.got.map((x) => TG.RELICS.find((r) => r.id === x.id).name);
+          toast(null, `${TG.TRIPS[e.tier].name} 보상`, `루비 +${e.ruby}, 메달 +${e.medals}${e.sapphire ? `, 사파이어 +${e.sapphire}` : ''}${names.length ? `, ${names.join(' · ')}` : ''}`);
+          sfx.discover();
+          break;
+        }
         case 'tower-floor':
           if (e.f % P.towerBossEvery === 0) toast(null, `탑 ${e.f}층 · 보스`, '특성이 있는 보스가 서 있어요.');
           break;
@@ -1719,7 +1774,7 @@
     document.addEventListener('visibilitychange', save);
     setInterval(save, 4000);
 
-    for (const [id, name] of [['goldIcon', 'coin'], ['craftIcon', 'craft'], ['upIcon', 'atk'], ['dexIcon', 'dex'], ['setIcon', 'stage'], ['countIcon', 'slots'], ['meAtkIcon', 'atk'], ['rubyIcon', 'ruby'], ['sapIcon', 'sapphire'], ['skRainIcon', 'skillRain'], ['skRageIcon', 'skillRage'], ['bossIcon', 'boss'], ['shopIcon', 'shop'], ['offIcon', 'offline'], ['petIcon', 'pets'], ['mineIcon', 'mine'], ['skShadowIcon', 'skillShadow'], ['skBarrageIcon', 'skillBarrage'], ['questIcon', 'quest'], ['skBoltIcon', 'skillBolt'], ['skDarkIcon', 'skillDark'], ['chaseIcon', 'chase'], ['abIcon', 'ability'], ['defendIcon', 'defend']]) {
+    for (const [id, name] of [['goldIcon', 'coin'], ['craftIcon', 'craft'], ['upIcon', 'atk'], ['dexIcon', 'dex'], ['setIcon', 'stage'], ['countIcon', 'slots'], ['meAtkIcon', 'atk'], ['rubyIcon', 'ruby'], ['sapIcon', 'sapphire'], ['skRainIcon', 'skillRain'], ['skRageIcon', 'skillRage'], ['bossIcon', 'boss'], ['shopIcon', 'shop'], ['offIcon', 'offline'], ['petIcon', 'pets'], ['mineIcon', 'mine'], ['skShadowIcon', 'skillShadow'], ['skBarrageIcon', 'skillBarrage'], ['questIcon', 'quest'], ['skBoltIcon', 'skillBolt'], ['skDarkIcon', 'skillDark'], ['skMeteorIcon', 'skillMeteor'], ['skTimeIcon', 'skillTime'], ['chaseIcon', 'chase'], ['abIcon', 'ability'], ['defendIcon', 'defend']]) {
       const slot = document.getElementById(id);
       if (slot) slot.replaceWith(Object.assign(uiIcon(name), { id }));
     }
