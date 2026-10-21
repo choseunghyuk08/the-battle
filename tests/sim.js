@@ -497,9 +497,10 @@ function testV07() {
   assert.strictEqual(d.startDefend(), false, '처음엔 잠김');
   d.s.stage = d.s.best = 50;
   d.startStage();
-  d.s.board.fill(20, 0, 8);
-  d.s.lv.hp = 60;
-  d.s.lv.atk = 60;
+  d.s.board.fill(25, 0, 14);
+  d.s.lv.hp = 120;
+  d.s.lv.fHp = 20;
+  d.s.lv.atk = 200;
   assert(d.startDefend());
   assert.strictEqual(d.mode, 'defend');
   let maxMobs = 0;
@@ -694,9 +695,10 @@ function testV08() {
     d.s.stage = d.s.best = 50;
     d.s.defendTier = tier;
     d.startStage();
-    d.s.board.fill(20, 0, 8);
+    d.s.board.fill(25, 0, 14);
     d.s.lv.hp = 80;
-    d.s.lv.atk = 80;
+    d.s.lv.fHp = 40;
+    d.s.lv.atk = 200;
     assert(d.startDefend());
     const first = d.events.find((x) => x.type === 'defend-start');
     let hp0 = 0;
@@ -822,9 +824,10 @@ function testV09() {
   const d = new TG.Game(null, seeded(101));
   d.s.stage = d.s.best = 50;
   d.startStage();
-  d.s.board.fill(20, 0, 8);
+  d.s.board.fill(25, 0, 14);
   d.s.lv.hp = 80;
-  d.s.lv.atk = 80;
+  d.s.lv.fHp = 40;
+  d.s.lv.atk = 200;
   assert(d.startDefend());
   let end = null;
   for (let t = 0; t < 60 && !end; t += 0.05) {
@@ -1350,6 +1353,7 @@ function testV26() {
     s.events.length = 0;
   }
   assert(hits >= 4, '유성이 떨어진다');
+  assert(s.mobs.every((m) => m.hp < m.max), '옆 몬스터도 맞는다 (유성 범위)');
   assert(s.s.skillCd.meteor > 0);
   s.useSkill('time');
   assert(s.timeT >= TG.P.timeStopSec);

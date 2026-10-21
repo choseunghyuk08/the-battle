@@ -570,7 +570,7 @@ button.back { appearance: none; width: 100%; border: 2px solid var(--line); back
 .landrule .lr-ev { flex-basis: 100%; color: var(--ink-2); font-size: 12px; }
 
 /* v2.3 HUD: 전투 화면 위 땅 태그 */
-.landtag { position: absolute; left: 4px; top: 4px; z-index: 2; pointer-events: none; display: grid; gap: 2px; max-width: 62%; font-size: 11px; line-height: 1.2; text-shadow: 0 1px 0 #0b0a18, 0 0 3px #0b0a18; }
+.landtag { position: absolute; left: 4px; top: 4px; z-index: 2; pointer-events: none; display: grid; gap: 2px; max-width: 62%; font-size: 11px; line-height: 1.2; text-shadow: 0 1px 0 #0b0a18, 0 0 3px #0b0a18; background: rgba(9, 10, 22, 0.62); border-radius: 6px; padding: 3px 6px 4px; }
 .landtag .lt1 { display: flex; align-items: center; gap: 6px; }
 .landtag .lt1 b { font-weight: 400; font-size: 12px; color: #ffe9a0; }
 .landtag .pips { display: inline-flex; gap: 2px; }

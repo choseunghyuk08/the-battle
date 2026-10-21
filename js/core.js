@@ -64,9 +64,11 @@
     /* 원정과 원정 유물 (v2.6) */
     tripOpen: 100, // 원정이 열리는 최고 스테이지
     meteorCd: 55,
-    timeCd: 70,
-    timeStopSec: 4, // 시간 정지: 몬스터가 멈추는 시간 (레벨마다 +0.1)
-    timeThrowK: 1.5, // 시간 정지 동안 던지는 속도 배율
+    meteorSplash: 0.5, // 유성이 떨어진 곳 옆 몬스터가 받는 피해 비율
+    meteorReach: 30, // 옆이라고 치는 거리
+    timeCd: 60,
+    timeStopSec: 5, // 시간 정지: 몬스터가 멈추는 시간 (레벨마다 +0.1)
+    timeThrowK: 2, // 시간 정지 동안 던지는 속도 배율
     sDoubleStep: 0.005, // 더블샷 확률
     sGiantStep: 0.04, // 거대·보스 피해
     sGuardStep: 0.015, // 받는 피해 감소 (최대 50%)
@@ -85,8 +87,8 @@
     towerHpC: 0.0002, // 1층 몬스터 체력 = 최고 스테이지 몬스터 체력 x 이 값
     towerHpGrow: 1.2, // 층마다 체력 배율
     towerBossK: 8, // 탑 보스 체력 = 보통 몬스터 x 이 값
-    towerAtkFrac: 0.04, // 1층 몬스터 한 대가 때리는 피해 = 주인공 최대 체력의 이만큼
-    towerAtkGrow: 1.06, // 층마다 공격 배율
+    towerAtkFrac: 0.02, // 1층 몬스터 한 대가 때리는 피해 = 주인공 최대 체력의 이만큼
+    towerAtkGrow: 1.05, // 층마다 공격 배율
     towerFloorTime: 45, // 한 층을 못 깨고 버틸 수 있는 시간
     towerHeal: 0.2, // 층을 깰 때마다 체력 회복 (최대 체력의 이만큼)
     towerBossEvery: 5, // 이 층마다 보스
@@ -202,6 +204,7 @@
     defendTime: 45, // 버텨야 하는 시간
     defendCd: 480, // 이기고 나서 다시 하기까지
     defendFailCd: 120, // 지고 나서
+    defendAtkFrac: 0.04, // 방어전 몬스터 한 대의 피해 = 주인공 최대 체력의 이만큼 (단계마다 x defendTierHp)
     defendRanks: 3, // 동시에 때리는 몬스터 수
     defendCap: 14, // 한 번에 필드에 있는 몬스터 수
     defendGap0: 0.9, // 몬스터가 나오는 간격 (처음 -> 끝)
@@ -327,9 +330,9 @@
     { id: 'map', trip: true, name: '원정 지도', v: (L) => Math.min(0.5, 0.04 * L), desc: (x) => `원정 시간 -${pct(x)}` },
   ];
   TG.TRIPS = [
-    { id: 'near', name: '가까운 탐험', sec: 1800, goldK: 40, ruby: 30, medals: 2, sapphire: 0, shards: 20, relic: 0.1 },
-    { id: 'far', name: '먼 탐험', sec: 7200, goldK: 200, ruby: 150, medals: 8, sapphire: 6, shards: 100, relic: 0.4 },
-    { id: 'grand', name: '큰 원정', sec: 28800, goldK: 800, ruby: 700, medals: 30, sapphire: 30, shards: 500, relic: 1 },
+    { id: 'near', name: '가까운 탐험', sec: 1800, goldRatio: 0.3, ruby: 20, medals: 2, sapphire: 0, shards: 20, relic: 0.1 },
+    { id: 'far', name: '먼 탐험', sec: 7200, goldRatio: 0.45, ruby: 90, medals: 8, sapphire: 6, shards: 100, relic: 0.4 },
+    { id: 'grand', name: '큰 원정', sec: 28800, goldRatio: 0.6, ruby: 400, medals: 30, sapphire: 30, shards: 500, relic: 1 },
   ];
   /* 지금 시각 (밀리초). 시험에서는 바꿔 끼운다 */
   TG.nowMs = () => Date.now();
@@ -573,7 +576,7 @@
     { id: 'skShadow', cur: 'ruby', name: '그림자 분신', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 100 : Math.ceil(15 * 1.45 ** L)), desc: (L) => (L ? `${Math.round((10 + 0.2 * (L - 1)) * 10) / 10}초 동안 분신이 같이 던져요 (피해 x${TG.fmtMult(0.5 + 0.03 * (L - 1))})` : '루비로 배워요. 분신이 나타나 같이 던져요') },
     { id: 'skBarrage', cur: 'ruby', name: '난사', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 100 : Math.ceil(15 * 1.45 ** L)), desc: (L) => (L ? `최고 물건 ${10 + 2 * (L - 1)}개를 순식간에 흩뿌려요 (x${TG.fmtMult(0.6 + 0.05 * (L - 1))})` : '루비로 배워요. 최고 물건을 마구 던져요') },
     { id: 'skBolt', cur: 'ruby', name: '뇌전', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 120 : Math.ceil(15 * 1.45 ** L)), desc: (L) => (L ? `번개 ${5 + Math.floor((L - 1) / 5)}줄기가 몬스터를 내리쳐요 (x${TG.fmtMult(1.5 + 0.08 * (L - 1))})` : '루비로 배워요. 하늘에서 번개가 내리쳐요') },
-    { id: 'skMeteor', cur: 'ruby', name: '유성 소환', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 300 : Math.ceil(25 * 1.45 ** L)), desc: (L) => (L ? `유성 ${4 + Math.floor((L - 1) / 6)}개가 차례로 몬스터를 때려요 (x${TG.fmtMult(2 + 0.1 * (L - 1))})` : '루비로 배워요. 하늘에서 유성이 떨어져요') },
+    { id: 'skMeteor', cur: 'ruby', name: '유성 소환', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 300 : Math.ceil(25 * 1.45 ** L)), desc: (L) => (L ? `유성 ${4 + Math.floor((L - 1) / 6)}개가 차례로 몬스터를 때려요 (x${TG.fmtMult(3 + 0.2 * (L - 1))}, 옆 몬스터는 절반)` : '루비로 배워요. 하늘에서 유성이 떨어져요') },
     { id: 'skTime', cur: 'ruby', name: '시간 정지', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 400 : Math.ceil(30 * 1.45 ** L)), desc: (L) => (L ? `${TG.fmtMult(P.timeStopSec + 0.1 * (L - 1))}초 동안 몬스터가 멈추고 던지는 속도가 ${TG.fmtMult(P.timeThrowK)}배예요 (보스는 느려져요)` : '루비로 배워요. 잠깐 시간이 멈춰요') },
     { id: 'skDark', cur: 'ruby', name: '어둠장막', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 120 : Math.ceil(15 * 1.45 ** L)), desc: (L) => (L ? `${Math.round((P.darkTime + 0.2 * (L - 1)) * 10) / 10}초 동안 몬스터가 절반 속도가 되고 피해를 ${pct(0.25 + 0.015 * (L - 1))} 더 받아요` : '루비로 배워요. 어둠이 내려 몬스터가 느려져요') },
     { id: 'pig', cur: 'ruby', tab: 'pet', name: '황금 돼지', max: 50, cost: (L) => (L >= 50 ? null : L === 0 ? 100 : Math.ceil(5 * 1.25 ** L)), desc: (L) => (L ? `골드 +${pct(PET.pigGold(L))}, 몬스터 ${PET.pigEvery(L)}마리마다 동전을 뿜어요 (x${Math.round(PET.pigShower(L) * 10) / 10})` : '루비로 데려와요. 골드를 더 벌게 하고 가끔 동전을 뿜어요') },
@@ -911,6 +914,10 @@
     }
     get abSlots() {
       return P.abSlotsAt.filter((x) => this.s.best >= x).length;
+    }
+    /* 최종 체력 보너스(사파이어, 껍질)를 빼고 센 체력. 방어전과 탑 몬스터의 때리는 힘 기준 (최종 체력이 곧바로 안 지워지게) */
+    get baseHp() {
+      return P.hpBase * (1 + P.goldHpPct * this.s.lv.hp + this.rv('bandage') + this.setPct('hp'));
     }
     get maxHp() {
       return Math.round(P.hpBase * (1 + P.goldHpPct * this.s.lv.hp + this.rv('bandage') + this.setPct('hp')) * (1 + P.sapHpPct * this.s.lv.fHp + P.sGuardHp * this.s.lv.sGuard));
@@ -1443,7 +1450,7 @@
     tripReward(tier) {
       const t = TG.TRIPS[tier];
       return {
-        gold: Math.ceil(P.mobGold(Math.max(1, this.s.best)) * t.goldK),
+        gold: Math.ceil(this.offlineGold(t.sec) * t.goldRatio),
         ruby: Math.round(t.ruby * this.rubyMult()),
         shards: Math.round(t.shards * (1 + this.rv('pouch'))),
         medals: t.medals,
@@ -1499,7 +1506,7 @@
     }
     /* 탑 몬스터의 한 대 피해: 주인공 체력에 비례한다 (몇 대 맞으면 쓰러지는지가 층으로 정해진다) */
     towerAtk(k = 1) {
-      return this.maxHp * P.towerAtkFrac * P.towerAtkGrow ** (this.towerF - 1) * k;
+      return this.baseHp * P.towerAtkFrac * P.towerAtkGrow ** (this.towerF - 1) * k;
     }
     /* 한 번에 던지는 피해 합 (필드의 모든 물건, 각성 기대값 포함) */
     volley() {
@@ -1547,7 +1554,7 @@
       const tr2 = TG.bossTrait2(k + 1);
       const tInit = (t) => (t ? (t.id === 'shield' ? P.bossShieldGap * 0.6 : t.id === 'charge' ? P.bossChargeGap * 0.5 : t.id === 'wall' ? P.bossWallGap * 0.5 : P.bossSummonGap * 0.5) : 0);
       const hp = this.towerHp(P.towerBossK);
-      this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind: kinds[k % kinds.length], pal: this.variant() + 2, x: P.spawnX + 6, hp, max: hp, atk: this.towerAtk(3), giant: true, boss: true, tower: true, trait: tr ? tr.id : null, trait2: tr2 ? tr2.id : null, tT: tInit(tr), tT2: tInit(tr2), state: 'walk', t: 0, atkT: 0, cd: 0, hurt: 0 });
+      this.mobs.push({ id: (this.mobId = (this.mobId || 0) + 1), kind: kinds[k % kinds.length], pal: this.variant() + 2, x: P.spawnX + 6, hp, max: hp, atk: this.towerAtk(2), giant: true, boss: true, tower: true, trait: tr ? tr.id : null, trait2: tr2 ? tr2.id : null, tT: tInit(tr), tT2: tInit(tr2), state: 'walk', t: 0, atkT: 0, cd: 0, hurt: 0 });
     }
     tickTower(dt) {
       this.towerT -= dt;
@@ -1963,7 +1970,7 @@
       } else if (id === 'meteor') {
         const L = this.s.lv.skMeteor;
         const n = 4 + Math.floor((L - 1) / 6);
-        this.meteor = { left: n, t: 0.35, gap: 1.1 / n, dmg: TG.tierAtk(top) * this.atkMult * (2 + 0.1 * (L - 1)) * this.starMult('meteor') };
+        this.meteor = { left: n, t: 0.35, gap: 1.1 / n, dmg: TG.tierAtk(top) * this.atkMult * (3 + 0.2 * (L - 1)) * this.starMult('meteor') };
         this.s.skillCd.meteor = this.skillCdOf('meteor');
       } else if (id === 'time') {
         const L = this.s.lv.skTime;
@@ -2000,7 +2007,10 @@
           const f = this.front();
           const m = f && this.rng() < 0.6 ? f : this.mobs[Math.floor(this.rng() * this.mobs.length)];
           this.events.push({ type: 'meteor-skill', x: m.x });
-          this.hitMob(m, this.meteor.dmg, { meteor: true });
+          const dmg = this.meteor.dmg;
+          const near = this.mobs.filter((o) => o !== m && Math.abs(o.x - m.x) <= P.meteorReach);
+          this.hitMob(m, dmg, { meteor: true });
+          for (const o of near) if (this.mobs.includes(o)) this.hitMob(o, dmg * P.meteorSplash, { meteor: true });
           if (!this.meteor) break;
           this.meteor.left--;
           this.meteor.t += this.meteor.gap;
@@ -2138,7 +2148,7 @@
         x: P.spawnX + (giant ? 10 : 0),
         hp,
         max: hp,
-        atk: tw ? this.towerAtk(giant ? 2 : 1) : P.mobAtk(n) * (giant ? 2 : 1) * dm,
+        atk: tw ? this.towerAtk(giant ? 2 : 1) : this.mode === 'defend' ? this.baseHp * P.defendAtkFrac * dm * (giant ? 2 : 1) : P.mobAtk(n) * (giant ? 2 : 1) * dm,
         giant,
         state: 'walk',
         t: this.rng(),
