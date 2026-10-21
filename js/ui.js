@@ -679,7 +679,7 @@
     return el('div', { class: 'seg' }, [
       el('button', { type: 'button', class: seg === 'quest' ? 'on' : '', text: '임무', onclick: () => { ui.questSeg = 'quest'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'dex' ? 'on' : '', text: '물건', onclick: () => { ui.questSeg = 'dex'; buildQuest(); } }),
-      el('button', { type: 'button', class: seg === 'boss' ? 'on' : '', text: '보스', onclick: () => { ui.questSeg = 'boss'; buildQuest(); } }),
+      el('button', { type: 'button', class: seg === 'boss' ? 'on' : '', text: '몬스터', onclick: () => { ui.questSeg = 'boss'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'tower' ? 'on' : '', text: '도전', onclick: () => { ui.questSeg = 'tower'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'land' ? 'on' : '', text: '땅', onclick: () => { ui.questSeg = 'land'; buildQuest(); } }),
       el('button', { type: 'button', class: seg === 'title' ? 'on' : '', text: '칭호', onclick: () => { ui.questSeg = 'title'; buildQuest(); } }),
@@ -1039,6 +1039,42 @@
   }
 
   /* ---- 보스 도감: 이긴 보스와 다음 보스 ---- */
+  /* 몬스터 도감: 땅마다 종을 늘어놓고 처치 수로 별 셋 */
+  function mobDexView() {
+    const game = ui.game;
+    const wrap = el('div', {});
+    const goals = TG.DEX_GOALS;
+    TG.THEMES.forEach((th, i) => {
+      const done = game.dexLandDone(i);
+      wrap.append(
+        el('p', { class: `dexland${done ? ' done' : ''}`, text: `${i + 1}페이즈 · ${th.name}${done ? ` · 완성 합산 공격력 +${Math.round(P.dexLandPct * 100)}%` : ''}` }),
+      );
+      const row = el('div', { class: 'mobdex' });
+      for (const kind of th.mobs) {
+        const def = TG.SPR.mob[kind] || TG.SPR.mob.slime;
+        const n = game.s.dex[kind] || 0;
+        const gr = game.dexGrade(kind);
+        const cv = spriteCanvas(def, 'idle', 0, 0);
+        if (!n) {
+          const x = cv.getContext('2d');
+          x.globalCompositeOperation = 'source-in';
+          x.fillStyle = '#0c0d1c';
+          x.fillRect(0, 0, cv.width, cv.height);
+        }
+        const next = goals[gr];
+        row.append(
+          el('div', { class: `md${n ? '' : ' unseen'}` }, [
+            cv,
+            el('b', { text: n ? def.name || kind : '???' }),
+            el('span', { class: 'st', text: `${'★'.repeat(gr)}${'☆'.repeat(goals.length - gr)}` }),
+            el('small', { text: n ? (next ? `${TG.fmt(n)} / ${TG.fmt(next)}` : `${TG.fmt(n)}마리`) : '아직 못 만났어요' }),
+          ]),
+        );
+      }
+      wrap.append(row);
+    });
+    return wrap;
+  }
   function buildBossDex() {
     const game = ui.game;
     const list = el('div', {});
@@ -1055,7 +1091,14 @@
         ]),
       );
     }
-    $('#sheetBody').replaceChildren(questSeg(), el('p', { class: 'note', text: `이긴 보스 ${game.s.boss - 1}명. 둘째 보스부터 특성이 붙고, 아홉째부터는 둘씩 붙어요.` }), list);
+    $('#sheetBody').replaceChildren(
+      questSeg(),
+      el('p', { class: 'note', text: `몬스터 ${TG.MOB_KINDS.length}종 중 별 ${game.dexStars()}/${TG.MOB_KINDS.length * TG.DEX_GOALS.length}개. 종마다 ${TG.DEX_GOALS.map((g) => TG.fmt(g)).join(', ')}마리를 잡으면 별이 하나씩 붙고, 별마다 합산 공격력 +${(P.dexPct * 100).toFixed(1)}%예요. 지금 합산 +${(game.dexPctNow() * 100).toFixed(1)}%.` }),
+      mobDexView(),
+      el('p', { class: 'sec', text: '보스' }),
+      el('p', { class: 'note', text: `이긴 보스 ${game.s.boss - 1}명. 둘째 보스부터 특성이 붙고, 아홉째부터는 둘씩 붙어요.` }),
+      list,
+    );
   }
 
   /* ---- 특수능력 ---- */
@@ -1599,6 +1642,12 @@
           toast(null, e.record ? `탑 ${e.f}층 · 새 기록` : `탑 ${e.f}층에서 끝`, `루비 +${e.ruby}${e.sapphire ? `, 사파이어 +${e.sapphire}` : ''}${e.medals ? `, 메달 +${e.medals}` : ''}`);
           sfx.clear();
           if (ui.sheet === 'quest' && ui.questSeg === 'tower') buildTower();
+          break;
+        case 'dex':
+          if (e.grade > 0) {
+            const def = TG.SPR.mob[e.kind] || TG.SPR.mob.slime;
+            toast(null, `몬스터 도감 · ${def.name || e.kind}`, `${'★'.repeat(e.grade)}${'☆'.repeat(TG.DEX_GOALS.length - e.grade)} 합산 공격력 +${(P.dexPct * 100).toFixed(1)}%`);
+          }
           break;
         case 'land-enter': {
           const r = TG.LAND_RULES[e.i];

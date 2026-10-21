@@ -69,6 +69,8 @@
     timeCd: 60,
     timeStopSec: 5, // 시간 정지: 몬스터가 멈추는 시간 (레벨마다 +0.1)
     timeThrowK: 2, // 시간 정지 동안 던지는 속도 배율
+    dexPct: 0.002, // 몬스터 도감: 별 하나마다 합산 공격력
+    dexLandPct: 0.01, // 한 땅의 몬스터가 전부 별 셋이면 합산 공격력
     sDoubleStep: 0.005, // 더블샷 확률
     sGiantStep: 0.04, // 거대·보스 피해
     sGuardStep: 0.015, // 받는 피해 감소 (최대 50%)
@@ -356,6 +358,7 @@
     { id: 'sapphire', name: '사파이어 모으기', unit: '개', stat: (g) => g.s.stats.sapphire, goals: [10, 50, 200, 500, 1500, 5000] },
     { id: 'defends', name: '방어전 승리', unit: '번', stat: (g) => g.s.stats.defends, goals: [1, 5, 20, 50, 100] },
     { id: 'fuses', name: '유물 합성', unit: '번', stat: (g) => g.s.stats.fuses, goals: [1, 5, 15, 40] },
+    { id: 'dex', name: '몬스터 도감', unit: '개', stat: (g) => g.dexStars(), goals: [3, 10, 25, 45, 70, 100, 111] },
     { id: 'engraves', name: '각인 새기기', unit: '번', stat: (g) => g.s.stats.engraves, goals: [1, 5, 20, 60] },
   ];
   TG.achRuby = (tier) => ACH_RUBY[Math.min(tier, ACH_RUBY.length - 1)];
@@ -538,6 +541,7 @@
     { id: 'sets5', name: '모으는 손', cond: '세트 5개', ok: (g) => g.setDone.filter(Boolean).length >= 5 },
     { id: 'setsAll', name: '다 갖춘 이', cond: '세트 15개 전부', ok: (g) => g.setAll },
     { id: 'blue', name: '푸른 눈', cond: '사파이어 500개 모으기', ok: (g) => g.s.stats.sapphire >= 500 },
+    { id: 'dexLand', name: '이웃을 아는 이', cond: '땅 하나의 몬스터를 전부 별 셋', ok: (g) => TG.THEMES.some((_, i) => g.dexLandDone(i)) },
     { id: 'tree', name: '가지를 뻗은 이', cond: '사파이어 가지 네 갈래 5레벨', ok: (g) => ['fAtk', 'fHp', 'sGold', 'sSpeed'].every((k) => g.s.lv[k] >= 5) },
   ];
 
@@ -627,6 +631,10 @@
     { id: 'abyss', name: '심연', mobs: ['shade', 'eyeling', 'tendril'] },
   ];
 
+  /* 몬스터 도감: 종마다 처치 수로 별 셋 (보스, 졸개, 광산 바위는 세지 않는다) */
+  TG.DEX_GOALS = [100, 1000, 10000];
+  TG.MOB_KINDS = TG.THEMES.flatMap((th) => th.mobs);
+
   /* 던질 것 도감 세트: 범위의 물건을 다 찾으면 종류별 보너스 (atk 합산 공격, gold 골드, hp 체력) */
   TG.ITEM_SETS = [
     { id: 'kitchen', name: '집어 든 것들', from: 1, to: 10, kind: 'gold' },
@@ -706,6 +714,7 @@
     costumeBought: {}, // 메달로 산 코스튬
     trip: { tier: -1, start: 0, runs: 0 }, // 원정: 떠난 종류(-1이면 없음), 떠난 시각(ms), 다녀온 횟수
     tower: { best: 0, day: 0, used: 0, runs: 0 }, // 끝없는 탑: 최고 층, 오늘 오른 횟수
+    dex: {}, // 몬스터 종 -> 처치 수
     lands: {}, // 페이즈 번호 -> 첫 도착 선물을 받았는지
     abEquip: [], // 장착한 특수능력
     ore: 0, // 철광석 (광산에서 얻고 동료 진화에 쓴다)
@@ -776,6 +785,7 @@
         this.s.trip = { tier: Math.max(-1, Math.min(TG.TRIPS.length - 1, Math.floor(Number((save.trip || {}).tier)))) , start: Math.max(0, Number((save.trip || {}).start) || 0), runs: Math.max(0, Math.floor(Number((save.trip || {}).runs) || 0)) };
         if (!Number.isFinite(this.s.trip.tier)) this.s.trip.tier = -1;
         this.s.tower = { best: Math.max(0, Math.floor(Number((save.tower || {}).best) || 0)), day: Math.max(0, Math.floor(Number((save.tower || {}).day) || 0)), used: Math.max(0, Math.floor(Number((save.tower || {}).used) || 0)), runs: Math.max(0, Math.floor(Number((save.tower || {}).runs) || 0)) };
+        this.s.dex = Object.fromEntries(TG.MOB_KINDS.map((k) => [k, Math.max(0, Math.floor(Number((save.dex || {})[k]) || 0))]).filter(([, v]) => v > 0));
         this.s.lands = Object.fromEntries(Object.keys(save.lands || {}).filter((k) => (save.lands || {})[k] && +k >= 2 && +k <= TG.THEMES.length).map((k) => [k, true]));
         const shop = save.shop && Array.isArray(save.shop.offers) ? save.shop : { offers: [], t: 0 };
         this.s.shop = { offers: shop.offers.filter((o) => o && o.tier >= 1 && o.tier <= P.tiers).map((o) => ({ tier: Math.floor(o.tier), sold: !!o.sold })), t: Number(shop.t) || 0 };
@@ -842,7 +852,7 @@
     /* 합산 %: 골드, 루비, 유물, 엔진, 칭호를 한 데 더한다 */
     get atkPool() {
       const L = this.s.lv;
-      return 1 + P.goldAtkPct * L.atk + P.rubyAtkPct * L.rAtk + this.rv('glove') + this.rv('crown') + P.enginePct * L.carEngine + P.titleBonus * this.titlesOwned + this.setPct('atk');
+      return 1 + P.goldAtkPct * L.atk + P.rubyAtkPct * L.rAtk + this.rv('glove') + this.rv('crown') + P.enginePct * L.carEngine + P.titleBonus * this.titlesOwned + this.setPct('atk') + this.dexPctNow();
     }
     get titlesOwned() {
       return this.titleCount;
@@ -897,6 +907,22 @@
       const st = TG.ITEM_SETS[i];
       let n = 0;
       for (let t = st.from; t <= st.to; t++) if (this.s.seen[t]) n++;
+      return n;
+    }
+    dexGrade(kind) {
+      const n = this.s.dex[kind] || 0;
+      return TG.DEX_GOALS.filter((g) => n >= g).length;
+    }
+    dexStars() {
+      return TG.MOB_KINDS.reduce((a, k) => a + this.dexGrade(k), 0);
+    }
+    /* 한 땅의 몬스터가 전부 별 셋인지 */
+    dexLandDone(i) {
+      return TG.THEMES[i].mobs.every((k) => this.dexGrade(k) >= TG.DEX_GOALS.length);
+    }
+    dexPctNow() {
+      let n = this.dexStars() * P.dexPct;
+      for (let i = 0; i < TG.THEMES.length; i++) if (this.dexLandDone(i)) n += P.dexLandPct;
       return n;
     }
     setPct(kind) {
@@ -2382,6 +2408,13 @@
         this.events.push({ type: 'ore', x: m.x, n: got });
         this.spawnOre(P.oreX0 + P.oreSlots * P.oreGap);
         return;
+      }
+      if (!m.boss && !m.minion && TG.MOB_KINDS.includes(m.kind)) {
+        const before = this.dexGrade(m.kind);
+        this.s.dex[m.kind] = (this.s.dex[m.kind] || 0) + 1;
+        const after = this.dexGrade(m.kind);
+        if (after > before) this.events.push({ type: 'dex', kind: m.kind, grade: after });
+        else if (this.s.dex[m.kind] === 1) this.events.push({ type: 'dex', kind: m.kind, grade: 0 });
       }
       const gold = Math.ceil(P.mobGold(n) * (m.giant ? P.giantGold : 1) * this.goldMult);
       this.s.gold += gold;

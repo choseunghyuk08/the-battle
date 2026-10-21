@@ -1365,6 +1365,48 @@ function testV26() {
   assert.strictEqual(s2.s.lv.skTime, 1);
   assert('meteor' in s2.s.skStar && 'time' in s2.s.skillCd);
 }
+function testV28() {
+  /* 몬스터 도감: 처치 수로 별이 붙고 합산 공격력이 오른다 */
+  const g = new TG.Game(null, seeded(280));
+  assert.strictEqual(TG.MOB_KINDS.length, 37);
+  const kill = (kind, extra = {}) => {
+    const m = { id: g.mobId = (g.mobId || 0) + 1, kind, hp: 1, max: 1, atk: 1, x: 100, giant: false, state: 'idle', cd: 9, t: 0, atkT: 0, hurt: 0, ...extra };
+    g.mobs.push(m);
+    g.killMob(m);
+    g.events.length = 0;
+  };
+  const atk0 = g.atkPool;
+  for (let i = 0; i < 99; i++) kill('slime');
+  assert.strictEqual(g.dexGrade('slime'), 0);
+  g.mobs = [];
+  kill('slime');
+  assert.strictEqual(g.s.dex.slime, 100);
+  assert.strictEqual(g.dexGrade('slime'), 1);
+  assert(Math.abs(g.atkPool - atk0 - TG.P.dexPct) < 1e-9, '별 하나에 +0.2%');
+  kill('slime', { boss: true });
+  kill('slime', { minion: true });
+  assert.strictEqual(g.s.dex.slime, 100, '보스와 졸개는 안 센다');
+  g.s.dex.slime = 10000;
+  assert.strictEqual(g.dexGrade('slime'), 3);
+  assert.strictEqual(g.dexLandDone(0), false);
+  for (const k of TG.THEMES[0].mobs) g.s.dex[k] = 10000;
+  assert.strictEqual(g.dexLandDone(0), true);
+  assert(Math.abs(g.dexPctNow() - (4 * 3 * TG.P.dexPct + TG.P.dexLandPct)) < 1e-9, '땅 하나 완성');
+  assert.strictEqual(g.dexStars(), 12);
+  assert.strictEqual(g.achState('dex').have, 12);
+  g.refreshTitles(true);
+  assert.strictEqual(TG.TITLES.find((t) => t.id === 'dexLand').ok(g), true);
+  /* 저장 */
+  const g2 = new TG.Game(JSON.parse(JSON.stringify(g.snapshot())), seeded(281));
+  assert.strictEqual(g2.s.dex.slime, 10000);
+  assert.strictEqual(g2.dexStars(), 12);
+  /* 모르는 종은 저장에서 걸러진다 */
+  const bad = JSON.parse(JSON.stringify(g.snapshot()));
+  bad.dex.ghostly = 5;
+  bad.dex.slime = -3;
+  const g3 = new TG.Game(bad, seeded(282));
+  assert(!('ghostly' in g3.s.dex) && !g3.s.dex.slime);
+}
 function testV12() {
   /* 150단계까지 이름이 있고, 150 을 둘 합치면 별이 붙는다 (151 = ★1) */
   assert.strictEqual(TG.ITEMS.length, 150);
@@ -1588,6 +1630,7 @@ if (process.argv.includes('--pace')) {
   testV22();
   testV25();
   testV26();
+  testV28();
   testStory();
   console.log('\nall tests passed');
 }
