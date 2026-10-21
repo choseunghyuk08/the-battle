@@ -316,13 +316,21 @@
   const ACH_RUBY = [5, 10, 20, 35, 60, 100, 150, 220, 300];
   TG.ACHIEVE = [
     { id: 'kills', name: '몬스터 사냥', unit: '마리', stat: (g) => g.s.stats.kills, goals: [50, 500, 2000, 10000, 50000, 200000, 1000000] },
-    { id: 'stage', name: '멀리 가기', unit: '스테이지', stat: (g) => g.s.best, goals: [10, 25, 50, 100, 150, 200, 300, 400, 500] },
+    { id: 'stage', name: '멀리 가기', unit: '스테이지', stat: (g) => g.s.best, goals: [10, 25, 50, 100, 150, 200, 300, 400, 500, 750, 1000, 1500, 2000, 3000, 4000, 6000, 8000] },
     { id: 'merges', name: '합치기', unit: '번', stat: (g) => g.s.stats.merges, goals: [20, 200, 1000, 5000, 20000, 100000] },
     { id: 'found', name: '물건 찾기', unit: '단계', stat: (g) => g.s.seen.slice(0, 151).filter(Boolean).length, goals: [5, 10, 15, 20, 25, 30, 40, 50, 60, 75, 90, 120, 150] },
     { id: 'boss', name: '보스 사냥', unit: '번', stat: (g) => g.s.boss - 1, goals: [1, 5, 10, 20, 40, 80, 150] },
     { id: 'ore', name: '광부', unit: '개', stat: (g) => g.s.stats.ore, goals: [10, 100, 500, 2000, 10000] },
     { id: 'pets', name: '동료 모으기', unit: '점', stat: (g) => Object.values(g.s.stars).reduce((a, b) => a + b, 0) + ['monkey', 'hippo', 'bear', 'dragon', 'pig', 'mole'].filter((k) => g.s.lv[k]).length, goals: [1, 2, 4, 8, 12, 16, 24, 32] },
     { id: 'pulls', name: '보물 사냥꾼', unit: '번', stat: (g) => g.s.stats.pulls, goals: [1, 10, 50, 100, 200] },
+    { id: 'tower', name: '탑 오르기', unit: '층', stat: (g) => g.s.tower.best, goals: [5, 10, 20, 30, 45, 60, 80, 100] },
+    { id: 'towerRuns', name: '탑 도전', unit: '번', stat: (g) => g.s.tower.runs, goals: [1, 5, 15, 40, 100] },
+    { id: 'sets', name: '세트 모으기', unit: '개', stat: (g) => g.setDone.filter(Boolean).length, goals: [1, 3, 5, 8, 11, 15] },
+    { id: 'lands', name: '땅 둘러보기', unit: '곳', stat: (g) => Math.min(TG.THEMES.length, TG.phaseOf(g.s.best).p), goals: [2, 4, 6, 8, 10, 12] },
+    { id: 'sapphire', name: '사파이어 모으기', unit: '개', stat: (g) => g.s.stats.sapphire, goals: [10, 50, 200, 500, 1500, 5000] },
+    { id: 'defends', name: '방어전 승리', unit: '번', stat: (g) => g.s.stats.defends, goals: [1, 5, 20, 50, 100] },
+    { id: 'fuses', name: '유물 합성', unit: '번', stat: (g) => g.s.stats.fuses, goals: [1, 5, 15, 40] },
+    { id: 'engraves', name: '각인 새기기', unit: '번', stat: (g) => g.s.stats.engraves, goals: [1, 5, 20, 60] },
   ];
   TG.achRuby = (tier) => ACH_RUBY[Math.min(tier, ACH_RUBY.length - 1)];
 
@@ -498,6 +506,13 @@
     { id: 'engrave', name: '새기는 사람', cond: '각인 3칸 모두', ok: (g) => g.s.eng.filter(Boolean).length >= 3 },
     { id: 'ice', name: '빙하 건너기', cond: '스테이지 513 (빙하)', ok: (g) => g.s.best >= 513, costume: 5 },
     { id: 'lord', name: '고요 깬 이', cond: '스테이지 1537 (군주)', ok: (g) => g.s.best >= 1537, costume: 7 },
+    { id: 'tower10', name: '탑 첫걸음', cond: '끝없는 탑 10층', ok: (g) => g.s.tower.best >= 10 },
+    { id: 'tower40', name: '탑을 오르는 이', cond: '끝없는 탑 40층', ok: (g) => g.s.tower.best >= 40 },
+    { id: 'tower100', name: '끝없는 계단', cond: '끝없는 탑 100층', ok: (g) => g.s.tower.best >= 100 },
+    { id: 'sets5', name: '모으는 손', cond: '세트 5개', ok: (g) => g.setDone.filter(Boolean).length >= 5 },
+    { id: 'setsAll', name: '다 갖춘 이', cond: '세트 15개 전부', ok: (g) => g.setAll },
+    { id: 'blue', name: '푸른 눈', cond: '사파이어 500개 모으기', ok: (g) => g.s.stats.sapphire >= 500 },
+    { id: 'tree', name: '가지를 뻗은 이', cond: '사파이어 가지 네 갈래 5레벨', ok: (g) => ['fAtk', 'fHp', 'sGold', 'sSpeed'].every((k) => g.s.lv[k] >= 5) },
   ];
 
   /* 강화 목록. cost(L) 은 L 레벨에서 L+1 레벨로 올리는 값이고, 끝이면 null */

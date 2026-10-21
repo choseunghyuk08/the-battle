@@ -1231,6 +1231,35 @@ function testV22() {
   g.mode = 'tower';
   assert.strictEqual(g.mode === 'stage' || g.mode === 'boss', false);
 }
+function testV25() {
+  /* 새 업적과 칭호: 탑, 세트, 땅, 사파이어 */
+  const g = new TG.Game(null, seeded(250));
+  const ids = TG.ACHIEVE.map((a) => a.id);
+  for (const id of ['tower', 'towerRuns', 'sets', 'lands', 'sapphire', 'defends', 'fuses', 'engraves']) assert(ids.includes(id), id);
+  assert.strictEqual(new Set(ids).size, ids.length, '업적 이름 겹침 없음');
+  assert.strictEqual(g.achState('tower').ready, false);
+  g.s.tower.best = 12;
+  g.s.tower.runs = 1;
+  assert.strictEqual(g.achState('tower').ready, true, '탑 5층 목표');
+  assert.strictEqual(g.achState('towerRuns').ready, true);
+  const r0 = g.s.ruby;
+  g.claim('tower');
+  assert(g.s.ruby > r0, '루비 받음');
+  g.s.best = 600;
+  assert.strictEqual(g.achState('lands').have, 5);
+  assert(TG.ACHIEVE.find((a) => a.id === 'stage').goals.length > 9, '스테이지 목표가 늘었다');
+  for (const a of TG.ACHIEVE) assert(a.goals.every((v, i) => i === 0 || v > a.goals[i - 1]), `목표가 늘어난다 ${a.id}`);
+  g.refreshTitles(true);
+  const have = (id) => TG.TITLES.find((t) => t.id === id).ok(g);
+  assert.strictEqual(have('tower10'), true);
+  assert.strictEqual(have('tower40'), false);
+  g.s.tower.best = 100;
+  assert.strictEqual(have('tower100'), true);
+  assert.strictEqual(have('setsAll'), false);
+  for (const k of ['fAtk', 'fHp', 'sGold', 'sSpeed']) g.s.lv[k] = 5;
+  assert.strictEqual(have('tree'), true);
+  assert(new Set(TG.TITLES.map((t) => t.id)).size === TG.TITLES.length, '칭호 이름 겹침 없음');
+}
 function testV12() {
   /* 150단계까지 이름이 있고, 150 을 둘 합치면 별이 붙는다 (151 = ★1) */
   assert.strictEqual(TG.ITEMS.length, 150);
@@ -1452,6 +1481,7 @@ if (process.argv.includes('--pace')) {
   testV20();
   testV21();
   testV22();
+  testV25();
   testStory();
   console.log('\nall tests passed');
 }
