@@ -924,7 +924,7 @@
     const t = game.s.trip;
     const open = game.tripOpen();
     const box = el('div', { class: 'sto trip' });
-    box.append(el('div', { class: 'nm', text: `원정${t.runs ? ` · 다녀온 횟수 ${t.runs}` : ''}` }));
+    box.append(el('div', { class: 'nm' }, [uiIcon('trip'), ` 원정${t.runs ? ` · 다녀온 횟수 ${t.runs}` : ''}`]));
     if (!open) {
       box.append(el('div', { class: 'ln', text: `최고 스테이지 ${P.tripOpen}부터 열려요.` }));
     } else if (game.tripActive()) {
