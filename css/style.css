@@ -487,6 +487,8 @@ button { font-family: inherit; color: inherit; }
 .sto { display: grid; grid-template-columns: 1fr auto; gap: 4px 8px; align-items: center; background: var(--panel-2); border: 2px solid var(--line); border-radius: 8px; padding: 8px; margin-bottom: 6px; }
 .sto .nm { font-size: 15px; }
 .sto .ln { font-size: 12px; color: var(--ink-2); grid-column: 1; }
+.codex .sto { grid-template-columns: 1fr; }
+.sto .ln.cx { font-size: 13px; line-height: 1.55; }
 .sto button { grid-row: 1 / span 2; grid-column: 2; appearance: none; border: 0; border-radius: 8px; padding: 7px 12px; font: inherit; font-size: 14px; background: var(--gold); box-shadow: 0 3px 0 #9a7a20; color: #2a1e06; cursor: pointer; }
 .sto.none { opacity: 0.45; }
 .sto.none button { display: none; }

@@ -1515,6 +1515,13 @@ function testStory() {
     for (const [who, text] of b.lines) assert(TG.STORY_WHO[who] && text.length > 0, `${b.id} ${who}`);
   }
   for (const p of TG.COMIC) for (const [who] of p.caps) assert(TG.STORY_WHO[who], who);
+  /* 코덱스: 처음 네 개는 열려 있고, 조건이 있는 것은 계기 뒤에 열린다 */
+  const cg = new TG.Game(null, seeded(62));
+  cg.finishIntro();
+  assert(TG.CODEX.slice(0, 5).every((c) => c.on(cg)), '기본 코덱스는 열려 있다');
+  assert(!TG.CODEX.find((c) => c.id === 'lord').on(cg) && !TG.CODEX.find((c) => c.id === 'sapphire').on(cg));
+  cg.story('sapphire1');
+  assert(TG.CODEX.find((c) => c.id === 'sapphire').on(cg), '사파이어 이야기를 보면 코덱스가 열린다');
   console.log('story ok');
 }
 

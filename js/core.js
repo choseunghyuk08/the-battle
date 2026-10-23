@@ -1470,6 +1470,7 @@
       this.s.trip.tier = tier;
       this.s.trip.start = TG.nowMs();
       this.events.push({ type: 'trip-start', tier });
+      this.story('trip1');
       return true;
     }
     /* 보상 미리 보기 (골드는 지금 최고 스테이지 기준) */
@@ -1561,6 +1562,7 @@
       this.towerGap = 0;
       this.towerClear = 0;
       this.startStage();
+      this.story('tower1');
       return true;
     }
     /* 층 몬스터를 줄 세운다: 보통 둘과 거대 하나, 5층마다 보스 */
@@ -2423,6 +2425,7 @@
         this.s.sapphire++;
         this.s.stats.sapphire++;
         this.events.push({ type: 'sapphire', x: m.x });
+        this.story('sapphire1');
       }
       if (this.mode === 'defend') this.defendKills++;
       if (this.s.lv.pig) this.pets.pig.k++;

@@ -825,8 +825,16 @@
         ]),
       );
     }
+    const codex = el('div', { class: 'codex' });
+    for (const c of TG.CODEX) {
+      const open = c.on(game);
+      codex.append(el('div', { class: `sto${open ? '' : ' none'}` }, [el('div', { class: 'nm', text: open ? c.title : '???' }), el('div', { class: 'ln cx', text: open ? c.text : '더 가 보면 알게 돼요' })]));
+    }
     body.replaceChildren(
       questSeg(),
+      el('p', { class: 'note', text: '세계 이야기' }),
+      codex,
+      el('p', { class: 'note', text: '장면 다시 보기' }),
       el('div', { class: 'sto' }, [el('div', { class: 'nm', text: '프롤로그 만화' }), el('div', { class: 'ln', text: '세계가 왜 고요해졌는지' }), el('button', { type: 'button', text: '다시 보기', onclick: () => { closeSheet(); openComic(); } })]),
       list,
     );
